@@ -108,6 +108,9 @@ type FunctionConfig struct {
 	// === Event Source Mappings ===
 	EventSourceMappings []EventSourceMappingConfig `json:"eventSourceMappings,omitempty"`
 
+	// === Aliases ===
+	Aliases []AliasConfig `json:"aliases,omitempty"`
+
 	// === HTTP Routing (API Gateway integration) ===
 	HTTPRouting *HTTPRoutingConfig `json:"httpRouting,omitempty"`
 
@@ -399,6 +402,19 @@ type FilterPattern struct {
 // ScalingConfig for SQS event source scaling
 type ScalingConfig struct {
 	MaximumConcurrency int `json:"maximumConcurrency"` // 2-1000
+}
+
+// AliasConfig for Lambda function aliases
+type AliasConfig struct {
+	Name            string                  `json:"name"`
+	Description     string                  `json:"description,omitempty"`
+	FunctionVersion string                  `json:"functionVersion,omitempty"` // Defaults to $LATEST if not specified
+	RoutingConfig   *AliasRoutingConfig     `json:"routingConfig,omitempty"`   // For weighted routing
+}
+
+// AliasRoutingConfig for weighted routing between versions
+type AliasRoutingConfig struct {
+	AdditionalVersionWeights map[string]float64 `json:"additionalVersionWeights"` // version -> weight (0.0-1.0)
 }
 
 // SourceAccessConfiguration for Kafka authentication

@@ -16,6 +16,7 @@ import (
 	"github.com/lewis/forge/internal/lingon/aws/aws_cloudwatch_log_group"
 	"github.com/lewis/forge/internal/lingon/aws/aws_dynamodb_table"
 	"github.com/lewis/forge/internal/lingon/aws/aws_iam_role"
+	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_alias"
 	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_event_source_mapping"
 	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_function"
 	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_permission"
@@ -32,6 +33,7 @@ type LambdaFunctionResources struct {
 	LogGroup            *aws_cloudwatch_log_group.Resource
 	Permissions         []terra.Resource
 	EventSourceMappings []*aws_lambda_event_source_mapping.Resource
+	Aliases             []*aws_lambda_alias.Resource
 }
 
 // APIGatewayResources contains all Terraform resources for API Gateway
@@ -311,6 +313,48 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 		}
 
 		resources.EventSourceMappings = append(resources.EventSourceMappings, mapping)
+	}
+
+	// Create aliases
+	resources.Aliases = make([]*aws_lambda_alias.Resource, 0, len(config.Aliases))
+	for _, aliasConfig := range config.Aliases {
+		aliasName := fmt.Sprintf("%s-%s", functionName, aliasConfig.Name)
+
+		aliasArgs := aws_lambda_alias.Args{
+			Name:         terra.String(aliasConfig.Name),
+			FunctionName: resources.Function.Attributes().Arn(),
+		}
+
+		// Function version - defaults to $LATEST if not specified
+		if aliasConfig.FunctionVersion != "" {
+			aliasArgs.FunctionVersion = terra.String(aliasConfig.FunctionVersion)
+		} else {
+			aliasArgs.FunctionVersion = terra.String("$LATEST")
+		}
+
+		// Description
+		if aliasConfig.Description != "" {
+			aliasArgs.Description = terra.String(aliasConfig.Description)
+		}
+
+		// Routing configuration for weighted traffic splitting
+		if aliasConfig.RoutingConfig != nil && len(aliasConfig.RoutingConfig.AdditionalVersionWeights) > 0 {
+			// Convert float64 weights to map of NumberValue (0.0-1.0 becomes 0-100 for AWS)
+			weightsMap := make(map[string]terra.NumberValue)
+			for version, weight := range aliasConfig.RoutingConfig.AdditionalVersionWeights {
+				weightsMap[version] = terra.Number(int(weight * 100))
+			}
+			aliasArgs.RoutingConfig = &aws_lambda_alias.RoutingConfig{
+				AdditionalVersionWeights: terra.Map(weightsMap),
+			}
+		}
+
+		alias := &aws_lambda_alias.Resource{
+			Name: aliasName,
+			Args: aliasArgs,
+		}
+
+		resources.Aliases = append(resources.Aliases, alias)
 	}
 
 	return resources, nil
