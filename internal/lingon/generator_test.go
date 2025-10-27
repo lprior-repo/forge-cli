@@ -703,3 +703,78 @@ func TestExportToTerraform(t *testing.T) {
 		assert.Contains(t, string(code), "provider \"aws\"")
 	})
 }
+
+// TestGenerateStackWithAPIGateway tests stack generation with API Gateway
+func TestGenerateStackWithAPIGateway(t *testing.T) {
+	t.Run("generates stack with API Gateway", func(t *testing.T) {
+		config := ForgeConfig{
+			Service: "test-service",
+			Provider: ProviderConfig{
+				Region: "us-east-1",
+			},
+			Functions: map[string]FunctionConfig{
+				"hello": {
+					Handler: "index.handler",
+					Runtime: "nodejs20.x",
+					Source: SourceConfig{
+						Path: "./src",
+					},
+					HTTPRouting: &HTTPRoutingConfig{
+						Path:   "/hello",
+						Method: "GET",
+					},
+				},
+			},
+			APIGateway: &APIGatewayConfig{
+				Name:         "test-api",
+				ProtocolType: "HTTP",
+			},
+		}
+
+		stack, err := generateStack(config)
+
+		require.NoError(t, err)
+		assert.NotNil(t, stack.APIGateway)
+	})
+
+	t.Run("generates stack with multiple tables", func(t *testing.T) {
+		config := ForgeConfig{
+			Service: "test-service",
+			Provider: ProviderConfig{
+				Region: "us-east-1",
+			},
+			Functions: map[string]FunctionConfig{
+				"hello": {
+					Handler: "index.handler",
+					Runtime: "nodejs20.x",
+					Source: SourceConfig{
+						Path: "./src",
+					},
+				},
+			},
+			Tables: map[string]TableConfig{
+				"users": {
+					BillingMode: "PAY_PER_REQUEST",
+					HashKey:     "userId",
+					Attributes: []AttributeDefinition{
+						{Name: "userId", Type: "S"},
+					},
+				},
+				"orders": {
+					BillingMode: "PAY_PER_REQUEST",
+					HashKey:     "orderId",
+					Attributes: []AttributeDefinition{
+						{Name: "orderId", Type: "S"},
+					},
+				},
+			},
+		}
+
+		stack, err := generateStack(config)
+
+		require.NoError(t, err)
+		assert.Len(t, stack.Tables, 2)
+		assert.Contains(t, stack.Tables, "users")
+		assert.Contains(t, stack.Tables, "orders")
+	})
+}
