@@ -1,0 +1,49 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "lambda" {
+  name               = "{{ .Name }}-lambda-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  role       = aws_iam_role.lambda.name
+}
+
+resource "aws_lambda_function" "function" {
+  filename      = "bootstrap.zip"
+  function_name = "{{ .Name }}"
+  role          = aws_iam_role.lambda.arn
+  handler       = "bootstrap"
+  runtime       = "provided.al2023"
+  timeout       = 30
+  memory_size   = 256
+
+  source_code_hash = filebase64sha256("bootstrap.zip")
+}
+
+output "function_name" {
+  value = aws_lambda_function.function.function_name
+}
+
+output "function_arn" {
+  value = aws_lambda_function.function.arn
+}

@@ -1,0 +1,10 @@
+project {
+  name   = "{{ .Name }}"
+  region = "{{ .Region }}"
+}
+
+defaults {
+  runtime = "go1.x"
+  timeout = 30
+  memory  = 256
+}

@@ -1,0 +1,51 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Coverage files
+*.out
+coverage.out
+coverage.html
+coverage-integration.out
+coverage-full.out
+build-cov.out
+
+# Dependency directories
+vendor/
+
+# Go workspace
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+
+# Build artifacts
+bootstrap
+bootstrap.zip
+lambda.zip
+
+# Temporary files
+tmp/
+temp/

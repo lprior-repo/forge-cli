@@ -1,0 +1,169 @@
+version: '3'
+
+vars:
+  COVERAGE_THRESHOLD: 90
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - go mod download
+      - go mod tidy
+
+  test:
+    desc: Run all unit tests
+    cmds:
+      - go test ./internal/... -v
+
+  test:unit:
+    desc: Run unit tests only (fast)
+    cmds:
+      - go test ./internal/... -v -short
+
+  test:integration:
+    desc: Run integration tests (requires terraform, go, python, npm)
+    cmds:
+      - go test ./internal/... -tags=integration -v
+
+  test:all:
+    desc: Run all tests (unit + integration)
+    cmds:
+      - task: test
+      - task: test:integration
+
+  coverage:
+    desc: Generate coverage report
+    cmds:
+      - go test ./internal/... -coverprofile=coverage.out -covermode=atomic
+      - go tool cover -func=coverage.out
+      - echo "Coverage report saved to coverage.out"
+
+  coverage:html:
+    desc: Generate HTML coverage report and open in browser
+    cmds:
+      - go test ./internal/... -coverprofile=coverage.out -covermode=atomic
+      - go tool cover -html=coverage.out -o coverage.html
+      - echo "Coverage report saved to coverage.html"
+      - xdg-open coverage.html 2>/dev/null || open coverage.html 2>/dev/null || echo "Open coverage.html in your browser"
+
+  coverage:check:
+    desc: Check if coverage meets threshold ({{.COVERAGE_THRESHOLD}}%)
+    cmds:
+      - |
+        go test ./internal/... -coverprofile=coverage.out -covermode=atomic
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Current coverage: ${COVERAGE}%"
+        if (( $(echo "$COVERAGE < {{.COVERAGE_THRESHOLD}}" | bc -l) )); then
+          echo "❌ Coverage ${COVERAGE}% is below threshold {{.COVERAGE_THRESHOLD}}%"
+          exit 1
+        else
+          echo "✅ Coverage ${COVERAGE}% meets threshold {{.COVERAGE_THRESHOLD}}%"
+        fi
+
+  coverage:integration:
+    desc: Generate coverage including integration tests
+    cmds:
+      - go test ./internal/... -tags=integration -coverprofile=coverage-integration.out -covermode=atomic
+      - go tool cover -func=coverage-integration.out
+      - echo "Integration coverage report saved to coverage-integration.out"
+
+  bench:
+    desc: Run benchmarks
+    cmds:
+      - go test ./internal/... -bench=. -benchmem -run=^$ -v
+
+  bench:integration:
+    desc: Run integration benchmarks
+    cmds:
+      - go test ./internal/... -tags=integration -bench=. -benchmem -run=^$ -v
+
+  lint:
+    desc: Run linters (requires golangci-lint)
+    cmds:
+      - |
+        if ! command -v golangci-lint &> /dev/null; then
+          echo "golangci-lint not found, skipping..."
+          exit 0
+        fi
+        golangci-lint run ./...
+
+  fmt:
+    desc: Format code
+    cmds:
+      - go fmt ./...
+      - gofmt -s -w .
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  clean:
+    desc: Clean build artifacts and coverage files
+    cmds:
+      - rm -f coverage.out coverage.html coverage-integration.out
+      - go clean -cache -testcache
+      - echo "Cleaned build artifacts"
+
+  build:
+    desc: Build the CLI binary
+    cmds:
+      - go build -o bin/forge ./cmd/forge
+      - echo "Built binary to bin/forge"
+
+  ci:
+    desc: Run all CI checks (fmt, vet, test, coverage)
+    cmds:
+      - task: fmt
+      - task: vet
+      - task: test
+      - task: coverage:check
+
+  ci:full:
+    desc: Run full CI including integration tests
+    cmds:
+      - task: fmt
+      - task: vet
+      - task: test:all
+      - task: coverage:integration
+
+  help:
+    desc: Show detailed help
+    cmds:
+      - |
+        cat << 'EOF'
+        Forge Task Runner
+        =================
+
+        Common Tasks:
+          task                     Show available tasks
+          task test                Run unit tests
+          task test:integration    Run integration tests
+          task coverage            Generate coverage report
+          task coverage:check      Verify coverage meets 90% threshold
+          task ci                  Run all CI checks
+
+        Coverage Tasks:
+          task coverage            Generate text coverage report
+          task coverage:html       Generate HTML coverage report
+          task coverage:check      Check coverage threshold
+
+        Integration Tests:
+          Integration tests require: terraform, go, python, npm
+          task test:integration    Run integration tests
+          task coverage:integration  Coverage with integration tests
+
+        Build:
+          task build               Build CLI binary to bin/forge
+          task clean               Clean artifacts
+
+        Formatting:
+          task fmt                 Format code
+          task vet                 Run go vet
+          task lint                Run linters (if installed)
+        EOF
