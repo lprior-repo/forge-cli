@@ -1,0 +1,545 @@
+# Forge Configuration Example
+# Complete serverless application with Lambda, API Gateway, DynamoDB, and more
+
+service: my-serverless-app
+
+provider:
+  region: us-east-1
+  profile: default
+  tags:
+    Environment: production
+    ManagedBy: forge
+
+functions:
+  # REST API Handler with API Gateway integration
+  api:
+    handler: index.handler
+    runtime: nodejs20.x
+    timeout: 30
+    memorySize: 1024
+    description: Main API handler
+
+    source:
+      path: ./src/api
+      npm:
+        packageManager: npm
+        productionOnly: true
+        buildScript: build
+
+    environment:
+      TABLE_NAME: ${tables.users.name}
+      STAGE: production
+
+    # IAM permissions
+    iam:
+      managedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      policyStatements:
+        - effect: Allow
+          actions:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+          resources:
+            - ${tables.users.arn}
+
+    # CloudWatch Logs
+    logs:
+      retentionInDays: 7
+      logFormat: JSON
+      applicationLogLevel: INFO
+      systemLogLevel: WARN
+
+    # HTTP routing for API Gateway
+    httpRouting:
+      method: ANY
+      path: /{proxy+}
+      authorizationType: AWS_IAM
+      cors:
+        allowOrigins:
+          - "*"
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        allowHeaders:
+          - Content-Type
+          - Authorization
+        maxAge: 3600
+
+    # Reserved concurrency
+    reservedConcurrentExecutions: 10
+
+    # Architecture
+    architectures:
+      - arm64
+
+    tags:
+      Function: api
+      Tier: web
+
+  # Background processor with DynamoDB Streams
+  processor:
+    handler: processor.handler
+    runtime: python3.12
+    timeout: 300
+    memorySize: 2048
+    description: Process DynamoDB stream events
+
+    source:
+      path: ./src/processor
+      pip:
+        requirementsFile: requirements.txt
+        upgradePip: true
+
+    environment:
+      QUEUE_URL: ${queues.jobs.url}
+
+    # VPC configuration
+    vpc:
+      subnetIds:
+        - subnet-12345678
+        - subnet-87654321
+      securityGroupIds:
+        - sg-12345678
+      ipv6AllowedForDualStack: false
+
+    # Event source mapping for DynamoDB Streams
+    eventSourceMappings:
+      - eventSourceArn: ${tables.users.streamArn}
+        startingPosition: LATEST
+        batchSize: 100
+        maximumBatchingWindowInSeconds: 10
+        parallelizationFactor: 2
+        maximumRetryAttempts: 3
+        bisectBatchOnFunctionError: true
+        functionResponseTypes:
+          - ReportBatchItemFailures
+        filterCriteria:
+          filters:
+            - pattern: '{"eventName": ["INSERT", "MODIFY"]}'
+
+    # Async configuration
+    asyncConfig:
+      maximumRetryAttempts: 2
+      maximumEventAgeInSeconds: 3600
+      onFailure:
+        destination: ${queues.dlq.arn}
+
+    # Dead letter queue
+    deadLetterConfig:
+      targetArn: ${queues.dlq.arn}
+
+    # X-Ray tracing
+    tracingMode: Active
+
+    tags:
+      Function: processor
+      Tier: worker
+
+  # Scheduled job with EventBridge
+  scheduled-job:
+    handler: jobs.run
+    runtime: go1.x
+    timeout: 900
+    memorySize: 512
+    description: Scheduled maintenance job
+
+    source:
+      path: ./src/jobs
+      buildCommands:
+        - GOOS=linux GOARCH=arm64 go build -o bootstrap
+      includes:
+        - bootstrap
+
+    architectures:
+      - arm64
+
+    # Ephemeral storage
+    ephemeralStorage:
+      size: 1024  # 1 GB
+
+    logs:
+      retentionInDays: 30
+
+    tags:
+      Function: scheduled-job
+      Tier: batch
+
+  # Container-based function
+  container-function:
+    handler: not-used-for-container
+    runtime: provided.al2023
+    timeout: 60
+    memorySize: 3008
+    description: Container-based Lambda function
+
+    source:
+      docker:
+        file: ./Dockerfile
+        platform: linux/arm64
+        repository: my-ecr-repo
+        tag: latest
+        buildArgs:
+          NODE_ENV: production
+
+    imageConfig:
+      command:
+        - handler.main
+      workingDirectory: /app
+
+    architectures:
+      - arm64
+
+    # Function URL
+    functionUrl:
+      authorizationType: NONE
+      cors:
+        allowOrigins:
+          - https://example.com
+        allowMethods:
+          - GET
+          - POST
+        maxAge: 300
+      invokeMode: BUFFERED
+
+# API Gateway HTTP API
+apiGateway:
+  name: my-api
+  description: Main HTTP API
+  protocolType: HTTP
+
+  # CORS configuration
+  cors:
+    allowOrigins:
+      - "*"
+    allowMethods:
+      - "*"
+    allowHeaders:
+      - "*"
+    maxAge: 3600
+
+  # Custom domain
+  domain:
+    domainName: api.example.com
+    certificateArn: arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012
+    hostedZoneId: Z1234567890ABC
+    endpointType: REGIONAL
+    securityPolicy: TLS_1_2
+
+  # Stages
+  stages:
+    production:
+      name: production
+      description: Production stage
+      autoDeploy: true
+      accessLogs:
+        destinationArn: arn:aws:logs:us-east-1:123456789012:log-group:/aws/apigateway/my-api
+        format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","routeKey":"$context.routeKey","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength"}'
+      defaultRouteSettings:
+        dataTraceEnabled: true
+        detailedMetricsEnabled: true
+        loggingLevel: INFO
+        throttlingBurstLimit: 5000
+        throttlingRateLimit: 10000
+      variables:
+        environment: production
+
+    staging:
+      name: staging
+      autoDeploy: true
+
+  # JWT authorizer
+  authorizers:
+    jwt-authorizer:
+      name: jwt-auth
+      type: JWT
+      jwtConfiguration:
+        issuer: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXXXXXXX
+        audience:
+          - my-app-client-id
+
+  # Access logs
+  accessLogs:
+    destinationArn: arn:aws:logs:us-east-1:123456789012:log-group:/aws/apigateway/my-api
+    format: '{"requestId":"$context.requestId"}'
+
+  # Default route settings
+  defaultRouteSettings:
+    throttlingBurstLimit: 5000
+    throttlingRateLimit: 10000
+
+  # Disable execute-api endpoint (custom domain only)
+  disableExecuteApiEndpoint: true
+
+  metricsEnabled: true
+
+  tags:
+    API: main
+
+# DynamoDB Tables
+tables:
+  users:
+    tableName: users
+    billingMode: PAY_PER_REQUEST
+    hashKey: userId
+    rangeKey: createdAt
+
+    attributes:
+      - name: userId
+        type: S
+      - name: createdAt
+        type: N
+      - name: email
+        type: S
+      - name: organizationId
+        type: S
+
+    # Global Secondary Indexes
+    globalSecondaryIndexes:
+      - name: EmailIndex
+        hashKey: email
+        projectionType: ALL
+      - name: OrganizationIndex
+        hashKey: organizationId
+        rangeKey: createdAt
+        projectionType: KEYS_ONLY
+
+    # DynamoDB Streams
+    streamEnabled: true
+    streamViewType: NEW_AND_OLD_IMAGES
+
+    # TTL
+    ttl:
+      enabled: true
+      attributeName: expiresAt
+
+    # Encryption
+    serverSideEncryption:
+      enabled: true
+      kmsKeyArn: arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+
+    # Point-in-time recovery
+    pointInTimeRecovery:
+      enabled: true
+
+    # Table class
+    tableClass: STANDARD
+
+    # Deletion protection
+    deletionProtectionEnabled: true
+
+    tags:
+      Table: users
+      Tier: database
+
+  sessions:
+    tableName: sessions
+    billingMode: PROVISIONED
+    readCapacity: 5
+    writeCapacity: 5
+    hashKey: sessionId
+
+    attributes:
+      - name: sessionId
+        type: S
+
+    ttl:
+      enabled: true
+      attributeName: ttl
+
+    # Auto scaling
+    autoScaling:
+      readMinCapacity: 5
+      readMaxCapacity: 100
+      readTargetUtilization: 70.0
+      writeMinCapacity: 5
+      writeMaxCapacity: 100
+      writeTargetUtilization: 70.0
+
+# EventBridge Rules
+eventBridge:
+  daily-cleanup:
+    name: daily-cleanup
+    description: Run cleanup job daily at midnight UTC
+    scheduleExpression: cron(0 0 * * ? *)
+    targets:
+      - arn: ${functions.scheduled-job.arn}
+        input: '{"action":"cleanup"}'
+        retryPolicy:
+          maximumRetryAttempts: 2
+          maximumEventAgeInSeconds: 3600
+    state: ENABLED
+
+  order-created:
+    name: order-created
+    description: Trigger when new order is created
+    eventPattern: |
+      {
+        "source": ["my-app"],
+        "detail-type": ["Order Created"],
+        "detail": {
+          "status": ["pending"]
+        }
+      }
+    targets:
+      - arn: ${functions.processor.arn}
+        inputTransformer:
+          inputPathsMap:
+            orderId: $.detail.orderId
+            amount: $.detail.amount
+          inputTemplate: '{"orderId":<orderId>,"amount":<amount>}'
+
+# Step Functions State Machines
+stateMachines:
+  order-workflow:
+    name: order-workflow
+    type: STANDARD
+    definition: |
+      {
+        "Comment": "Order processing workflow",
+        "StartAt": "ValidateOrder",
+        "States": {
+          "ValidateOrder": {
+            "Type": "Task",
+            "Resource": "${functions.api.arn}",
+            "Next": "ProcessPayment"
+          },
+          "ProcessPayment": {
+            "Type": "Task",
+            "Resource": "${functions.processor.arn}",
+            "Next": "SendConfirmation"
+          },
+          "SendConfirmation": {
+            "Type": "Task",
+            "Resource": "${functions.api.arn}",
+            "End": true
+          }
+        }
+      }
+    loggingConfiguration:
+      level: ALL
+      includeExecutionData: true
+      destinations:
+        - cloudWatchLogsLogGroup:
+            logGroupArn: arn:aws:logs:us-east-1:123456789012:log-group:/aws/states/order-workflow
+    tracingConfiguration:
+      enabled: true
+
+# SNS Topics
+topics:
+  notifications:
+    name: notifications
+    displayName: App Notifications
+    fifoTopic: false
+    kmsMasterKeyId: alias/aws/sns
+    subscriptions:
+      - protocol: email
+        endpoint: admin@example.com
+      - protocol: sqs
+        endpoint: ${queues.notifications.arn}
+        rawMessageDelivery: true
+        filterPolicy: '{"event":["order.created","order.completed"]}'
+
+# SQS Queues
+queues:
+  jobs:
+    name: jobs
+    fifoQueue: false
+    delaySeconds: 0
+    maxMessageSize: 262144
+    messageRetentionSeconds: 345600  # 4 days
+    receiveWaitTimeSeconds: 20  # Long polling
+    visibilityTimeoutSeconds: 300
+    redrivePolicy:
+      deadLetterTargetArn: ${queues.dlq.arn}
+      maxReceiveCount: 3
+    kmsMasterKeyId: alias/aws/sqs
+
+  dlq:
+    name: dlq
+    messageRetentionSeconds: 1209600  # 14 days
+
+  notifications:
+    name: notifications
+    fifoQueue: true
+    contentBasedDeduplication: true
+
+# S3 Buckets
+buckets:
+  uploads:
+    name: my-app-uploads
+    versioning:
+      enabled: true
+    lifecycleRules:
+      - id: expire-old-versions
+        enabled: true
+        prefix: uploads/
+        transitions:
+          - days: 30
+            storageClass: STANDARD_IA
+          - days: 90
+            storageClass: GLACIER
+        expiration:
+          days: 365
+    serverSideEncryption:
+      sseAlgorithm: aws:kms
+      kmsMasterKeyId: alias/aws/s3
+    publicAccessBlock:
+      blockPublicAcls: true
+      blockPublicPolicy: true
+      ignorePublicAcls: true
+      restrictPublicBuckets: true
+    corsRules:
+      - allowedHeaders:
+          - "*"
+        allowedMethods:
+          - GET
+          - PUT
+          - POST
+        allowedOrigins:
+          - https://example.com
+        maxAgeSeconds: 3000
+    notifications:
+      - events:
+          - s3:ObjectCreated:*
+        filterPrefix: uploads/
+        filterSuffix: .jpg
+        lambdaFunctionArn: ${functions.processor.arn}
+
+# CloudWatch Alarms
+alarms:
+  api-errors:
+    name: api-errors
+    description: Alert on API errors
+    metricName: Errors
+    namespace: AWS/Lambda
+    statistic: Sum
+    period: 300
+    evaluationPeriods: 2
+    threshold: 10
+    comparisonOperator: GreaterThanThreshold
+    dimensions:
+      FunctionName: ${functions.api.name}
+    alarmActions:
+      - ${topics.notifications.arn}
+    treatMissingData: notBreaching
+
+  api-duration:
+    name: api-duration
+    description: Alert on slow API responses
+    metricName: Duration
+    namespace: AWS/Lambda
+    statistic: Average
+    period: 300
+    evaluationPeriods: 2
+    threshold: 3000
+    comparisonOperator: GreaterThanThreshold
+    dimensions:
+      FunctionName: ${functions.api.name}
+    alarmActions:
+      - ${topics.notifications.arn}
