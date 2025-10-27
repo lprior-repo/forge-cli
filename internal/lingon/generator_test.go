@@ -677,6 +677,9 @@ func TestExportToTerraform(t *testing.T) {
 					Config: FunctionConfig{
 						Handler: "index.handler",
 						Runtime: "nodejs20.x",
+						Source: SourceConfig{
+							Path: "./src/hello",
+						},
 					},
 				},
 			},
