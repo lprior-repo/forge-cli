@@ -138,6 +138,27 @@ type FunctionConfig struct {
 
 	// === Logging Configuration ===
 	LoggingConfig *LoggingConfig `json:"loggingConfig,omitempty"`
+
+	// === Lambda@Edge ===
+	LambdaAtEdge bool `json:"lambdaAtEdge,omitempty"`
+
+	// === IPv6 Support ===
+	IPv6AllowedForDualStack bool `json:"ipv6AllowedForDualStack,omitempty"`
+
+	// === Package Type ===
+	PackageType string `json:"packageType,omitempty"` // "Zip" or "Image"
+
+	// === Image URI (for container-based functions) ===
+	ImageURI string `json:"imageUri,omitempty"`
+
+	// === Skip Destroy ===
+	SkipDestroy bool `json:"skipDestroy,omitempty"`
+
+	// === Recursive Loop Prevention ===
+	RecursiveLoop string `json:"recursiveLoop,omitempty"` // "Allow" or "Terminate"
+
+	// === Allowed Triggers ===
+	AllowedTriggers map[string]AllowedTrigger `json:"allowedTriggers,omitempty"`
 }
 
 // SourceConfig defines how to build and package the Lambda function
@@ -423,6 +444,15 @@ type SourceAccessConfiguration struct {
 	URI  string `json:"uri"`
 }
 
+// AllowedTrigger defines a trigger that is allowed to invoke the Lambda function
+type AllowedTrigger struct {
+	Service       string `json:"service"`                 // e.g., "apigateway", "s3", "sns", "sqs", "events"
+	SourceArn     string `json:"sourceArn,omitempty"`     // ARN of the triggering resource
+	Principal     string `json:"principal,omitempty"`     // AWS principal
+	PrincipalOrgID string `json:"principalOrgId,omitempty"` // AWS Organization ID
+	StatementId   string `json:"statementId,omitempty"`   // Statement ID for the permission
+}
+
 // SelfManagedEventSourceConfig for self-managed Kafka
 type SelfManagedEventSourceConfig struct {
 	Endpoints map[string][]string `json:"endpoints"` // KAFKA_BOOTSTRAP_SERVERS
@@ -546,17 +576,26 @@ type APIGatewayConfig struct {
 	// === Mutual TLS ===
 	MutualTLSAuthentication *MutualTLSConfig `json:"mutualTlsAuthentication,omitempty"`
 
-	// === Route Selection ===
-	RouteSelectionExpression string `json:"routeSelectionExpression,omitempty"`
+	// === OpenAPI/Swagger ===
+	Body string `json:"body,omitempty"` // OpenAPI specification
+
+	// === Quick Create Options ===
+	Target      string `json:"target,omitempty"`      // Lambda ARN or HTTP endpoint
+	RouteKey    string `json:"routeKey,omitempty"`    // Route key for quick create
+	CredentialsArn string `json:"credentialsArn,omitempty"` // Credentials for integration
+
+	// === Advanced Options ===
+	FailOnWarnings           bool   `json:"failOnWarnings,omitempty"`
+	IPAddressType            string `json:"ipAddressType,omitempty"`            // "ipv4" or "dualstack"
+	RouteSelectionExpression string `json:"routeSelectionExpression,omitempty"` // Default: "$request.method $request.path"
+	APIVersion               string `json:"apiVersion,omitempty"`
+	APIMappingKey            string `json:"apiMappingKey,omitempty"`
 
 	// === Tags ===
 	Tags map[string]string `json:"tags,omitempty"`
 
 	// === VPC Link (for private integrations) ===
 	VPCLinks map[string]VPCLinkConfig `json:"vpcLinks,omitempty"`
-
-	// === API Mapping ===
-	APIMappingKey string `json:"apiMappingKey,omitempty"`
 
 	// === CloudWatch Metrics ===
 	MetricsEnabled bool `json:"metricsEnabled,omitempty"`
