@@ -16,6 +16,7 @@ import (
 	"github.com/lewis/forge/internal/lingon/aws/aws_cloudwatch_log_group"
 	"github.com/lewis/forge/internal/lingon/aws/aws_dynamodb_table"
 	"github.com/lewis/forge/internal/lingon/aws/aws_iam_role"
+	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_event_source_mapping"
 	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_function"
 	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_permission"
 )
@@ -26,10 +27,11 @@ import (
 
 // LambdaFunctionResources contains all Terraform resources for a Lambda function
 type LambdaFunctionResources struct {
-	Function    *aws_lambda_function.Resource
-	Role        *aws_iam_role.Resource
-	LogGroup    *aws_cloudwatch_log_group.Resource
-	Permissions []terra.Resource
+	Function            *aws_lambda_function.Resource
+	Role                *aws_iam_role.Resource
+	LogGroup            *aws_cloudwatch_log_group.Resource
+	Permissions         []terra.Resource
+	EventSourceMappings []*aws_lambda_event_source_mapping.Resource
 }
 
 // APIGatewayResources contains all Terraform resources for API Gateway
@@ -205,6 +207,110 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 				RetentionInDays: terra.Number(config.Logs.RetentionInDays),
 			},
 		}
+	}
+
+	// Create event source mappings
+	resources.EventSourceMappings = make([]*aws_lambda_event_source_mapping.Resource, 0, len(config.EventSourceMappings))
+	for idx, mappingConfig := range config.EventSourceMappings {
+		mappingName := fmt.Sprintf("%s-esm-%d", functionName, idx)
+
+		mappingArgs := aws_lambda_event_source_mapping.Args{
+			FunctionName: resources.Function.Attributes().Arn(),
+		}
+
+		// Event source ARN is required for most sources except SQS/MSK
+		if mappingConfig.EventSourceArn != "" {
+			mappingArgs.EventSourceArn = terra.String(mappingConfig.EventSourceArn)
+		}
+
+		// Starting position (required for Kinesis and DynamoDB Streams)
+		if mappingConfig.StartingPosition != "" {
+			mappingArgs.StartingPosition = terra.String(mappingConfig.StartingPosition)
+		}
+
+		// Starting position timestamp
+		if mappingConfig.StartingPositionTimestamp != nil {
+			mappingArgs.StartingPositionTimestamp = terra.String(mappingConfig.StartingPositionTimestamp.Format("2006-01-02T15:04:05Z"))
+		}
+
+		// Batch configuration
+		if mappingConfig.BatchSize > 0 {
+			mappingArgs.BatchSize = terra.Number(mappingConfig.BatchSize)
+		}
+		if mappingConfig.MaximumBatchingWindowInSeconds > 0 {
+			mappingArgs.MaximumBatchingWindowInSeconds = terra.Number(mappingConfig.MaximumBatchingWindowInSeconds)
+		}
+
+		// Parallelization factor (Kinesis and DynamoDB Streams)
+		if mappingConfig.ParallelizationFactor > 0 {
+			mappingArgs.ParallelizationFactor = terra.Number(mappingConfig.ParallelizationFactor)
+		}
+
+		// Maximum record age (Kinesis and DynamoDB Streams)
+		if mappingConfig.MaximumRecordAgeInSeconds > 0 {
+			mappingArgs.MaximumRecordAgeInSeconds = terra.Number(mappingConfig.MaximumRecordAgeInSeconds)
+		}
+
+		// Maximum retry attempts
+		if mappingConfig.MaximumRetryAttempts > 0 {
+			mappingArgs.MaximumRetryAttempts = terra.Number(mappingConfig.MaximumRetryAttempts)
+		}
+
+		// Bisect batch on function error
+		if mappingConfig.BisectBatchOnFunctionError {
+			mappingArgs.BisectBatchOnFunctionError = terra.Bool(true)
+		}
+
+		// Tumbling window (for aggregation)
+		if mappingConfig.TumblingWindowInSeconds > 0 {
+			mappingArgs.TumblingWindowInSeconds = terra.Number(mappingConfig.TumblingWindowInSeconds)
+		}
+
+		// Function response types (for partial batch responses)
+		if len(mappingConfig.FunctionResponseTypes) > 0 {
+			mappingArgs.FunctionResponseTypes = terra.SetString(mappingConfig.FunctionResponseTypes...)
+		}
+
+		// Enabled flag
+		if mappingConfig.Enabled {
+			mappingArgs.Enabled = terra.Bool(true)
+		}
+
+		// Destination config (on failure)
+		if mappingConfig.DestinationConfig != nil && mappingConfig.DestinationConfig.OnFailure != nil {
+			mappingArgs.DestinationConfig = &aws_lambda_event_source_mapping.DestinationConfig{
+				OnFailure: &aws_lambda_event_source_mapping.DestinationConfigOnFailure{
+					DestinationArn: terra.String(mappingConfig.DestinationConfig.OnFailure.Destination),
+				},
+			}
+		}
+
+		// Filter criteria (event filtering)
+		if mappingConfig.FilterCriteria != nil && len(mappingConfig.FilterCriteria.Filters) > 0 {
+			filters := make([]aws_lambda_event_source_mapping.FilterCriteriaFilter, len(mappingConfig.FilterCriteria.Filters))
+			for i, filter := range mappingConfig.FilterCriteria.Filters {
+				filters[i] = aws_lambda_event_source_mapping.FilterCriteriaFilter{
+					Pattern: terra.String(filter.Pattern),
+				}
+			}
+			mappingArgs.FilterCriteria = &aws_lambda_event_source_mapping.FilterCriteria{
+				Filter: filters,
+			}
+		}
+
+		// Scaling config (SQS only)
+		if mappingConfig.ScalingConfig != nil {
+			mappingArgs.ScalingConfig = &aws_lambda_event_source_mapping.ScalingConfig{
+				MaximumConcurrency: terra.Number(mappingConfig.ScalingConfig.MaximumConcurrency),
+			}
+		}
+
+		mapping := &aws_lambda_event_source_mapping.Resource{
+			Name: mappingName,
+			Args: mappingArgs,
+		}
+
+		resources.EventSourceMappings = append(resources.EventSourceMappings, mapping)
 	}
 
 	return resources, nil
