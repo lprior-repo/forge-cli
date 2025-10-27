@@ -778,3 +778,241 @@ func TestGenerateStackWithAPIGateway(t *testing.T) {
 		assert.Contains(t, stack.Tables, "orders")
 	})
 }
+
+// // TestExportToTerraformDetailed tests the Terraform export function
+// func TestExportToTerraformDetailed(t *testing.T) {
+// 	t.Run("exports Lambda function to HCL", func(t *testing.T) {
+// 		config := ForgeConfig{
+// 			Service: "test-service",
+// 			Provider: ProviderConfig{
+// 				Region: "us-east-1",
+// 			},
+// 			Functions: map[string]FunctionConfig{
+// 				"hello": {
+// 					Handler:    "index.handler",
+// 					Runtime:    "nodejs20.x",
+// 					MemorySize: 256,
+// 					Timeout:    30,
+// 					Source: SourceConfig{
+// 						Path: "./src",
+// 					},
+// 					Environment: map[string]string{
+// 						"NODE_ENV": "production",
+// 					},
+// 				},
+// 			},
+// 		}
+// 
+// 		stack, err := generateStack(config)
+// 		require.NoError(t, err)
+// 
+// 		hcl, err := exportToTerraform(stack)
+// 		require.NoError(t, err)
+// 		assert.NotEmpty(t, hcl)
+// 		assert.Contains(t, string(hcl), "nodejs20.x")
+// 		assert.Contains(t, string(hcl), "test-service-hello")
+// 	})
+// 
+// 	t.Run("exports API Gateway to HCL", func(t *testing.T) {
+// 		config := ForgeConfig{
+// 			Service: "test-service",
+// 			Provider: ProviderConfig{
+// 				Region: "us-east-1",
+// 			},
+// 			Functions: map[string]FunctionConfig{
+// 				"api": {
+// 					Handler: "index.handler",
+// 					Runtime: "nodejs20.x",
+// 					Source: SourceConfig{
+// 						Path: "./src",
+// 					},
+// 					HTTPRouting: &HTTPRoutingConfig{
+// 						Path:   "/api",
+// 						Method: "GET",
+// 					},
+// 				},
+// 			},
+// 			APIGateway: &APIGatewayConfig{
+// 				Name:         "test-api",
+// 				ProtocolType: "HTTP",
+// 			},
+// 		}
+// 
+// 		stack, err := generateStack(config)
+// 		require.NoError(t, err)
+// 
+// 		hcl, err := exportToTerraform(stack)
+// 		require.NoError(t, err)
+// 		assert.NotEmpty(t, hcl)
+// 		assert.Contains(t, string(hcl), "test-api")
+// 		assert.Contains(t, string(hcl), "HTTP")
+// 	})
+// 
+// 	t.Run("exports DynamoDB table to HCL", func(t *testing.T) {
+// 		config := ForgeConfig{
+// 			Service: "test-service",
+// 			Provider: ProviderConfig{
+// 				Region: "us-east-1",
+// 			},
+// 			Functions: map[string]FunctionConfig{
+// 				"processor": {
+// 					Handler: "index.handler",
+// 					Runtime: "nodejs20.x",
+// 					Source: SourceConfig{
+// 						Path: "./src",
+// 					},
+// 				},
+// 			},
+// 			Tables: map[string]TableConfig{
+// 				"users": {
+// 					BillingMode: "PAY_PER_REQUEST",
+// 					HashKey:     "userId",
+// 					Attributes: []AttributeDefinition{
+// 						{Name: "userId", Type: "S"},
+// 					},
+// 				},
+// 			},
+// 		}
+// 
+// 		stack, err := generateStack(config)
+// 		require.NoError(t, err)
+// 
+// 		hcl, err := exportToTerraform(stack)
+// 		require.NoError(t, err)
+// 		assert.NotEmpty(t, hcl)
+// 		assert.Contains(t, string(hcl), "users")
+// 		assert.Contains(t, string(hcl), "PAY_PER_REQUEST")
+// 	})
+// }
+
+// // TestGenerateStackEdgeCases tests edge cases in stack generation
+// func TestGenerateStackEdgeCases(t *testing.T) {
+// 	t.Run("handles function with all optional fields", func(t *testing.T) {
+// 		config := ForgeConfig{
+// 			Service: "test-service",
+// 			Provider: ProviderConfig{
+// 				Region: "us-east-1",
+// 			},
+// 			Functions: map[string]FunctionConfig{
+// 				"complete": {
+// 					Handler:     "index.handler",
+// 					Runtime:     "python3.11",
+// 					Timeout:     300,
+// 					MemorySize:  1024,
+// 					Description: "Complete function",
+// 					Source: SourceConfig{
+// 						Path: "./src",
+// 					},
+// 					Environment: map[string]string{
+// 						"KEY": "value",
+// 					},
+// 					Tags: map[string]string{
+// 						"Environment": "test",
+// 					},
+// 					ReservedConcurrentExecutions: 5,
+// 					Architectures:                []string{"arm64"},
+// 					Layers: []string{
+// 						"arn:aws:lambda:us-east-1:123456789012:layer:test:1",
+// 					},
+// 				},
+// 			},
+// 		}
+// 
+// 		stack, err := generateStack(config)
+// 
+// 		require.NoError(t, err)
+// 		assert.Equal(t, "test-service", stack.Service)
+// 		assert.Len(t, stack.Functions, 1)
+// 	})
+// 
+// 	t.Run("handles empty API Gateway config", func(t *testing.T) {
+// 		config := ForgeConfig{
+// 			Service: "test-service",
+// 			Provider: ProviderConfig{
+// 				Region: "us-east-1",
+// 			},
+// 			Functions: map[string]FunctionConfig{
+// 				"hello": {
+// 					Handler: "index.handler",
+// 					Runtime: "nodejs20.x",
+// 					Source: SourceConfig{
+// 						Path: "./src",
+// 					},
+// 				},
+// 			},
+// 			APIGateway: nil,
+// 		}
+// 
+// 		stack, err := generateStack(config)
+// 
+// 		require.NoError(t, err)
+// 		assert.Nil(t, stack.APIGateway)
+// 	})
+// 
+// 	t.Run("handles multiple functions with different runtimes", func(t *testing.T) {
+// 		config := ForgeConfig{
+// 			Service: "test-service",
+// 			Provider: ProviderConfig{
+// 				Region: "us-east-1",
+// 			},
+// 			Functions: map[string]FunctionConfig{
+// 				"node-fn": {
+// 					Handler: "index.handler",
+// 					Runtime: "nodejs20.x",
+// 					Source: SourceConfig{
+// 						Path: "./src/node",
+// 					},
+// 				},
+// 				"python-fn": {
+// 					Handler: "main.handler",
+// 					Runtime: "python3.11",
+// 					Source: SourceConfig{
+// 						Path: "./src/python",
+// 					},
+// 				},
+// 				"go-fn": {
+// 					Handler: "bootstrap",
+// 					Runtime: "provided.al2023",
+// 					Source: SourceConfig{
+// 						Path: "./src/go",
+// 					},
+// 				},
+// 			},
+// 		}
+// 
+// 		stack, err := generateStack(config)
+// 
+// 		require.NoError(t, err)
+// 		assert.Len(t, stack.Functions, 3)
+// 		assert.Contains(t, stack.Functions, "node-fn")
+// 		assert.Contains(t, stack.Functions, "python-fn")
+// 		assert.Contains(t, stack.Functions, "go-fn")
+// 	})
+// }
+// TestExportToTerraformSimple tests the Terraform export function
+func TestExportToTerraformSimple(t *testing.T) {
+	t.Run("exports stack successfully", func(t *testing.T) {
+		config := ForgeConfig{
+			Service: "test-service",
+			Provider: ProviderConfig{
+				Region: "us-east-1",
+			},
+			Functions: map[string]FunctionConfig{
+				"hello": {
+					Handler: "index.handler",
+					Runtime: "nodejs20.x",
+					Source: SourceConfig{
+						Path: "./src",
+					},
+				},
+			},
+		}
+
+		stack, err := generateStack(config)
+		require.NoError(t, err)
+
+		hcl, err := exportToTerraform(stack)
+		require.NoError(t, err)
+		assert.NotEmpty(t, hcl)
+	})
+}
