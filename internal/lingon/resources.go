@@ -7,13 +7,17 @@ import (
 
 	"github.com/golingon/lingon/pkg/terra"
 	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_api"
+	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_authorizer"
+	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_domain_name"
 	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_integration"
 	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_route"
 	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_stage"
+	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_vpc_link"
 	"github.com/lewis/forge/internal/lingon/aws/aws_cloudwatch_log_group"
 	"github.com/lewis/forge/internal/lingon/aws/aws_dynamodb_table"
 	"github.com/lewis/forge/internal/lingon/aws/aws_iam_role"
 	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_function"
+	"github.com/lewis/forge/internal/lingon/aws/aws_lambda_permission"
 )
 
 // This file demonstrates the Lingon resource creation pattern.
@@ -34,6 +38,10 @@ type APIGatewayResources struct {
 	Stage        *aws_apigatewayv2_stage.Resource
 	Integrations map[string]terra.Resource
 	Routes       map[string]terra.Resource
+	Authorizers  map[string]*aws_apigatewayv2_authorizer.Resource
+	DomainName   *aws_apigatewayv2_domain_name.Resource
+	VPCLinks     map[string]*aws_apigatewayv2_vpc_link.Resource
+	Permissions  []terra.Resource // Lambda permissions for API Gateway invocation
 }
 
 // DynamoDBTableResources contains all Terraform resources for a DynamoDB table
@@ -212,25 +220,153 @@ func createAPIGatewayResources(service string, config APIGatewayConfig, function
 	resources := &APIGatewayResources{
 		Integrations: make(map[string]terra.Resource),
 		Routes:       make(map[string]terra.Resource),
+		Authorizers:  make(map[string]*aws_apigatewayv2_authorizer.Resource),
+		VPCLinks:     make(map[string]*aws_apigatewayv2_vpc_link.Resource),
+		Permissions:  make([]terra.Resource, 0),
 	}
 
 	// Create API Gateway
+	apiArgs := aws_apigatewayv2_api.Args{
+		Name:         terra.String(apiName),
+		ProtocolType: terra.String(config.ProtocolType),
+	}
+
+	// Add description
+	if config.Description != "" {
+		apiArgs.Description = terra.String(config.Description)
+	}
+
+	// Add CORS configuration for HTTP APIs
+	if config.CORS != nil && config.ProtocolType == "HTTP" {
+		corsConfig := &aws_apigatewayv2_api.CorsConfiguration{}
+
+		if len(config.CORS.AllowOrigins) > 0 {
+			corsConfig.AllowOrigins = terra.SetString(config.CORS.AllowOrigins...)
+		}
+		if len(config.CORS.AllowMethods) > 0 {
+			corsConfig.AllowMethods = terra.SetString(config.CORS.AllowMethods...)
+		}
+		if len(config.CORS.AllowHeaders) > 0 {
+			corsConfig.AllowHeaders = terra.SetString(config.CORS.AllowHeaders...)
+		}
+		if len(config.CORS.ExposeHeaders) > 0 {
+			corsConfig.ExposeHeaders = terra.SetString(config.CORS.ExposeHeaders...)
+		}
+		if config.CORS.AllowCredentials {
+			corsConfig.AllowCredentials = terra.Bool(true)
+		}
+		if config.CORS.MaxAge > 0 {
+			corsConfig.MaxAge = terra.Number(config.CORS.MaxAge)
+		}
+
+		apiArgs.CorsConfiguration = corsConfig
+	}
+
+	// Add disable execute API endpoint
+	if config.DisableExecuteApiEndpoint {
+		apiArgs.DisableExecuteApiEndpoint = terra.Bool(true)
+	}
+
+	// Add tags
+	if len(config.Tags) > 0 {
+		apiArgs.Tags = terra.MapString(config.Tags)
+	}
+
 	resources.API = &aws_apigatewayv2_api.Resource{
 		Name: "api",
-		Args: aws_apigatewayv2_api.Args{
-			Name:         terra.String(apiName),
-			ProtocolType: terra.String(config.ProtocolType),
-		},
+		Args: apiArgs,
 	}
 
 	// Create default stage
+	stageArgs := aws_apigatewayv2_stage.Args{
+		ApiId:      resources.API.Attributes().Id(),
+		Name:       terra.String("$default"),
+		AutoDeploy: terra.Bool(true),
+	}
+
+	// Add access logs
+	if config.AccessLogs != nil && config.AccessLogs.DestinationArn != "" {
+		stageArgs.AccessLogSettings = &aws_apigatewayv2_stage.AccessLogSettings{
+			DestinationArn: terra.String(config.AccessLogs.DestinationArn),
+			Format:         terra.String(config.AccessLogs.Format),
+		}
+	}
+
+	// Add default route settings (throttling)
+	if config.DefaultRouteSettings != nil {
+		routeSettings := &aws_apigatewayv2_stage.DefaultRouteSettings{}
+
+		if config.DefaultRouteSettings.ThrottlingBurstLimit > 0 {
+			routeSettings.ThrottlingBurstLimit = terra.Number(config.DefaultRouteSettings.ThrottlingBurstLimit)
+		}
+		if config.DefaultRouteSettings.ThrottlingRateLimit > 0 {
+			routeSettings.ThrottlingRateLimit = terra.Number(int(config.DefaultRouteSettings.ThrottlingRateLimit))
+		}
+		if config.DefaultRouteSettings.DetailedMetricsEnabled {
+			routeSettings.DetailedMetricsEnabled = terra.Bool(true)
+		}
+		if config.DefaultRouteSettings.LoggingLevel != "" {
+			routeSettings.LoggingLevel = terra.String(config.DefaultRouteSettings.LoggingLevel)
+		}
+		if config.DefaultRouteSettings.DataTraceEnabled {
+			routeSettings.DataTraceEnabled = terra.Bool(true)
+		}
+
+		stageArgs.DefaultRouteSettings = routeSettings
+	}
+
+	// Add stage tags
+	if len(config.Tags) > 0 {
+		stageArgs.Tags = terra.MapString(config.Tags)
+	}
+
 	resources.Stage = &aws_apigatewayv2_stage.Resource{
 		Name: "default",
-		Args: aws_apigatewayv2_stage.Args{
-			ApiId:      resources.API.Attributes().Id(),
-			Name:       terra.String("$default"),
-			AutoDeploy: terra.Bool(true),
-		},
+		Args: stageArgs,
+	}
+
+	// Create authorizers
+	for authName, authConfig := range config.Authorizers {
+		authArgs := aws_apigatewayv2_authorizer.Args{
+			ApiId:          resources.API.Attributes().Id(),
+			AuthorizerType: terra.String(authConfig.Type),
+			Name:           terra.String(authName),
+		}
+
+		// Configure based on authorizer type
+		if authConfig.Type == "JWT" {
+			authArgs.IdentitySources = terra.SetString(authConfig.IdentitySource...)
+
+			if authConfig.JWTConfiguration != nil {
+				jwtConfig := &aws_apigatewayv2_authorizer.JwtConfiguration{}
+				if len(authConfig.JWTConfiguration.Audience) > 0 {
+					jwtConfig.Audience = terra.SetString(authConfig.JWTConfiguration.Audience...)
+				}
+				if authConfig.JWTConfiguration.Issuer != "" {
+					jwtConfig.Issuer = terra.String(authConfig.JWTConfiguration.Issuer)
+				}
+				authArgs.JwtConfiguration = jwtConfig
+			}
+		} else if authConfig.Type == "REQUEST" {
+			authArgs.AuthorizerUri = terra.String(authConfig.AuthorizerURI)
+			if len(authConfig.IdentitySource) > 0 {
+				authArgs.IdentitySources = terra.SetString(authConfig.IdentitySource...)
+			}
+			if authConfig.AuthorizerResultTtlInSeconds > 0 {
+				authArgs.AuthorizerResultTtlInSeconds = terra.Number(authConfig.AuthorizerResultTtlInSeconds)
+			}
+			if authConfig.AuthorizerPayloadFormatVersion != "" {
+				authArgs.AuthorizerPayloadFormatVersion = terra.String(authConfig.AuthorizerPayloadFormatVersion)
+			}
+			if authConfig.EnableSimpleResponses {
+				authArgs.EnableSimpleResponses = terra.Bool(true)
+			}
+		}
+
+		resources.Authorizers[authName] = &aws_apigatewayv2_authorizer.Resource{
+			Name: fmt.Sprintf("%s-authorizer", authName),
+			Args: authArgs,
+		}
 	}
 
 	// Create integrations and routes for functions with HTTP routing
@@ -250,14 +386,44 @@ func createAPIGatewayResources(service string, config APIGatewayConfig, function
 			// Create route
 			routeName := fmt.Sprintf("%s-route", fnName)
 			routeKey := fmt.Sprintf("%s %s", fnConfig.HTTPRouting.Method, fnConfig.HTTPRouting.Path)
+			routeArgs := aws_apigatewayv2_route.Args{
+				ApiId:    resources.API.Attributes().Id(),
+				RouteKey: terra.String(routeKey),
+				Target:   terra.String(fmt.Sprintf("integrations/${aws_apigatewayv2_integration.%s.id}", integrationName)),
+			}
+
+			// Add authorizer if specified
+			if fnConfig.HTTPRouting.AuthorizerId != "" {
+				// Check if it's a reference to a named authorizer
+				if auth, exists := resources.Authorizers[fnConfig.HTTPRouting.AuthorizerId]; exists {
+					routeArgs.AuthorizerId = auth.Attributes().Id()
+				} else {
+					// Use the ID directly
+					routeArgs.AuthorizerId = terra.String(fnConfig.HTTPRouting.AuthorizerId)
+				}
+				if fnConfig.HTTPRouting.AuthorizationType != "" {
+					routeArgs.AuthorizationType = terra.String(fnConfig.HTTPRouting.AuthorizationType)
+				}
+			}
+
 			resources.Routes[routeName] = &aws_apigatewayv2_route.Resource{
 				Name: routeName,
-				Args: aws_apigatewayv2_route.Args{
-					ApiId:    resources.API.Attributes().Id(),
-					RouteKey: terra.String(routeKey),
-					Target:   terra.String(fmt.Sprintf("integrations/${aws_apigatewayv2_integration.%s.id}", integrationName)),
+				Args: routeArgs,
+			}
+
+			// Create Lambda permission for API Gateway to invoke the function
+			permissionName := fmt.Sprintf("%s-api-permission", fnName)
+			permission := &aws_lambda_permission.Resource{
+				Name: permissionName,
+				Args: aws_lambda_permission.Args{
+					StatementId:  terra.String(permissionName),
+					Action:       terra.String("lambda:InvokeFunction"),
+					FunctionName: terra.String(fmt.Sprintf("${aws_lambda_function.%s.function_name}", fnName)),
+					Principal:    terra.String("apigateway.amazonaws.com"),
+					SourceArn:    terra.String(fmt.Sprintf("${aws_apigatewayv2_api.%s.execution_arn}/*/*", "api")),
 				},
 			}
+			resources.Permissions = append(resources.Permissions, permission)
 		}
 	}
 
