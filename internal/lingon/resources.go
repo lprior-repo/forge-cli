@@ -110,6 +110,75 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 		funcArgs.Timeout = terra.Number(config.Timeout)
 	}
 
+	// Add description
+	if config.Description != "" {
+		funcArgs.Description = terra.String(config.Description)
+	}
+
+	// Add VPC configuration
+	if config.VPC != nil && len(config.VPC.SubnetIds) > 0 {
+		funcArgs.VpcConfig = &aws_lambda_function.VpcConfig{
+			SubnetIds:        terra.SetString(config.VPC.SubnetIds...),
+			SecurityGroupIds: terra.SetString(config.VPC.SecurityGroupIds...),
+		}
+	}
+
+	// Add layers
+	if len(config.Layers) > 0 {
+		funcArgs.Layers = terra.ListString(config.Layers...)
+	}
+
+	// Add dead letter config
+	if config.DeadLetterConfig != nil && config.DeadLetterConfig.TargetArn != "" {
+		funcArgs.DeadLetterConfig = &aws_lambda_function.DeadLetterConfig{
+			TargetArn: terra.String(config.DeadLetterConfig.TargetArn),
+		}
+	}
+
+	// Add tracing
+	if config.TracingMode != "" {
+		funcArgs.TracingConfig = &aws_lambda_function.TracingConfig{
+			Mode: terra.String(config.TracingMode),
+		}
+	}
+
+	// Add reserved concurrent executions
+	if config.ReservedConcurrentExecutions > 0 {
+		funcArgs.ReservedConcurrentExecutions = terra.Number(config.ReservedConcurrentExecutions)
+	}
+
+	// Add architectures
+	if len(config.Architectures) > 0 {
+		funcArgs.Architectures = terra.ListString(config.Architectures...)
+	}
+
+	// Add ephemeral storage
+	if config.EphemeralStorage != nil && config.EphemeralStorage.Size > 0 {
+		funcArgs.EphemeralStorage = &aws_lambda_function.EphemeralStorage{
+			Size: terra.Number(config.EphemeralStorage.Size),
+		}
+	}
+
+	// Add KMS key
+	if config.KMSKeyArn != "" {
+		funcArgs.KmsKeyArn = terra.String(config.KMSKeyArn)
+	}
+
+	// Add code signing config
+	if config.CodeSigningConfigArn != "" {
+		funcArgs.CodeSigningConfigArn = terra.String(config.CodeSigningConfigArn)
+	}
+
+	// Add publish flag
+	if config.Publish {
+		funcArgs.Publish = terra.Bool(true)
+	}
+
+	// Add tags
+	if len(config.Tags) > 0 {
+		funcArgs.Tags = terra.MapString(config.Tags)
+	}
+
 	resources.Function = &aws_lambda_function.Resource{
 		Name: functionName,
 		Args: funcArgs,
