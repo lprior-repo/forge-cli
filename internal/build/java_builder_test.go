@@ -3,6 +3,7 @@ package build
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -296,6 +297,118 @@ func TestJavaBuildErrorHandling(t *testing.T) {
 		)(result)
 
 		assert.Contains(t, buildErr.Error(), "mvn package failed", "Error should mention Maven failure")
+	})
+}
+
+// TestJavaBuildSuccessful tests successful Java builds
+func TestJavaBuildSuccessful(t *testing.T) {
+	// Skip if mvn is not available
+	if _, err := exec.LookPath("mvn"); err != nil {
+		t.Skip("mvn not available, skipping Java build integration test")
+	}
+
+	t.Run("builds simple Java Lambda project", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create Java source directory
+		javaDir := filepath.Join(tmpDir, "src", "main", "java", "com", "example")
+		err := os.MkdirAll(javaDir, 0755)
+		require.NoError(t, err)
+
+		// Create Handler.java
+		handlerPath := filepath.Join(javaDir, "Handler.java")
+		handlerContent := `package com.example;
+
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
+import java.util.Map;
+
+public class Handler implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+    @Override
+    public Map<String, Object> handleRequest(Map<String, Object> event, Context context) {
+        return Map.of("statusCode", 200, "body", "Hello");
+    }
+}
+`
+		err = os.WriteFile(handlerPath, []byte(handlerContent), 0644)
+		require.NoError(t, err)
+
+		// Create minimal pom.xml
+		pomPath := filepath.Join(tmpDir, "pom.xml")
+		pomContent := `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>test-lambda</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-core</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <finalName>lambda</finalName>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+`
+		err = os.WriteFile(pomPath, []byte(pomContent), 0644)
+		require.NoError(t, err)
+
+		cfg := Config{
+			SourceDir: tmpDir,
+			Runtime:   "java21",
+		}
+
+		result := JavaBuild(context.Background(), cfg)
+
+		if E.IsLeft(result) {
+			// Extract error for debugging
+			err := E.Fold(
+				func(e error) error { return e },
+				func(a Artifact) error { return nil },
+			)(result)
+			t.Logf("Java build failed: %v", err)
+		}
+
+		assert.True(t, E.IsRight(result), "Should succeed with valid Java project")
+
+		// Verify artifact
+		artifact := E.Fold(
+			func(err error) Artifact { return Artifact{} },
+			func(a Artifact) Artifact { return a },
+		)(result)
+
+		assert.NotEmpty(t, artifact.Path)
+		assert.FileExists(t, artifact.Path)
+		assert.Greater(t, artifact.Size, int64(1000), "JAR should be larger than 1KB")
+		assert.NotEmpty(t, artifact.Checksum)
 	})
 }
 
