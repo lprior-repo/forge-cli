@@ -22,14 +22,28 @@ func NodeBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		// Check for package.json
 		packageJsonPath := filepath.Join(cfg.SourceDir, "package.json")
 		if _, err := os.Stat(packageJsonPath); err == nil {
-			// Install dependencies
-			cmd := exec.CommandContext(ctx, "npm", "install", "--production")
+			// Install dependencies (including devDependencies for TypeScript)
+			cmd := exec.CommandContext(ctx, "npm", "install")
 			cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
 			cmd.Dir = cfg.SourceDir
 
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				return Artifact{}, fmt.Errorf("npm install failed: %w\nOutput: %s", err, string(output))
+			}
+
+			// Check if TypeScript project (tsconfig.json exists)
+			tsconfigPath := filepath.Join(cfg.SourceDir, "tsconfig.json")
+			if _, err := os.Stat(tsconfigPath); err == nil {
+				// Build TypeScript
+				cmd := exec.CommandContext(ctx, "npm", "run", "build")
+				cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
+				cmd.Dir = cfg.SourceDir
+
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					return Artifact{}, fmt.Errorf("npm run build failed: %w\nOutput: %s", err, string(output))
+				}
 			}
 		}
 

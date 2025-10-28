@@ -20,14 +20,14 @@ module "lambda_function" {
 
   function_name = "{{ .Name }}"
   description   = "{{ .Description }}"
-  handler       = "bootstrap"
-  runtime       = "provided.al2023"
+  handler       = "com.example.Handler::handleRequest"
+  runtime       = "{{ .Runtime }}"
   timeout       = 30
-  memory_size   = 256
+  memory_size   = 512
 
   # Build configuration - Forge handles the build
   create_package         = false
-  local_existing_package = "bootstrap.zip"
+  local_existing_package = "target/lambda.jar"
 
   # IAM role configuration
   create_role = true
@@ -43,7 +43,7 @@ module "lambda_function" {
   tags = {
     Name        = "{{ .Name }}"
     ManagedBy   = "Forge"
-    Runtime     = "go"
+    Runtime     = "java"
   }
 }
 

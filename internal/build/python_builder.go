@@ -31,18 +31,37 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		// Check for requirements.txt
 		requirementsPath := filepath.Join(cfg.SourceDir, "requirements.txt")
 		if _, err := os.Stat(requirementsPath); err == nil {
-			// Install dependencies
-			cmd := exec.CommandContext(ctx, "pip", "install",
-				"-r", requirementsPath,
-				"-t", tempDir,
-				"--upgrade",
-			)
-			cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
-			cmd.Dir = cfg.SourceDir
+			// Install dependencies using uv (faster than pip)
+			// First, check if uv is available
+			if _, err := exec.LookPath("uv"); err == nil {
+				// Use uv pip install (much faster)
+				cmd := exec.CommandContext(ctx, "uv", "pip", "install",
+					"-r", requirementsPath,
+					"--target", tempDir,
+					"--python-platform", "linux",
+					"--python-version", "3.11",
+				)
+				cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
+				cmd.Dir = cfg.SourceDir
 
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				return Artifact{}, fmt.Errorf("pip install failed: %w\nOutput: %s", err, string(output))
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					return Artifact{}, fmt.Errorf("uv pip install failed: %w\nOutput: %s", err, string(output))
+				}
+			} else {
+				// Fallback to pip if uv is not installed
+				cmd := exec.CommandContext(ctx, "pip", "install",
+					"-r", requirementsPath,
+					"-t", tempDir,
+					"--upgrade",
+				)
+				cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
+				cmd.Dir = cfg.SourceDir
+
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					return Artifact{}, fmt.Errorf("pip install failed: %w\nOutput: %s", err, string(output))
+				}
 			}
 		}
 

@@ -15,14 +15,30 @@ type BuildFunc func(context.Context, Config) E.Either[error, Artifact]
 // Registry is a map of runtime to build function
 type Registry map[string]BuildFunc
 
-// NewRegistry creates a functional builder registry
+// NewRegistry creates a functional builder registry with latest Lambda runtimes
 func NewRegistry() Registry {
 	return Registry{
-		"go1.x":       GoBuild,
+		// Go runtimes (use provided.al2023 for latest)
+		"go1.x":           GoBuild,
+		"provided.al2":    GoBuild,
+		"provided.al2023": GoBuild,
+
+		// Python runtimes (3.9 to 3.13)
+		"python3.9":   PythonBuild,
+		"python3.10":  PythonBuild,
 		"python3.11":  PythonBuild,
 		"python3.12":  PythonBuild,
-		"nodejs20.x":  NodeBuild,
+		"python3.13":  PythonBuild,
+
+		// Node.js runtimes (18.x, 20.x, 22.x)
 		"nodejs18.x":  NodeBuild,
+		"nodejs20.x":  NodeBuild,
+		"nodejs22.x":  NodeBuild,
+
+		// Java runtimes (11, 17, 21)
+		"java11":      JavaBuild,
+		"java17":      JavaBuild,
+		"java21":      JavaBuild,
 	}
 }
 

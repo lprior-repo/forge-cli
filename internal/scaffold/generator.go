@@ -89,12 +89,14 @@ func (g *Generator) GenerateStack(opts *StackOptions) error {
 
 	// Generate runtime-specific files
 	switch {
-	case strings.HasPrefix(opts.Runtime, "go"):
+	case strings.HasPrefix(opts.Runtime, "go"), strings.HasPrefix(opts.Runtime, "provided"):
 		return g.generateGoStack(stackDir, opts)
 	case strings.HasPrefix(opts.Runtime, "python"):
 		return g.generatePythonStack(stackDir, opts)
 	case strings.HasPrefix(opts.Runtime, "nodejs"):
 		return g.generateNodeStack(stackDir, opts)
+	case strings.HasPrefix(opts.Runtime, "java"):
+		return g.generateJavaStack(stackDir, opts)
 	default:
 		return fmt.Errorf("unsupported runtime: %s", opts.Runtime)
 	}
@@ -163,6 +165,35 @@ func (g *Generator) generateNodeStack(stackDir string, opts *StackOptions) error
 	// Create main.tf
 	tfPath := filepath.Join(stackDir, "main.tf")
 	if err := g.renderTemplate("node_main.tf.tmpl", tfPath, opts); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// generateJavaStack creates Java-specific files
+func (g *Generator) generateJavaStack(stackDir string, opts *StackOptions) error {
+	// Create src/main/java/com/example directory structure
+	javaDir := filepath.Join(stackDir, "src", "main", "java", "com", "example")
+	if err := os.MkdirAll(javaDir, 0755); err != nil {
+		return fmt.Errorf("failed to create Java source directory: %w", err)
+	}
+
+	// Create Handler.java
+	handlerPath := filepath.Join(javaDir, "Handler.java")
+	if err := g.renderTemplate("java_handler.java.tmpl", handlerPath, opts); err != nil {
+		return err
+	}
+
+	// Create pom.xml
+	pomPath := filepath.Join(stackDir, "pom.xml")
+	if err := g.renderTemplate("pom.xml.tmpl", pomPath, opts); err != nil {
+		return err
+	}
+
+	// Create main.tf
+	tfPath := filepath.Join(stackDir, "main.tf")
+	if err := g.renderTemplate("java_main.tf.tmpl", tfPath, opts); err != nil {
 		return err
 	}
 

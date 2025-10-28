@@ -1,49 +1,68 @@
 terraform {
+  required_version = ">= 1.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = ">= 5.0"
     }
   }
 }
 
-data "aws_iam_policy_document" "assume_role" {
-  statement {
-    effect = "Allow"
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-    actions = ["sts:AssumeRole"]
-  }
+provider "aws" {
+  # Region will be set via AWS_REGION environment variable or AWS config
 }
 
-resource "aws_iam_role" "lambda" {
-  name               = "{{ .Name }}-lambda-role"
-  assume_role_policy = data.aws_iam_policy_document.assume_role.json
-}
+# Use terraform-aws-modules/lambda/aws module for best practices
+module "lambda_function" {
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "~> 7.0"
 
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  role       = aws_iam_role.lambda.name
-}
-
-resource "aws_lambda_function" "function" {
-  filename      = "lambda.zip"
   function_name = "{{ .Name }}"
-  role          = aws_iam_role.lambda.arn
+  description   = "{{ .Description }}"
   handler       = "index.handler"
   runtime       = "{{ .Runtime }}"
   timeout       = 30
   memory_size   = 256
 
-  source_code_hash = filebase64sha256("lambda.zip")
+  # Build configuration - Forge handles the build
+  create_package         = false
+  local_existing_package = "lambda.zip"
+
+  # IAM role configuration
+  create_role = true
+  role_name   = "{{ .Name }}-lambda-role"
+
+  attach_cloudwatch_logs_policy = true
+  cloudwatch_logs_retention_in_days = 7
+
+  # Architecture
+  architectures = ["x86_64"]
+
+  # Tags
+  tags = {
+    Name        = "{{ .Name }}"
+    ManagedBy   = "Forge"
+    Runtime     = "nodejs"
+  }
 }
 
 output "function_name" {
-  value = aws_lambda_function.function.function_name
+  description = "The name of the Lambda function"
+  value       = module.lambda_function.lambda_function_name
 }
 
 output "function_arn" {
-  value = aws_lambda_function.function.arn
+  description = "The ARN of the Lambda function"
+  value       = module.lambda_function.lambda_function_arn
+}
+
+output "function_invoke_arn" {
+  description = "The Invoke ARN of the Lambda function"
+  value       = module.lambda_function.lambda_function_invoke_arn
+}
+
+output "function_role_arn" {
+  description = "The ARN of the IAM role created for the Lambda function"
+  value       = module.lambda_function.lambda_role_arn
 }
