@@ -164,7 +164,7 @@ func generateJavaStack(stackDir string, opts *StackOptions) error {
 	// Generate Handler.java
 	handler := generateJavaHandler(opts)
 	if err := os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte(handler), 0644); err != nil {
-		_, _ = fmt.Errorf, err
+		return fmt.Errorf("failed to write Handler.java: %w", err)
 	}
 
 	// Generate pom.xml
