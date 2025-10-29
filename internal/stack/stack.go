@@ -34,28 +34,19 @@ type StackBlock struct {
 	Handler     string   `hcl:"handler,optional"`
 }
 
-// Detector finds all stacks in a project
-type Detector struct {
-	projectRoot string
-}
-
-// NewDetector creates a new stack detector
-func NewDetector(projectRoot string) *Detector {
-	return &Detector{projectRoot: projectRoot}
-}
-
 // FindStacks walks the directory tree and finds all stack.forge.hcl files
-func (d *Detector) FindStacks() ([]*Stack, error) {
+// Pure functional approach - no methods, no state
+func FindStacks(projectRoot string) ([]*Stack, error) {
 	var stacks []*Stack
 
-	err := filepath.Walk(d.projectRoot, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		// Look for stack.forge.hcl files
 		if !info.IsDir() && info.Name() == "stack.forge.hcl" {
-			stack, err := d.loadStack(path)
+			stack, err := loadStack(projectRoot, path)
 			if err != nil {
 				return fmt.Errorf("failed to load stack at %s: %w", path, err)
 			}
@@ -73,7 +64,8 @@ func (d *Detector) FindStacks() ([]*Stack, error) {
 }
 
 // loadStack loads a stack from a stack.forge.hcl file
-func (d *Detector) loadStack(metadataPath string) (*Stack, error) {
+// Pure function - takes all dependencies as parameters
+func loadStack(projectRoot, metadataPath string) (*Stack, error) {
 	var metadata Metadata
 	err := hclsimple.DecodeFile(metadataPath, nil, &metadata)
 	if err != nil {
@@ -82,7 +74,7 @@ func (d *Detector) loadStack(metadataPath string) (*Stack, error) {
 
 	// Get the directory containing the stack.forge.hcl
 	stackDir := filepath.Dir(metadataPath)
-	relPath, err := filepath.Rel(d.projectRoot, stackDir)
+	relPath, err := filepath.Rel(projectRoot, stackDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get relative path: %w", err)
 	}
@@ -93,7 +85,7 @@ func (d *Detector) loadStack(metadataPath string) (*Stack, error) {
 		// If dep is relative, resolve it relative to the stack directory
 		if !filepath.IsAbs(dep) {
 			absDepPath := filepath.Join(stackDir, dep)
-			relDep, err := filepath.Rel(d.projectRoot, absDepPath)
+			relDep, err := filepath.Rel(projectRoot, absDepPath)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve dependency %s: %w", dep, err)
 			}
@@ -120,8 +112,9 @@ func (d *Detector) loadStack(metadataPath string) (*Stack, error) {
 	}, nil
 }
 
-// Validate ensures the stack configuration is valid
-func (s *Stack) Validate() error {
+// ValidateStack ensures the stack configuration is valid
+// Pure function - no methods, takes Stack as parameter
+func ValidateStack(s *Stack) error {
 	if s.Name == "" {
 		return fmt.Errorf("stack name is required")
 	}
@@ -153,7 +146,8 @@ func isValidRuntime(runtime string) bool {
 }
 
 // GetBuildTarget returns the build target based on runtime
-func (s *Stack) GetBuildTarget() string {
+// Pure function - no methods, takes Stack as parameter
+func GetBuildTarget(s *Stack) string {
 	if strings.HasPrefix(s.Runtime, "go") {
 		return "bootstrap"
 	}
@@ -161,7 +155,8 @@ func (s *Stack) GetBuildTarget() string {
 }
 
 // NeedsBuild determines if this stack requires a build step
-func (s *Stack) NeedsBuild() bool {
+// Pure function - no methods, takes Stack as parameter
+func NeedsBuild(s *Stack) bool {
 	// Go requires compilation
 	if strings.HasPrefix(s.Runtime, "go") {
 		return true

@@ -1,11 +1,14 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/lewis/forge/internal/scaffold"
+	"github.com/lewis/forge/internal/state"
+	"github.com/lewis/forge/internal/terraform"
 	"github.com/spf13/cobra"
 )
 
@@ -16,13 +19,21 @@ func NewNewCmd() *cobra.Command {
 		stackName   string
 		runtime     string
 		description string
+		autoState   bool
 	)
 
 	cmd := &cobra.Command{
 		Use:   "new [project-name]",
 		Short: "Create a new Forge project or stack",
 		Long: `Create a new Forge project with initial configuration,
-or add a new stack to an existing project.`,
+or add a new stack to an existing project.
+
+Auto-state provisioning:
+  forge new my-app --auto-state
+    → Auto-provisions S3 bucket for Terraform state
+    → Auto-provisions DynamoDB table for state locking
+    → Generates backend.tf with namespace-aware configuration
+    → Production-ready state management from day 1`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Determine if this is a new project or new stack
@@ -30,7 +41,7 @@ or add a new stack to an existing project.`,
 
 			if isNewProject {
 				projectName = args[0]
-				return createProject(projectName, runtime)
+				return createProject(projectName, runtime, autoState)
 			}
 
 			// New stack in existing project
@@ -45,12 +56,13 @@ or add a new stack to an existing project.`,
 	cmd.Flags().StringVar(&stackName, "stack", "", "Create a new stack in existing project")
 	cmd.Flags().StringVar(&runtime, "runtime", "go1.x", "Runtime for the stack (go1.x, python3.11, nodejs20.x)")
 	cmd.Flags().StringVar(&description, "description", "", "Stack description")
+	cmd.Flags().BoolVar(&autoState, "auto-state", false, "Auto-provision S3 bucket and DynamoDB table for Terraform state")
 
 	return cmd
 }
 
 // createProject creates a new Forge project
-func createProject(name, defaultRuntime string) error {
+func createProject(name, defaultRuntime string, autoState bool) error {
 	projectDir := filepath.Join(".", name)
 
 	// Check if directory already exists
@@ -77,11 +89,52 @@ func createProject(name, defaultRuntime string) error {
 		return fmt.Errorf("failed to generate project: %w", err)
 	}
 
-	fmt.Printf("Created Forge project: %s\n", name)
+	fmt.Printf("✓ Created Forge project: %s\n", name)
+
+	// Auto-provision state backend if requested
+	if autoState {
+		fmt.Println("\nProvisioning Terraform state backend...")
+		if err := provisionStateBackend(projectDir, name, opts.Region); err != nil {
+			fmt.Printf("Warning: Failed to provision state backend: %v\n", err)
+			fmt.Println("You can manually set up state later or run with --auto-state again")
+		} else {
+			fmt.Println("✓ State backend provisioned successfully")
+		}
+	}
+
 	fmt.Printf("\nNext steps:\n")
 	fmt.Printf("  cd %s\n", name)
-	fmt.Printf("  forge new --stack api --runtime %s\n", defaultRuntime)
+	fmt.Printf("  # Add your Lambda function code to src/functions/\n")
+	fmt.Printf("  forge build\n")
 	fmt.Printf("  forge deploy\n")
+
+	if !autoState {
+		fmt.Println("\nOptional: Set up remote state")
+		fmt.Printf("  forge new --auto-state  # Provision S3 + DynamoDB for state\n")
+	}
+
+	return nil
+}
+
+// provisionStateBackend provisions S3 bucket and DynamoDB table for Terraform state
+// This is the imperative shell that orchestrates state backend provisioning
+func provisionStateBackend(projectDir, projectName, region string) error {
+	ctx := context.Background()
+
+	// Create Terraform executor
+	tfPath := findTerraformPath()
+	tfExec := terraform.NewExecutor(tfPath)
+
+	// Provision state backend (uses Railway-Oriented Programming internally)
+	result, err := state.ProvisionStateBackendSync(ctx, projectDir, projectName, region, tfExec)
+	if err != nil {
+		return err
+	}
+
+	// Display results
+	fmt.Printf("  S3 Bucket: %s\n", result.BucketName)
+	fmt.Printf("  DynamoDB Table: %s\n", result.TableName)
+	fmt.Printf("  Backend Config: %s\n", result.BackendTFPath)
 
 	return nil
 }

@@ -16,8 +16,8 @@ func ConventionScan() Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		fmt.Println("==> Scanning for Lambda functions...")
 
-		scanner := discovery.NewScanner(s.ProjectDir)
-		functions, err := scanner.ScanFunctions()
+		// Pure functional call - no OOP
+		functions, err := discovery.ScanFunctions(s.ProjectDir)
 		if err != nil {
 			return E.Left[State](fmt.Errorf("failed to scan functions: %w", err))
 		}
@@ -85,7 +85,7 @@ func ConventionBuild() Stage {
 			fmt.Printf("[%s] Building...\n", fn.Name)
 
 			// Get builder from registry (returns Option)
-			builderOpt := registry.Get(fn.Runtime)
+			builderOpt := build.GetBuilder(registry, fn.Runtime)
 			if O.IsNone(builderOpt) {
 				return E.Left[State](fmt.Errorf("unsupported runtime: %s", fn.Runtime))
 			}
@@ -96,8 +96,8 @@ func ConventionBuild() Stage {
 				func(b build.BuildFunc) build.BuildFunc { return b },
 			)(builderOpt)
 
-			// Convert to build config
-			cfg := fn.ToBuildConfig(buildDir)
+			// Convert to build config (pure function - no method)
+			cfg := discovery.ToBuildConfig(fn, buildDir)
 
 			// Execute build (returns Either)
 			result := builder(ctx, cfg)

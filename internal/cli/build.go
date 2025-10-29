@@ -53,9 +53,8 @@ func runBuild(stubOnly bool) error {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// Scan for functions
-	scanner := discovery.NewScanner(projectRoot)
-	functions, err := scanner.ScanFunctions()
+	// Scan for functions (pure functional approach - no OOP)
+	functions, err := discovery.ScanFunctions(projectRoot)
 	if err != nil {
 		return fmt.Errorf("failed to scan functions: %w", err)
 	}
@@ -97,7 +96,7 @@ func runBuild(stubOnly bool) error {
 		fmt.Printf("[%s] Building...\n", fn.Name)
 
 		// Get builder from registry
-		builderOpt := registry.Get(fn.Runtime)
+		builderOpt := build.GetBuilder(registry, fn.Runtime)
 		if O.IsNone(builderOpt) {
 			return fmt.Errorf("unsupported runtime: %s", fn.Runtime)
 		}

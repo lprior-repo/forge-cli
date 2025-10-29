@@ -62,16 +62,17 @@ func Load(projectRoot string) (*Config, error) {
 		cfg.Defaults.Memory = 256
 	}
 
-	// Validate
-	if err := cfg.Validate(); err != nil {
+	// Validate (pure function - no method)
+	if err := ValidateConfig(&cfg); err != nil {
 		return nil, err
 	}
 
 	return &cfg, nil
 }
 
-// Validate ensures the configuration is valid
-func (c *Config) Validate() error {
+// ValidateConfig ensures the configuration is valid
+// Pure function - no methods, takes Config as parameter
+func ValidateConfig(c *Config) error {
 	if c.Project == nil {
 		return fmt.Errorf("project block is required")
 	}
@@ -85,7 +86,8 @@ func (c *Config) Validate() error {
 }
 
 // GetStackDefaults returns default values for a stack
-func (c *Config) GetStackDefaults() *DefaultsBlock {
+// Pure function - no methods, takes Config as parameter
+func GetStackDefaults(c *Config) *DefaultsBlock {
 	if c.Defaults == nil {
 		return &DefaultsBlock{
 			Runtime: "go1.x",

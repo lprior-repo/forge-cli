@@ -42,8 +42,9 @@ func NewRegistry() Registry {
 	}
 }
 
-// Get retrieves a builder for the given runtime (returns Option type)
-func (r Registry) Get(runtime string) O.Option[BuildFunc] {
+// GetBuilder retrieves a builder for the given runtime (returns Option type)
+// Pure function - no methods, takes Registry as parameter
+func GetBuilder(r Registry, runtime string) O.Option[BuildFunc] {
 	if builder, ok := r[runtime]; ok {
 		return O.Some(builder)
 	}
@@ -54,7 +55,7 @@ func (r Registry) Get(runtime string) O.Option[BuildFunc] {
 func BuildAll(ctx context.Context, configs []Config, registry Registry) E.Either[error, []Artifact] {
 	// Map configs to build results
 	results := lo.Map(configs, func(cfg Config, _ int) E.Either[error, Artifact] {
-		builderOpt := registry.Get(cfg.Runtime)
+		builderOpt := GetBuilder(registry, cfg.Runtime)
 
 		return O.Fold(
 			// None case: runtime not found

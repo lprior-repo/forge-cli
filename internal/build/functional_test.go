@@ -46,14 +46,14 @@ func TestRegistry(t *testing.T) {
 	t.Run("Get returns Some for existing runtime", func(t *testing.T) {
 		registry := NewRegistry()
 
-		builderOpt := registry.Get("go1.x")
+		builderOpt := build.GetBuilder(registry, "go1.x")
 		assert.True(t, O.IsSome(builderOpt), "Should return Some for go1.x")
 	})
 
 	t.Run("Get returns None for non-existent runtime", func(t *testing.T) {
 		registry := NewRegistry()
 
-		builderOpt := registry.Get("rust")
+		builderOpt := build.GetBuilder(registry, "rust")
 		assert.True(t, O.IsNone(builderOpt), "Should return None for unsupported runtime")
 	})
 
@@ -66,7 +66,7 @@ func TestRegistry(t *testing.T) {
 
 		registry["custom"] = customBuilder
 
-		builderOpt := registry.Get("custom")
+		builderOpt := build.GetBuilder(registry, "custom")
 		assert.True(t, O.IsSome(builderOpt), "Should find custom builder")
 	})
 }

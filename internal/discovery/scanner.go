@@ -28,22 +28,10 @@ type Function struct {
 	EntryPoint string // Entry file (main.go, index.js, app.py, etc.)
 }
 
-// Scanner discovers functions following convention-over-configuration
-type Scanner struct {
-	projectRoot string
-}
-
-// NewScanner creates a new function scanner
-func NewScanner(projectRoot string) *Scanner {
-	return &Scanner{
-		projectRoot: projectRoot,
-	}
-}
-
 // ScanFunctions discovers all functions in src/functions/*
-// Returns a slice of discovered functions
-func (s *Scanner) ScanFunctions() ([]Function, error) {
-	functionsDir := filepath.Join(s.projectRoot, "src", "functions")
+// Pure functional approach - no methods, no state
+func ScanFunctions(projectRoot string) ([]Function, error) {
+	functionsDir := filepath.Join(projectRoot, "src", "functions")
 
 	// Check if functions directory exists
 	if _, err := os.Stat(functionsDir); os.IsNotExist(err) {
@@ -65,7 +53,7 @@ func (s *Scanner) ScanFunctions() ([]Function, error) {
 		functionPath := filepath.Join(functionsDir, entry.Name())
 
 		// Detect runtime by checking for entry files
-		runtime, entryPoint, err := s.detectRuntime(functionPath)
+		runtime, entryPoint, err := detectRuntime(functionPath)
 		if err != nil {
 			// Skip directories without recognizable entry points
 			continue
@@ -83,35 +71,35 @@ func (s *Scanner) ScanFunctions() ([]Function, error) {
 }
 
 // detectRuntime determines the runtime by checking for entry point files
-// Returns (runtime, entryPoint, error)
-func (s *Scanner) detectRuntime(functionPath string) (string, string, error) {
+// Pure function - no methods, takes path as parameter
+func detectRuntime(functionPath string) (string, string, error) {
 	// Go: main.go or *.go files
-	if s.fileExists(functionPath, "main.go") {
+	if fileExists(functionPath, "main.go") {
 		return RuntimeGo, "main.go", nil
 	}
-	if s.hasGoFiles(functionPath) {
+	if hasGoFiles(functionPath) {
 		return RuntimeGo, "*.go", nil
 	}
 
 	// Node.js: index.js, index.mjs, or handler.js
-	if s.fileExists(functionPath, "index.js") {
+	if fileExists(functionPath, "index.js") {
 		return RuntimeNode, "index.js", nil
 	}
-	if s.fileExists(functionPath, "index.mjs") {
+	if fileExists(functionPath, "index.mjs") {
 		return RuntimeNode, "index.mjs", nil
 	}
-	if s.fileExists(functionPath, "handler.js") {
+	if fileExists(functionPath, "handler.js") {
 		return RuntimeNode, "handler.js", nil
 	}
 
 	// Python: app.py, lambda_function.py, or handler.py
-	if s.fileExists(functionPath, "app.py") {
+	if fileExists(functionPath, "app.py") {
 		return RuntimePython, "app.py", nil
 	}
-	if s.fileExists(functionPath, "lambda_function.py") {
+	if fileExists(functionPath, "lambda_function.py") {
 		return RuntimePython, "lambda_function.py", nil
 	}
-	if s.fileExists(functionPath, "handler.py") {
+	if fileExists(functionPath, "handler.py") {
 		return RuntimePython, "handler.py", nil
 	}
 
@@ -119,14 +107,16 @@ func (s *Scanner) detectRuntime(functionPath string) (string, string, error) {
 }
 
 // fileExists checks if a file exists in the given directory
-func (s *Scanner) fileExists(dir, filename string) bool {
+// Pure function - no methods
+func fileExists(dir, filename string) bool {
 	path := filepath.Join(dir, filename)
 	_, err := os.Stat(path)
 	return err == nil
 }
 
 // hasGoFiles checks if directory contains any .go files
-func (s *Scanner) hasGoFiles(dir string) bool {
+// Pure function - no methods
+func hasGoFiles(dir string) bool {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return false
@@ -141,14 +131,15 @@ func (s *Scanner) hasGoFiles(dir string) bool {
 }
 
 // ToBuildConfig converts a Function to a build.Config
-func (f *Function) ToBuildConfig(buildDir string) build.Config {
+// Pure function - no methods, takes Function as parameter
+func ToBuildConfig(f Function, buildDir string) build.Config {
 	outputPath := filepath.Join(buildDir, f.Name+".zip")
 
 	// Determine handler based on runtime
 	handler := "bootstrap"
-	if f.Runtime[:6] == "nodejs" {
+	if len(f.Runtime) >= 6 && f.Runtime[:6] == "nodejs" {
 		handler = "index.handler"
-	} else if f.Runtime[:6] == "python" {
+	} else if len(f.Runtime) >= 6 && f.Runtime[:6] == "python" {
 		handler = "handler"
 	}
 

@@ -51,9 +51,8 @@ func runDestroy(targetStack string, autoApprove bool) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Find all stacks
-	detector := stack.NewDetector(projectRoot)
-	allStacks, err := detector.FindStacks()
+	// Find all stacks (pure functional approach - no OOP)
+	allStacks, err := stack.FindStacks(projectRoot)
 	if err != nil {
 		return fmt.Errorf("failed to find stacks: %w", err)
 	}
@@ -120,7 +119,7 @@ func runDestroy(targetStack string, autoApprove bool) error {
 	}
 
 	// Run pipeline
-	result := destroyPipeline.Run(ctx, initialState)
+pipeline.Run(	result := destroyPipeline, ctx, initialState)
 
 	// Handle result
 	if E.IsLeft(result) {

@@ -10,9 +10,9 @@ import (
 )
 
 // DetectStacks finds all stacks in the project
+// Pure functional approach - no OOP
 func DetectStacks(ctx context.Context, s State) E.Either[error, State] {
-	detector := stack.NewDetector(s.ProjectDir)
-	stacks, err := detector.FindStacks()
+	stacks, err := stack.FindStacks(s.ProjectDir)
 	if err != nil {
 		return E.Left[State](fmt.Errorf("failed to detect stacks: %w", err))
 	}
@@ -22,16 +22,17 @@ func DetectStacks(ctx context.Context, s State) E.Either[error, State] {
 }
 
 // ValidateStacks validates all stacks using lo.Filter
+// Pure functional approach - no methods
 func ValidateStacks(ctx context.Context, s State) E.Either[error, State] {
 	// Use lo.Filter to find invalid stacks
 	invalid := lo.Filter(s.Stacks, func(st *stack.Stack, _ int) bool {
-		return st.Validate() != nil
+		return stack.ValidateStack(st) != nil
 	})
 
 	if len(invalid) > 0 {
 		// Map to error messages
 		errors := lo.Map(invalid, func(st *stack.Stack, _ int) string {
-			return fmt.Sprintf("%s: %v", st.Name, st.Validate())
+			return fmt.Sprintf("%s: %v", st.Name, stack.ValidateStack(st))
 		})
 		return E.Left[State](fmt.Errorf("validation failed: %v", errors))
 	}

@@ -8,9 +8,10 @@
 - ✅ **CLI: 100%** - Perfect mutation coverage
 
 ### Packages In Progress
-- 🔄 **Build: 81.4% → ?%** - Added builder_test.go (filesystem error handling)
+- 🔄 **Build: 72.9%** - Added builder_test.go (filesystem error handling)
   - builder.go improved from 0% to 66.7%
-  - Remaining failures: io.Copy errors, cmd.Run failures (require mocking)
+  - Overall: 94 passed, 35 failed out of 129 mutations
+  - Remaining failures: io.Copy errors, cmd.Run failures, compilation errors from mutation tool
 
 - **Terraform: 66.2%** - Needs error path testing
   - Most failures in options building (conditional appends)

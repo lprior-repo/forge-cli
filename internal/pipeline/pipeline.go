@@ -40,7 +40,8 @@ func New(stages ...Stage) Pipeline {
 }
 
 // Run executes all stages in order using functional composition
-func (p Pipeline) Run(ctx context.Context, initial State) E.Either[error, State] {
+// Pure function approach - pipeline is immutable data
+func Run(p Pipeline, ctx context.Context, initial State) E.Either[error, State] {
 	// Start with initial state wrapped in Right (success)
 	result := E.Right[error](initial)
 

@@ -97,9 +97,8 @@ func TestScanner_ScanFunctions(t *testing.T) {
 				require.NoError(t, os.WriteFile(fullPath, []byte(content), 0644))
 			}
 
-			// Scan functions
-			scanner := NewScanner(tmpDir)
-			functions, err := scanner.ScanFunctions()
+			// Scan functions (pure functional - no OOP)
+			functions, err := ScanFunctions(tmpDir)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -189,8 +188,8 @@ func TestScanner_detectRuntime(t *testing.T) {
 				require.NoError(t, os.WriteFile(path, []byte("test"), 0644))
 			}
 
-			scanner := NewScanner("")
-			runtime, entryPoint, err := scanner.detectRuntime(tmpDir)
+			// Pure functional - no OOP
+			runtime, entryPoint, err := detectRuntime(tmpDir)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -263,7 +262,7 @@ func TestFunction_ToBuildConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := tt.function.ToBuildConfig(tt.buildDir)
+			cfg := ToBuildConfig(tt.function, tt.buildDir)
 
 			assert.Equal(t, tt.expected["SourceDir"], cfg.SourceDir)
 			assert.Equal(t, tt.expected["OutputPath"], cfg.OutputPath)

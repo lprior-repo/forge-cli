@@ -232,7 +232,7 @@ func TestPipelineWithContext(t *testing.T) {
 		)
 
 		ctx := context.WithValue(context.Background(), key, "test-value")
-		pipeline.Run(ctx, State{})
+		Run(pipeline, ctx, State{})
 
 		assert.Len(t, receivedValues, 2)
 		assert.Equal(t, "test-value", receivedValues[0])
@@ -254,7 +254,7 @@ func TestPipelineWithContext(t *testing.T) {
 			},
 		)
 
-		result := pipeline.Run(ctx, State{})
+		result := Run(pipeline, ctx, State{})
 
 		// Stage should detect cancellation
 		assert.True(t, E.IsLeft(result) || !stageRan)
