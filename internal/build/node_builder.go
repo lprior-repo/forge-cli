@@ -20,8 +20,8 @@ func NodeBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		}
 
 		// Check for package.json
-		packageJsonPath := filepath.Join(cfg.SourceDir, "package.json")
-		if _, err := os.Stat(packageJsonPath); err == nil {
+		packageJSONPath := filepath.Join(cfg.SourceDir, "package.json")
+		if _, err := os.Stat(packageJSONPath); err == nil {
 			// Install dependencies (including devDependencies for TypeScript)
 			cmd := exec.CommandContext(ctx, "npm", "install")
 			cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
@@ -52,10 +52,14 @@ func NodeBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to create zip: %w", err)
 		}
-		defer zipFile.Close()
+		defer func() {
+			_ = zipFile.Close() // Best effort close in defer
+		}()
 
 		zipWriter := zip.NewWriter(zipFile)
-		defer zipWriter.Close()
+		defer func() {
+			_ = zipWriter.Close() // Best effort close in defer
+		}()
 
 		// Add source code and node_modules
 		if err := addDirToZip(zipWriter, cfg.SourceDir, ""); err != nil {
@@ -63,8 +67,12 @@ func NodeBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		}
 
 		// Close zip before calculating checksum
-		zipWriter.Close()
-		zipFile.Close()
+		if err := zipWriter.Close(); err != nil {
+			return Artifact{}, fmt.Errorf("failed to close zip writer: %w", err)
+		}
+		if err := zipFile.Close(); err != nil {
+			return Artifact{}, fmt.Errorf("failed to close zip file: %w", err)
+		}
 
 		// Calculate checksum
 		checksum, err := calculateChecksum(outputPath)

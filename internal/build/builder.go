@@ -1,3 +1,6 @@
+// Package build provides serverless function build functionality with multi-runtime support.
+// It follows functional programming principles using Either monads for error handling
+// and composable build decorators for cross-cutting concerns like caching and logging.
 package build
 
 import (
@@ -29,7 +32,9 @@ func calculateChecksum(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close() // Error is not relevant after successful read
+	}()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {

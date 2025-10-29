@@ -174,7 +174,7 @@ func TestWithLogging(t *testing.T) {
 		var errorLogs []string
 
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
+			infoFn: func(msg string, args ...interface{}) {},
 			errorFn: func(msg string, args ...interface{}) {
 				errorLogs = append(errorLogs, msg)
 			},

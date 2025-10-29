@@ -403,6 +403,78 @@ func TestDeployWithOutputCapture(t *testing.T) {
 	})
 }
 
+// TestCreateBuildStage tests the createBuildStage function
+func TestCreateBuildStage(t *testing.T) {
+	t.Run("returns error for unsupported but buildable runtime", func(t *testing.T) {
+		buildStage := createBuildStage()
+
+		// Use a runtime that NeedsBuild() returns true for, but isn't in registry
+		// Like "go1.21" which would need build but isn't registered
+		initialState := pipeline.State{
+			ProjectDir: "/test",
+			Stacks: []*stack.Stack{
+				{Name: "api", Path: "/test/api", AbsPath: "/test/api", Runtime: "go1.21"},
+			},
+		}
+
+		result := buildStage(context.Background(), initialState)
+
+		assert.True(t, E.IsLeft(result), "Should fail for unsupported runtime")
+
+		// Extract error
+		err := E.Fold(
+			func(e error) error { return e },
+			func(s pipeline.State) error { return nil },
+		)(result)
+
+		assert.ErrorContains(t, err, "unsupported runtime")
+	})
+
+	t.Run("skips stacks that don't need building", func(t *testing.T) {
+		buildStage := createBuildStage()
+
+		initialState := pipeline.State{
+			ProjectDir: "/test",
+			Stacks: []*stack.Stack{
+				{Name: "custom", Path: "/test/custom", Runtime: "provided.al2"},
+			},
+		}
+
+		result := buildStage(context.Background(), initialState)
+
+		assert.True(t, E.IsRight(result), "Build stage should succeed")
+
+		// Verify no artifacts created for provided runtime
+		finalState := E.Fold(
+			func(e error) pipeline.State { return pipeline.State{} },
+			func(s pipeline.State) pipeline.State { return s },
+		)(result)
+
+		assert.Empty(t, finalState.Artifacts, "Should not build provided.al2 runtime")
+	})
+
+	t.Run("initializes artifacts map if nil", func(t *testing.T) {
+		buildStage := createBuildStage()
+
+		initialState := pipeline.State{
+			ProjectDir: "/test",
+			Stacks:     []*stack.Stack{},
+			Artifacts:  nil, // Explicitly nil
+		}
+
+		result := buildStage(context.Background(), initialState)
+
+		assert.True(t, E.IsRight(result), "Build stage should succeed with empty stacks")
+
+		finalState := E.Fold(
+			func(e error) pipeline.State { return pipeline.State{} },
+			func(s pipeline.State) pipeline.State { return s },
+		)(result)
+
+		assert.NotNil(t, finalState.Artifacts, "Should initialize artifacts map")
+	})
+}
+
 // BenchmarkDeployPipeline benchmarks the deploy pipeline
 func BenchmarkDeployPipeline(b *testing.B) {
 	exec := terraform.NewMockExecutor()

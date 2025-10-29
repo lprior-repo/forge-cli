@@ -1,0 +1,191 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck       # Check for unchecked errors
+    - gosimple       # Simplify code
+    - govet          # Vet examines Go source code
+    - ineffassign    # Detect ineffectual assignments
+    - staticcheck    # Static analysis
+    - typecheck      # Type check
+    - unused         # Check for unused code
+    - gofmt          # Format code
+    - goimports      # Fix imports
+    - misspell       # Fix commonly misspelled English words
+    - goconst        # Find repeated strings that could be constants
+    - unconvert      # Remove unnecessary type conversions
+    - unparam        # Find unused function parameters
+    - prealloc       # Find slice declarations that could be preallocated
+    - noctx          # Find sending http request without context.Context
+    - bodyclose      # Check HTTP response body is closed
+    - errname        # Check that sentinel errors are prefixed with Err
+    - errorlint      # Find code that will cause problems with Go 1.13+ error wrapping
+    - goprintffuncname # Check printf-like functions are named with f
+    - nakedret       # Find naked returns in functions
+    - nilerr         # Find the code that returns nil even if it checks that the error is not nil
+    - nilnil         # Check that there is no simultaneous return of nil error and nil value
+    - testifylint    # Check testify usage
+    - revive         # General-purpose linter
+    - gosec          # Security-focused linter
+
+  disable:
+    - exhaustruct    # Too strict for practical use
+    - wrapcheck      # Too strict, doesn't work well with Either monad
+    - varnamelen     # Variable name length check - too opinionated
+    - gochecknoglobals # We use globals appropriately
+    - funlen         # Function length check - too restrictive
+    - gocyclo        # Cyclomatic complexity - covered by gocognit
+    - cyclop         # Cyclomatic complexity - covered by gocognit
+    - gocognit       # Cognitive complexity - we optimize for readability
+    - nestif         # Nested if check - conflicts with functional style
+    - lll            # Line length check - handled by gofmt
+    - wsl            # Whitespace linter - too opinionated
+    - nlreturn       # New line return - too opinionated
+    - forbidigo      # Forbid identifiers - not needed
+    - exhaustive     # Check exhaustiveness of enum switch statements - too strict
+    - tagliatelle    # Struct tag naming - not relevant
+    - tparallel      # Test parallelization - not always needed
+    - paralleltest   # Test parallelization - not always needed
+    - maintidx       # Maintainability index - covered by other linters
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    exclude-functions:
+      - (*github.com/spf13/cobra.Command).MarkFlagRequired
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow      # Variable shadowing is sometimes intentional
+      - fieldalignment # Struct field alignment - micro-optimization
+
+  staticcheck:
+    checks: ["all"]
+
+  revive:
+    rules:
+      - name: var-naming
+        disabled: false
+      - name: package-comments
+        disabled: false
+      - name: exported
+        disabled: false
+      - name: indent-error-flow
+        disabled: false
+      - name: blank-imports
+        disabled: false
+      - name: context-as-argument
+        disabled: false
+      - name: dot-imports
+        disabled: false
+      - name: error-return
+        disabled: false
+      - name: error-strings
+        disabled: false
+      - name: error-naming
+        disabled: false
+      - name: increment-decrement
+        disabled: false
+      - name: range
+        disabled: false
+      - name: receiver-naming
+        disabled: false
+      - name: time-naming
+        disabled: false
+      - name: var-declaration
+        disabled: false
+      - name: unexported-return
+        disabled: false
+      - name: errorf
+        disabled: false
+      - name: context-keys-type
+        disabled: false
+      - name: time-equal
+        disabled: false
+      - name: unreachable-code
+        disabled: false
+
+  gosec:
+    excludes:
+      - G107  # Url provided to HTTP request as taint input
+      - G204  # Subprocess launched with a potential tainted input
+      - G304  # File path provided as taint input
+
+  misspell:
+    locale: US
+
+  gofmt:
+    simplify: true
+
+  goimports:
+    local-prefixes: github.com/lewis/forge
+
+  nakedret:
+    max-func-lines: 30
+
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: true
+
+  testifylint:
+    enable-all: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: true
+  exclude-dirs:
+    - internal/lingon/aws  # Generated AWS resources (2,671 files, 1M+ LOC)
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_gen\\.go$"
+
+  exclude-rules:
+    # Exclude test files from certain checks
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - unparam
+        - goconst
+        - govet # Allow unusedwrite in test setup
+
+    # Exclude generated files
+    - path: .*_gen\.go
+      linters:
+        - all
+
+    # Allow dot imports in tests for readability (E.Either, O.Option)
+    - path: _test\.go
+      text: "dot-imports"
+      linters:
+        - revive
+
+    # Allow BuildFunc and BuildAll naming (not stuttering in this domain context)
+    - path: internal/build/functional\.go
+      text: "(BuildFunc|BuildAll)"
+      linters:
+        - revive
+
+    # Allow intentionally permissive file permissions for Lambda builds
+    - path: internal/build/.*_builder\.go
+      text: "G301|G306"
+      linters:
+        - gosec
+
+  exclude-use-default: false
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true

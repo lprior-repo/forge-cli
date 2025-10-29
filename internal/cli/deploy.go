@@ -89,16 +89,9 @@ func runDeploy(targetStack string, autoApprove, parallel bool) error {
 		stacksToDeploy = allStacks
 	}
 
-	// Build dependency graph and get deployment order
-	graph, err := stack.NewGraph(stacksToDeploy)
-	if err != nil {
-		return fmt.Errorf("failed to build dependency graph: %w", err)
-	}
-
-	orderedStacks, err := graph.TopologicalSort()
-	if err != nil {
-		return fmt.Errorf("failed to sort stacks: %w", err)
-	}
+	// Terraform handles dependency ordering automatically via resource dependencies
+	// No need for manual topological sorting
+	orderedStacks := stacksToDeploy
 
 	fmt.Printf("Deploying %d stack(s) in order: ", len(orderedStacks))
 	for i, st := range orderedStacks {

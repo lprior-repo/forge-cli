@@ -138,7 +138,7 @@ func (s *Stack) Validate() error {
 func isValidRuntime(runtime string) bool {
 	validRuntimes := []string{
 		"go1.x",
-		"python3.11", "python3.12",
+		"python3.11", "python3.12", "python3.13",
 		"nodejs20.x", "nodejs18.x",
 		"provided.al2", "provided.al2023",
 	}

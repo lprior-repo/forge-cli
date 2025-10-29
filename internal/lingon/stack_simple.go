@@ -14,9 +14,9 @@ type ForgeStack struct {
 	Config ForgeConfig
 
 	// Resources
-	Functions map[string]*LambdaFunctionResources
+	Functions  map[string]*LambdaFunctionResources
 	APIGateway *APIGatewayResources
-	Tables    map[string]*DynamoDBTableResources
+	Tables     map[string]*DynamoDBTableResources
 
 	// Outputs
 	Outputs map[string]interface{}

@@ -21,6 +21,7 @@ func GoBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 	// Build function returns either error or artifact
 	artifact, err := func() (Artifact, error) {
 		// Ensure output directory exists
+		//nolint:gosec // G301: Lambda build directory permissions are intentionally permissive
 		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return Artifact{}, fmt.Errorf("failed to create output directory: %w", err)
 		}

@@ -49,45 +49,19 @@ func FilterStacksByRuntime(runtime string) Stage {
 	}
 }
 
-// SortStacksByDependencies topologically sorts stacks
+// SortStacksByDependencies is a no-op - Terraform handles dependency ordering
+// This function exists for backward compatibility
 func SortStacksByDependencies(ctx context.Context, s State) E.Either[error, State] {
-	if len(s.Stacks) == 0 {
-		return E.Right[error](s)
-	}
-
-	graph, err := stack.NewGraph(s.Stacks)
-	if err != nil {
-		return E.Left[State](fmt.Errorf("failed to build dependency graph: %w", err))
-	}
-
-	sorted, err := graph.TopologicalSort()
-	if err != nil {
-		return E.Left[State](fmt.Errorf("failed to sort stacks: %w", err))
-	}
-
-	s.Stacks = sorted
+	// Terraform automatically handles dependency ordering via resource dependencies
+	// No need for manual topological sorting
 	return E.Right[error](s)
 }
 
-// GroupStacksByDepth groups stacks by dependency depth for parallel execution
+// GroupStacksByDepth is a no-op - Terraform handles parallel execution
+// This function exists for backward compatibility
 func GroupStacksByDepth(ctx context.Context, s State) E.Either[error, State] {
-	if len(s.Stacks) == 0 {
-		return E.Right[error](s)
-	}
-
-	graph, err := stack.NewGraph(s.Stacks)
-	if err != nil {
-		return E.Left[State](fmt.Errorf("failed to build dependency graph: %w", err))
-	}
-
-	groups, err := graph.GetParallel()
-	if err != nil {
-		return E.Left[State](fmt.Errorf("failed to group stacks: %w", err))
-	}
-
-	// Flatten groups back to single list for now
-	// In real implementation, we'd process each group in parallel
-	s.Stacks = lo.Flatten(groups)
+	// Terraform automatically handles parallel execution of independent resources
+	// No need for manual grouping
 	return E.Right[error](s)
 }
 

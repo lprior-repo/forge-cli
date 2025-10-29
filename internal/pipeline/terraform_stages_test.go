@@ -1,7 +1,11 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"os"
+	"strings"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
@@ -173,6 +177,84 @@ func TestTerraformApply(t *testing.T) {
 
 		assert.True(t, E.IsLeft(result))
 	})
+
+	t.Run("prints correct progress indicators for multiple stacks", func(t *testing.T) {
+		// Capture stdout
+		old := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		exec := terraform.Executor{
+			Apply: func(ctx context.Context, dir string, opts ...terraform.ApplyOption) error {
+				return nil
+			},
+		}
+
+		stage := TerraformApply(exec, false)
+		state := State{
+			Stacks: []*stack.Stack{
+				{Name: "api", Path: "path1"},
+				{Name: "worker", Path: "path2"},
+				{Name: "database", Path: "path3"},
+			},
+		}
+
+		result := stage(context.Background(), state)
+
+		// Restore stdout
+		w.Close()
+		os.Stdout = old
+
+		// Read captured output
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		output := buf.String()
+
+		assert.True(t, E.IsRight(result))
+
+		// Verify progress indicators use correct index arithmetic (idx+1)
+		assert.Contains(t, output, "[1/3] Applying api...")
+		assert.Contains(t, output, "[2/3] Applying worker...")
+		assert.Contains(t, output, "[3/3] Applying database...")
+	})
+
+	t.Run("progress indicator uses idx+1 not idx-1 or idx+0", func(t *testing.T) {
+		// Capture stdout
+		old := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		exec := terraform.Executor{
+			Apply: func(ctx context.Context, dir string, opts ...terraform.ApplyOption) error {
+				return nil
+			},
+		}
+
+		stage := TerraformApply(exec, false)
+		state := State{
+			Stacks: []*stack.Stack{
+				{Name: "api", Path: "path1"},
+			},
+		}
+
+		result := stage(context.Background(), state)
+
+		// Restore stdout
+		w.Close()
+		os.Stdout = old
+
+		// Read captured output
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		output := buf.String()
+
+		assert.True(t, E.IsRight(result))
+
+		// Mutation testing: ensure we use idx+1 (which is 1), not idx-1 (-1) or idx+0 (0)
+		assert.Contains(t, output, "[1/1]", "Should use idx+1 for first stack")
+		assert.NotContains(t, output, "[0/1]", "Should not use idx+0")
+		assert.NotContains(t, output, "[-1/1]", "Should not use idx-1")
+	})
 }
 
 // TestTerraformDestroy tests the TerraformDestroy stage
@@ -248,6 +330,126 @@ func TestTerraformDestroy(t *testing.T) {
 		assert.True(t, E.IsRight(result))
 		assert.True(t, receivedAutoApprove)
 	})
+
+	t.Run("prints correct progress indicators for multiple stacks", func(t *testing.T) {
+		// Capture stdout
+		old := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		exec := terraform.Executor{
+			Destroy: func(ctx context.Context, dir string, opts ...terraform.DestroyOption) error {
+				return nil
+			},
+		}
+
+		stage := TerraformDestroy(exec, false)
+		state := State{
+			Stacks: []*stack.Stack{
+				{Name: "api", Path: "path1"},
+				{Name: "worker", Path: "path2"},
+				{Name: "database", Path: "path3"},
+			},
+		}
+
+		result := stage(context.Background(), state)
+
+		// Restore stdout
+		w.Close()
+		os.Stdout = old
+
+		// Read captured output
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		output := buf.String()
+
+		assert.True(t, E.IsRight(result))
+
+		// Verify progress indicators - destroy is in reverse order
+		// First destroyed is database (last in list), shown as [1/3]
+		// Second is worker (middle), shown as [2/3]
+		// Third is api (first in list), shown as [3/3]
+		assert.Contains(t, output, "[1/3] Destroying database...")
+		assert.Contains(t, output, "[2/3] Destroying worker...")
+		assert.Contains(t, output, "[3/3] Destroying api...")
+	})
+
+	t.Run("progress indicator arithmetic is correct", func(t *testing.T) {
+		// Capture stdout
+		old := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		exec := terraform.Executor{
+			Destroy: func(ctx context.Context, dir string, opts ...terraform.DestroyOption) error {
+				return nil
+			},
+		}
+
+		stage := TerraformDestroy(exec, false)
+		state := State{
+			Stacks: []*stack.Stack{
+				{Name: "api", Path: "path1"},
+			},
+		}
+
+		result := stage(context.Background(), state)
+
+		// Restore stdout
+		w.Close()
+		os.Stdout = old
+
+		// Read captured output
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		output := buf.String()
+
+		assert.True(t, E.IsRight(result))
+
+		// For destroy with 1 stack at i=0: len(s.Stacks)-i = 1-0 = 1
+		// This ensures we're testing the correct arithmetic
+		assert.Contains(t, output, "[1/1] Destroying api...")
+		assert.NotContains(t, output, "[0/1]", "Should not have incorrect arithmetic")
+	})
+
+	t.Run("prints output even for single stack", func(t *testing.T) {
+		// Capture stdout
+		old := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		exec := terraform.Executor{
+			Destroy: func(ctx context.Context, dir string, opts ...terraform.DestroyOption) error {
+				return nil
+			},
+		}
+
+		stage := TerraformDestroy(exec, false)
+		state := State{
+			Stacks: []*stack.Stack{
+				{Name: "single", Path: "path1"},
+			},
+		}
+
+		result := stage(context.Background(), state)
+
+		// Restore stdout
+		w.Close()
+		os.Stdout = old
+
+		// Read captured output
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		output := buf.String()
+
+		assert.True(t, E.IsRight(result))
+
+		// Ensure Printf is actually called (mutation test removes it)
+		lines := strings.Split(strings.TrimSpace(output), "\n")
+		assert.NotEmpty(t, output, "Should print progress message")
+		assert.True(t, len(lines) > 0, "Should have at least one line of output")
+		assert.Contains(t, output, "Destroying", "Should contain 'Destroying'")
+	})
 }
 
 // TestCaptureOutputs tests the CaptureOutputs stage
@@ -256,7 +458,7 @@ func TestCaptureOutputs(t *testing.T) {
 		exec := terraform.Executor{
 			Output: func(ctx context.Context, dir string) (map[string]interface{}, error) {
 				return map[string]interface{}{
-					"url": "https://example.com",
+					"url":  "https://example.com",
 					"port": 8080,
 				}, nil
 			},

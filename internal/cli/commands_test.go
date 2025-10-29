@@ -29,46 +29,10 @@ func TestNewRootCmd(t *testing.T) {
 			commandNames[i] = sub.Name()
 		}
 
-		assert.Contains(t, commandNames, "init")
 		assert.Contains(t, commandNames, "new")
 		assert.Contains(t, commandNames, "deploy")
 		assert.Contains(t, commandNames, "destroy")
 		assert.Contains(t, commandNames, "version")
-	})
-}
-
-// TestNewInitCmd tests init command creation
-func TestNewInitCmd(t *testing.T) {
-	t.Run("creates init command", func(t *testing.T) {
-		cmd := NewInitCmd()
-		assert.NotNil(t, cmd)
-		assert.Equal(t, "init", cmd.Use)
-		assert.NotEmpty(t, cmd.Short)
-	})
-
-	t.Run("executes in directory with forge.hcl", func(t *testing.T) {
-		tmpDir := t.TempDir()
-
-		// Create a minimal forge.hcl
-		forgeHCL := `project {
-  name   = "test-project"
-  region = "us-east-1"
-}
-`
-		err := os.WriteFile(filepath.Join(tmpDir, "forge.hcl"), []byte(forgeHCL), 0644)
-		require.NoError(t, err)
-
-		// Change to temp directory
-		oldDir, _ := os.Getwd()
-		defer os.Chdir(oldDir)
-		os.Chdir(tmpDir)
-
-		cmd := NewInitCmd()
-		cmd.SetOut(&bytes.Buffer{})
-		cmd.SetErr(&bytes.Buffer{})
-
-		// This will fail without stacks, but should not panic
-		_ = cmd.Execute()
 	})
 }
 

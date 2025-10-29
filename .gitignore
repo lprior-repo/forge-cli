@@ -17,6 +17,15 @@ coverage-integration.out
 coverage-full.out
 build-cov.out
 
+# Mutation testing results
+mutation-test-results.log
+mutation-results-*.json
+report.json
+
+# Node.js files (from build tests)
+package-lock.json
+node_modules/
+
 # Dependency directories
 vendor/
 

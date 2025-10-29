@@ -2,11 +2,177 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL: Code Quality Standards (HIGHEST PRIORITY)
+
+**These standards are MANDATORY and of the HIGHEST MAGNITUDE:**
+
+### 1. Test Coverage Requirement: 90% MINIMUM
+- **Aggregate coverage across all packages must be ≥90%**
+- **Includes unit tests, integration tests, and E2E tests**
+- **NO exceptions for I/O boundary code** - even CLI commands must have comprehensive tests
+- Run `task coverage:check` to verify compliance
+- Run `task test:all` to execute all test suites
+
+### 2. Linting Requirement: ZERO Issues
+- **Zero linting errors or warnings allowed**
+- Uses `golangci-lint` with comprehensive linter configuration
+- Run `task lint` before every commit
+- Configuration in `.golangci.yml`
+
+### 3. Test Requirements: ALL Tests Must Pass
+- **100% test pass rate required**
+- **NO FAILURES allowed** in any test suite:
+  - Unit tests: `task test:unit`
+  - Integration tests: `task test:integration`
+  - E2E tests: `task test:e2e`
+  - All tests: `task test:all`
+
+### 4. Mutation Testing
+- Mutation score should be ≥80% for critical packages
+- Run `task mutation` to verify test suite quality
+- Ensures tests actually catch bugs, not just pass
+
+**ENFORCEMENT**: CI/CD pipeline will reject any PR that violates these standards.
+
 ## Project Overview
 
 **Forge** is a developer-friendly CLI for building and deploying serverless applications on AWS Lambda. It combines Terraform with streamlined Lambda deployment workflows, featuring multi-runtime support (Go, Python, Node.js), dependency management, and incremental deploys.
 
 The codebase follows **functional programming principles** using monadic error handling (Either/Option), pure functions, and immutable data structures from `github.com/IBM/fp-go`.
+
+## Core Philosophy: Convention Over Configuration
+
+**Forge follows Omakase principles** (inspired by Ruby on Rails and DHH's philosophy):
+
+### Zero Configuration Files
+- **NO `forge.yaml`** - Everything is convention-based
+- **NO template files** - Code generation is imperative
+- **Exit ramp provided** - Users can customize Terraform directly
+
+### Required Project Structure
+```
+my-app/
+├── infra/              # REQUIRED: Terraform infrastructure
+│   ├── main.tf         # Define AWS resources explicitly
+│   ├── variables.tf    # namespace variable for ephemeral envs
+│   └── outputs.tf
+└── src/                # OPTIONAL: Application code (any structure)
+    └── functions/      # Convention: Lambda functions here
+        ├── api/        # Function name = directory name
+        │   └── main.go # Runtime detected from entry file
+        └── worker/
+            └── index.js
+```
+
+### Convention-Based Discovery
+Forge **scans `src/functions/*`** to automatically detect:
+- **Function names**: Directory name (e.g., `api`, `worker`)
+- **Runtimes**: Detected from entry files:
+  - `main.go` or `*.go` → Go (provided.al2023)
+  - `index.js`, `index.mjs`, `handler.js` → Node.js (nodejs20.x)
+  - `app.py`, `lambda_function.py`, `handler.py` → Python (python3.13)
+- **Build targets**: Automatically builds to `.forge/build/{name}.zip`
+
+### SAM-Inspired Workflow
+```bash
+# 1. Create new project
+forge new my-app --runtime=go
+  → Generates infra/ with example Lambda
+  → Generates src/functions/api/ with hello-world
+
+# 2. Build all functions
+forge build
+  → Scans src/functions/*
+  → Detects runtimes automatically
+  → Builds each to .forge/build/*.zip
+  → Creates stub zips first (for terraform init)
+
+# 3. Deploy (build + terraform apply)
+forge deploy
+  → Runs forge build
+  → Runs terraform init/plan/apply
+  → All in one command!
+
+# 4. Ephemeral PR environments
+forge deploy --namespace=pr-123
+  → Sets TF_VAR_namespace=pr-123
+  → All resources prefixed: my-app-pr-123-api
+  → Isolated preview environment
+
+# 5. Cleanup
+forge destroy --namespace=pr-123
+  → Tears down ephemeral environment
+```
+
+### Developer Responsibilities (NOT Forge's Job)
+Forge is **minimal by design**. The developer handles:
+- **Dependencies**: go.mod, requirements.txt, package.json (per function)
+- **Shared code**: Organize as needed, ensure it compiles
+- **Secrets**: .env files, AWS Secrets Manager, SSM Parameter Store
+- **IAM permissions**: Define in Terraform
+- **API Gateway routing**: Define in Terraform
+- **VPC configuration**: Define in Terraform
+- **Environment variables**: Define in Terraform Lambda resources
+- **Local testing**: Use AWS SAM, LocalStack, or similar tools
+- **Logs**: Use AWS CloudWatch directly (or `forge logs` when added)
+- **Cost management**: Tag resources in Terraform
+
+### Terraform Integration
+Terraform is the **source of truth** for infrastructure:
+
+```hcl
+# infra/main.tf
+variable "namespace" {
+  type    = string
+  default = ""
+}
+
+resource "aws_lambda_function" "api" {
+  function_name    = "${var.namespace}my-app-api"
+  runtime          = "go1.x"
+  handler          = "bootstrap"
+  filename         = "../.forge/build/api.zip"
+  source_code_hash = filebase64sha256("../.forge/build/api.zip")
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.users.name  # Explicit wiring
+    }
+  }
+}
+```
+
+Forge reads this to know what to build, then runs `terraform apply`.
+
+### Ephemeral Pipeline Pattern
+When PR is opened:
+```yaml
+# .github/workflows/pr-preview.yml (user creates this)
+name: PR Preview
+on: pull_request
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: forge deploy --namespace=pr-${{ github.event.number }}
+```
+
+When PR is closed:
+```yaml
+# .github/workflows/pr-cleanup.yml
+on:
+  pull_request:
+    types: [closed]
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: forge destroy --namespace=pr-${{ github.event.number }}
+```
+
+This creates isolated AWS environments per PR with zero configuration.
 
 ## Development Commands
 

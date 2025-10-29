@@ -162,8 +162,8 @@ func TestStageComposition(t *testing.T) {
 func TestPipelineErrorHandling(t *testing.T) {
 	t.Run("propagates errors from any stage", func(t *testing.T) {
 		testCases := []struct {
-			name       string
-			failStage  int
+			name        string
+			failStage   int
 			totalStages int
 		}{
 			{"first stage fails", 0, 3},
@@ -327,5 +327,90 @@ func BenchmarkPipeline(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			pipeline.Run(context.Background(), State{})
 		}
+	})
+}
+
+// TestParallel tests the Parallel stage composition function
+func TestParallel(t *testing.T) {
+	t.Run("executes all stages successfully", func(t *testing.T) {
+		var execution []string
+
+		stage := Parallel(
+			func(ctx context.Context, s State) E.Either[error, State] {
+				execution = append(execution, "stage1")
+				return E.Right[error](s)
+			},
+			func(ctx context.Context, s State) E.Either[error, State] {
+				execution = append(execution, "stage2")
+				return E.Right[error](s)
+			},
+			func(ctx context.Context, s State) E.Either[error, State] {
+				execution = append(execution, "stage3")
+				return E.Right[error](s)
+			},
+		)
+
+		result := stage(context.Background(), State{})
+
+		assert.True(t, E.IsRight(result), "Parallel should succeed")
+		assert.Len(t, execution, 3, "All stages should execute")
+	})
+
+	t.Run("stops on first error", func(t *testing.T) {
+		var execution []string
+
+		stage := Parallel(
+			func(ctx context.Context, s State) E.Either[error, State] {
+				execution = append(execution, "stage1")
+				return E.Right[error](s)
+			},
+			func(ctx context.Context, s State) E.Either[error, State] {
+				execution = append(execution, "stage2-error")
+				return E.Left[State](fmt.Errorf("stage 2 failed"))
+			},
+			func(ctx context.Context, s State) E.Either[error, State] {
+				execution = append(execution, "stage3-should-not-run")
+				return E.Right[error](s)
+			},
+		)
+
+		result := stage(context.Background(), State{})
+
+		assert.True(t, E.IsLeft(result), "Parallel should fail")
+		assert.Equal(t, []string{"stage1", "stage2-error"}, execution, "Should stop after error")
+	})
+
+	t.Run("passes state through stages", func(t *testing.T) {
+		stage := Parallel(
+			func(ctx context.Context, s State) E.Either[error, State] {
+				s.ProjectDir = "/project"
+				return E.Right[error](s)
+			},
+			func(ctx context.Context, s State) E.Either[error, State] {
+				assert.Equal(t, "/project", s.ProjectDir)
+				s.Stacks = []*stack.Stack{{Name: "api"}}
+				return E.Right[error](s)
+			},
+		)
+
+		result := stage(context.Background(), State{})
+
+		require.True(t, E.IsRight(result))
+		finalState := E.ToOption(result)
+		state := O.GetOrElse(func() State { return State{} })(finalState)
+
+		assert.Equal(t, "/project", state.ProjectDir)
+		assert.Len(t, state.Stacks, 1)
+	})
+
+	t.Run("works with empty stage list", func(t *testing.T) {
+		stage := Parallel()
+		initialState := State{ProjectDir: "/test"}
+		result := stage(context.Background(), initialState)
+
+		assert.True(t, E.IsRight(result))
+		opt := E.ToOption(result)
+		finalState := O.GetOrElse(func() State { return State{} })(opt)
+		assert.Equal(t, "/test", finalState.ProjectDir)
 	})
 }

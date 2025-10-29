@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
@@ -32,7 +33,7 @@ func TestPythonBuildSignature(t *testing.T) {
 		cfg := Config{
 			SourceDir:  "/nonexistent/directory",
 			OutputPath: "/tmp/output.zip",
-			Runtime:    "python3.13",
+			Runtime:    "python3.11",
 		}
 
 		result := PythonBuild(context.Background(), cfg)
@@ -46,7 +47,7 @@ func TestPythonBuildPure(t *testing.T) {
 	t.Run("same inputs produce same result", func(t *testing.T) {
 		cfg := Config{
 			SourceDir:  "/nonexistent",
-			Runtime:    "python3.13",
+			Runtime:    "python3.11",
 			OutputPath: "/tmp/test.zip",
 		}
 
@@ -59,8 +60,8 @@ func TestPythonBuildPure(t *testing.T) {
 
 	t.Run("deterministic error behavior", func(t *testing.T) {
 		cfg := Config{
-			SourceDir:  "/nonexistent/path",
-			Runtime:    "python3.13",
+			SourceDir: "/nonexistent/path",
+			Runtime:   "python3.13",
 		}
 
 		// Multiple calls should produce consistent error results
@@ -165,7 +166,7 @@ func TestPythonBuildBasic(t *testing.T) {
 		cfg := Config{
 			SourceDir:  tmpDir,
 			OutputPath: outputPath,
-			Runtime:    "python3.13",
+			Runtime:    "python3.11",
 		}
 
 		result := PythonBuild(context.Background(), cfg)
@@ -203,17 +204,16 @@ func TestPythonBuildWithRequirements(t *testing.T) {
 
 		// Create handler
 		handlerPath := filepath.Join(tmpDir, "handler.py")
-		handlerContent := `import requests
-
-def handler(event, context):
+		handlerContent := `def handler(event, context):
     return {"statusCode": 200}
 `
 		err := os.WriteFile(handlerPath, []byte(handlerContent), 0644)
 		require.NoError(t, err)
 
-		// Create requirements.txt with simple package
+		// Create requirements.txt with very lightweight package to avoid disk quota issues
+		// 'six' is a small, stable package with minimal dependencies
 		reqPath := filepath.Join(tmpDir, "requirements.txt")
-		reqContent := "requests==2.31.0\n"
+		reqContent := "six==1.16.0\n"
 		err = os.WriteFile(reqPath, []byte(reqContent), 0644)
 		require.NoError(t, err)
 
@@ -221,7 +221,7 @@ def handler(event, context):
 		cfg := Config{
 			SourceDir:  tmpDir,
 			OutputPath: outputPath,
-			Runtime:    "python3.13",
+			Runtime:    "python3.11",
 		}
 
 		result := PythonBuild(context.Background(), cfg)
@@ -272,7 +272,7 @@ func TestPythonBuildUvDetection(t *testing.T) {
 
 		cfg := Config{
 			SourceDir:  tmpDir,
-			Runtime:    "python3.13",
+			Runtime:    "python3.11",
 			OutputPath: filepath.Join(tmpDir, "output.zip"),
 		}
 
@@ -350,9 +350,10 @@ func TestPythonBuildErrorHandling(t *testing.T) {
 		assert.NotNil(t, buildErr)
 		// Error should mention either "pip install failed" or "uv pip install failed"
 		errMsg := buildErr.Error()
+		t.Logf("Actual error message: %s", errMsg)
 		assert.True(t,
-			contains(errMsg, "pip install failed") || contains(errMsg, "uv pip install failed"),
-			"Error should mention pip/uv install failure",
+			strings.Contains(errMsg, "pip install failed") || strings.Contains(errMsg, "uv pip install failed"),
+			"Error should mention pip/uv install failure. Got: %s", errMsg,
 		)
 	})
 }
@@ -363,7 +364,7 @@ func TestPythonBuildOutputPath(t *testing.T) {
 		cfg := Config{
 			SourceDir:  "/tmp/test",
 			OutputPath: "", // Empty - should use default
-			Runtime:    "python3.13",
+			Runtime:    "python3.11",
 		}
 
 		// We know this will fail, but we can check the default path logic
@@ -377,7 +378,7 @@ func TestPythonBuildOutputPath(t *testing.T) {
 		cfg := Config{
 			SourceDir:  "/tmp/test",
 			OutputPath: customPath,
-			Runtime:    "python3.13",
+			Runtime:    "python3.11",
 		}
 
 		assert.Equal(t, customPath, cfg.OutputPath)

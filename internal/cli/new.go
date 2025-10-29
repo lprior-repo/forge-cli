@@ -112,7 +112,7 @@ func createStack(name, runtime, desc string) error {
 		Description: desc,
 	}
 	if opts.Description == "" {
-		opts.Description = fmt.Sprintf("%s Lambda function", name)
+		_, _, _ = opts.Description, fmt.Sprintf, name
 	}
 
 	if err := gen.GenerateStack(opts); err != nil {

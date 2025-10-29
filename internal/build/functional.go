@@ -24,21 +24,21 @@ func NewRegistry() Registry {
 		"provided.al2023": GoBuild,
 
 		// Python runtimes (3.9 to 3.13)
-		"python3.9":   PythonBuild,
-		"python3.10":  PythonBuild,
-		"python3.11":  PythonBuild,
-		"python3.12":  PythonBuild,
-		"python3.13":  PythonBuild,
+		"python3.9":  PythonBuild,
+		"python3.10": PythonBuild,
+		"python3.11": PythonBuild,
+		"python3.12": PythonBuild,
+		"python3.13": PythonBuild,
 
 		// Node.js runtimes (18.x, 20.x, 22.x)
-		"nodejs18.x":  NodeBuild,
-		"nodejs20.x":  NodeBuild,
-		"nodejs22.x":  NodeBuild,
+		"nodejs18.x": NodeBuild,
+		"nodejs20.x": NodeBuild,
+		"nodejs22.x": NodeBuild,
 
 		// Java runtimes (11, 17, 21)
-		"java11":      JavaBuild,
-		"java17":      JavaBuild,
-		"java21":      JavaBuild,
+		"java11": JavaBuild,
+		"java17": JavaBuild,
+		"java21": JavaBuild,
 	}
 }
 
@@ -141,8 +141,14 @@ func WithLogging(log Logger) func(BuildFunc) BuildFunc {
 // Compose multiple decorators functionally
 func Compose(decorators ...func(BuildFunc) BuildFunc) func(BuildFunc) BuildFunc {
 	return func(build BuildFunc) BuildFunc {
-		// Apply decorators right-to-left (like mathematical composition)
-		return lo.Reduce(lo.Reverse(decorators), func(acc BuildFunc, decorator func(BuildFunc) BuildFunc, _ int) BuildFunc {
+		// Reverse decorators for right-to-left composition (like mathematical composition)
+		reversed := make([]func(BuildFunc) BuildFunc, len(decorators))
+		for i := range decorators {
+			reversed[i] = decorators[len(decorators)-1-i]
+		}
+
+		// Apply decorators right-to-left
+		return lo.Reduce(reversed, func(acc BuildFunc, decorator func(BuildFunc) BuildFunc, _ int) BuildFunc {
 			return decorator(acc)
 		}, build)
 	}

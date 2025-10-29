@@ -59,8 +59,8 @@ func TestNodeBuildPure(t *testing.T) {
 
 	t.Run("deterministic error behavior", func(t *testing.T) {
 		cfg := Config{
-			SourceDir:  "/nonexistent/path",
-			Runtime:    "nodejs22.x",
+			SourceDir: "/nonexistent/path",
+			Runtime:   "nodejs22.x",
 		}
 
 		// Multiple calls should produce consistent error results

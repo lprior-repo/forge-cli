@@ -26,7 +26,9 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to create temp dir: %w", err)
 		}
-		defer os.RemoveAll(tempDir)
+		defer func() {
+			_ = os.RemoveAll(tempDir) // Best effort cleanup
+		}()
 
 		// Check for requirements.txt
 		requirementsPath := filepath.Join(cfg.SourceDir, "requirements.txt")
@@ -70,10 +72,14 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to create zip: %w", err)
 		}
-		defer zipFile.Close()
+		defer func() {
+			_ = zipFile.Close() // Best effort close in defer
+		}()
 
 		zipWriter := zip.NewWriter(zipFile)
-		defer zipWriter.Close()
+		defer func() {
+			_ = zipWriter.Close() // Best effort close in defer
+		}()
 
 		// Add dependencies from temp directory
 		if err := addDirToZip(zipWriter, tempDir, ""); err != nil {
@@ -86,8 +92,12 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		}
 
 		// Close zip before calculating checksum
-		zipWriter.Close()
-		zipFile.Close()
+		if err := zipWriter.Close(); err != nil {
+			return Artifact{}, fmt.Errorf("failed to close zip writer: %w", err)
+		}
+		if err := zipFile.Close(); err != nil {
+			return Artifact{}, fmt.Errorf("failed to close zip file: %w", err)
+		}
 
 		// Calculate checksum
 		checksum, err := calculateChecksum(outputPath)

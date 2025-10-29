@@ -78,12 +78,12 @@ func TestCreateLambdaFunctionResourcesEventSources(t *testing.T) {
 			},
 			EventSourceMappings: []EventSourceMappingConfig{
 				{
-					EventSourceArn:        "arn:aws:dynamodb:us-east-1:123456789012:table/test/stream/2021-01-01T00:00:00.000",
-					StartingPosition:      "LATEST",
-					BatchSize:             100,
-					ParallelizationFactor: 2,
-					MaximumRecordAgeInSeconds: 3600,
-					MaximumRetryAttempts:  3,
+					EventSourceArn:             "arn:aws:dynamodb:us-east-1:123456789012:table/test/stream/2021-01-01T00:00:00.000",
+					StartingPosition:           "LATEST",
+					BatchSize:                  100,
+					ParallelizationFactor:      2,
+					MaximumRecordAgeInSeconds:  3600,
+					MaximumRetryAttempts:       3,
 					BisectBatchOnFunctionError: true,
 				},
 			},
@@ -443,11 +443,11 @@ func TestCreateAPIGatewayResourcesAuthorizers(t *testing.T) {
 			ProtocolType: "HTTP",
 			Authorizers: map[string]AuthorizerConfig{
 				"lambda-auth": {
-					Type:                         "REQUEST",
-					AuthorizerURI:                "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:authorizer/invocations",
+					Type:                           "REQUEST",
+					AuthorizerURI:                  "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:authorizer/invocations",
 					AuthorizerPayloadFormatVersion: "2.0",
-					AuthorizerResultTtlInSeconds: 300,
-					IdentitySource:               []string{"$request.header.Authorization"},
+					AuthorizerResultTtlInSeconds:   300,
+					IdentitySource:                 []string{"$request.header.Authorization"},
 				},
 			},
 		}

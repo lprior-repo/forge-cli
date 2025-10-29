@@ -8,16 +8,16 @@ import (
 
 // ProjectConfig defines the configuration for a Python Lambda project
 type ProjectConfig struct {
-	ServiceName     string
-	FunctionName    string
-	Description     string
-	PythonVersion   string // e.g., "3.13"
-	UsePowertools   bool
-	UseIdempotency  bool
-	UseDynamoDB     bool
-	TableName       string
-	APIPath         string // e.g., "/api/orders"
-	HTTPMethod      string // e.g., "POST"
+	ServiceName    string
+	FunctionName   string
+	Description    string
+	PythonVersion  string // e.g., "3.13"
+	UsePowertools  bool
+	UseIdempotency bool
+	UseDynamoDB    bool
+	TableName      string
+	APIPath        string // e.g., "/api/orders"
+	HTTPMethod     string // e.g., "POST"
 }
 
 // Generator generates Python Lambda projects

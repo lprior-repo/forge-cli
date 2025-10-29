@@ -331,6 +331,80 @@ go 1.21
 		// Should succeed or fail consistently
 		_ = result // Environment is set internally, hard to test directly without mocking
 	})
+
+	t.Run("handles multiple environment variables", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create simple main.go
+		mainPath := filepath.Join(tmpDir, "main.go")
+		mainContent := `package main
+
+func main() {}
+`
+		err := os.WriteFile(mainPath, []byte(mainContent), 0644)
+		require.NoError(t, err)
+
+		// Create go.mod
+		modPath := filepath.Join(tmpDir, "go.mod")
+		modContent := `module example.com/lambda
+
+go 1.21
+`
+		err = os.WriteFile(modPath, []byte(modContent), 0644)
+		require.NoError(t, err)
+
+		cfg := Config{
+			SourceDir: tmpDir,
+			Runtime:   "provided.al2023",
+			Handler:   ".",
+			Env: map[string]string{
+				"VAR1": "value1",
+				"VAR2": "value2",
+				"VAR3": "value3",
+			},
+		}
+
+		// Build should process all environment variables
+		result := GoBuild(context.Background(), cfg)
+
+		// Should succeed (all env vars should be set)
+		assert.True(t, E.IsRight(result), "Should handle multiple env vars")
+	})
+
+	t.Run("handles empty environment variables", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create simple main.go
+		mainPath := filepath.Join(tmpDir, "main.go")
+		mainContent := `package main
+
+func main() {}
+`
+		err := os.WriteFile(mainPath, []byte(mainContent), 0644)
+		require.NoError(t, err)
+
+		// Create go.mod
+		modPath := filepath.Join(tmpDir, "go.mod")
+		modContent := `module example.com/lambda
+
+go 1.21
+`
+		err = os.WriteFile(modPath, []byte(modContent), 0644)
+		require.NoError(t, err)
+
+		cfg := Config{
+			SourceDir: tmpDir,
+			Runtime:   "provided.al2023",
+			Handler:   ".",
+			Env:       map[string]string{}, // Empty env map
+		}
+
+		// Build should succeed with no custom env vars
+		result := GoBuild(context.Background(), cfg)
+
+		// Should succeed
+		assert.True(t, E.IsRight(result), "Should handle empty env map")
+	})
 }
 
 // Benchmark GoBuild function

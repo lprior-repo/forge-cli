@@ -1,0 +1,158 @@
+=== RUN   TestPipelineCreation
+=== RUN   TestPipelineCreation/New_creates_pipeline_with_stages
+=== RUN   TestPipelineCreation/Chain_combines_multiple_pipelines
+--- PASS: TestPipelineCreation (0.00s)
+    --- PASS: TestPipelineCreation/New_creates_pipeline_with_stages (0.00s)
+    --- PASS: TestPipelineCreation/Chain_combines_multiple_pipelines (0.00s)
+=== RUN   TestPipelineExecution
+=== RUN   TestPipelineExecution/executes_all_stages_in_order
+=== RUN   TestPipelineExecution/stops_on_first_error
+=== RUN   TestPipelineExecution/passes_state_through_stages
+--- PASS: TestPipelineExecution (0.00s)
+    --- PASS: TestPipelineExecution/executes_all_stages_in_order (0.00s)
+    --- PASS: TestPipelineExecution/stops_on_first_error (0.00s)
+    --- PASS: TestPipelineExecution/passes_state_through_stages (0.00s)
+=== RUN   TestStageComposition
+=== RUN   TestStageComposition/can_compose_stages_manually
+--- PASS: TestStageComposition (0.00s)
+    --- PASS: TestStageComposition/can_compose_stages_manually (0.00s)
+=== RUN   TestPipelineErrorHandling
+=== RUN   TestPipelineErrorHandling/propagates_errors_from_any_stage
+=== RUN   TestPipelineErrorHandling/propagates_errors_from_any_stage/first_stage_fails
+=== RUN   TestPipelineErrorHandling/propagates_errors_from_any_stage/middle_stage_fails
+=== RUN   TestPipelineErrorHandling/propagates_errors_from_any_stage/last_stage_fails
+=== RUN   TestPipelineErrorHandling/empty_pipeline_succeeds_with_initial_state
+--- PASS: TestPipelineErrorHandling (0.00s)
+    --- PASS: TestPipelineErrorHandling/propagates_errors_from_any_stage (0.00s)
+        --- PASS: TestPipelineErrorHandling/propagates_errors_from_any_stage/first_stage_fails (0.00s)
+        --- PASS: TestPipelineErrorHandling/propagates_errors_from_any_stage/middle_stage_fails (0.00s)
+        --- PASS: TestPipelineErrorHandling/propagates_errors_from_any_stage/last_stage_fails (0.00s)
+    --- PASS: TestPipelineErrorHandling/empty_pipeline_succeeds_with_initial_state (0.00s)
+=== RUN   TestPipelineWithContext
+=== RUN   TestPipelineWithContext/context_is_passed_to_all_stages
+=== RUN   TestPipelineWithContext/respects_context_cancellation
+--- PASS: TestPipelineWithContext (0.00s)
+    --- PASS: TestPipelineWithContext/context_is_passed_to_all_stages (0.00s)
+    --- PASS: TestPipelineWithContext/respects_context_cancellation (0.00s)
+=== RUN   TestStateMutation
+=== RUN   TestStateMutation/each_stage_can_modify_state
+--- PASS: TestStateMutation (0.00s)
+    --- PASS: TestStateMutation/each_stage_can_modify_state (0.00s)
+=== RUN   TestDetectStacks
+=== RUN   TestDetectStacks/detects_stacks_in_project
+=== RUN   TestDetectStacks/returns_error_for_non-existent_directory
+--- PASS: TestDetectStacks (0.00s)
+    --- PASS: TestDetectStacks/detects_stacks_in_project (0.00s)
+    --- PASS: TestDetectStacks/returns_error_for_non-existent_directory (0.00s)
+=== RUN   TestValidateStacks
+=== RUN   TestValidateStacks/validates_all_stacks_successfully
+    stages_test.go:66: 
+        	Error Trace:	/home/lewis/src/hormesis/internal/pipeline/stages_test.go:66
+        	Error:      	Should be true
+        	Test:       	TestValidateStacks/validates_all_stacks_successfully
+        	Messages:   	Should succeed with valid stacks
+=== RUN   TestValidateStacks/returns_error_for_invalid_stacks
+--- FAIL: TestValidateStacks (0.00s)
+    --- FAIL: TestValidateStacks/validates_all_stacks_successfully (0.00s)
+    --- PASS: TestValidateStacks/returns_error_for_invalid_stacks (0.00s)
+=== RUN   TestFilterStacksByRuntime
+=== RUN   TestFilterStacksByRuntime/filters_stacks_by_runtime
+=== RUN   TestFilterStacksByRuntime/returns_empty_when_no_stacks_match
+--- PASS: TestFilterStacksByRuntime (0.00s)
+    --- PASS: TestFilterStacksByRuntime/filters_stacks_by_runtime (0.00s)
+    --- PASS: TestFilterStacksByRuntime/returns_empty_when_no_stacks_match (0.00s)
+=== RUN   TestSortStacksByDependencies
+=== RUN   TestSortStacksByDependencies/sorts_stacks_topologically
+    stages_test.go:138: 
+        	Error Trace:	/home/lewis/src/hormesis/internal/pipeline/stages_test.go:138
+        	Error:      	Should be true
+        	Test:       	TestSortStacksByDependencies/sorts_stacks_topologically
+        	Messages:   	Should succeed
+    stages_test.go:145: 
+        	Error Trace:	/home/lewis/src/hormesis/internal/pipeline/stages_test.go:145
+        	Error:      	"[]" should have 3 item(s), but has 0
+        	Test:       	TestSortStacksByDependencies/sorts_stacks_topologically
+=== RUN   TestSortStacksByDependencies/handles_empty_stack_list
+=== RUN   TestSortStacksByDependencies/detects_circular_dependencies
+--- FAIL: TestSortStacksByDependencies (0.00s)
+    --- FAIL: TestSortStacksByDependencies/sorts_stacks_topologically (0.00s)
+    --- PASS: TestSortStacksByDependencies/handles_empty_stack_list (0.00s)
+    --- PASS: TestSortStacksByDependencies/detects_circular_dependencies (0.00s)
+=== RUN   TestGroupStacksByDepth
+=== RUN   TestGroupStacksByDepth/groups_stacks_by_dependency_depth
+    stages_test.go:183: 
+        	Error Trace:	/home/lewis/src/hormesis/internal/pipeline/stages_test.go:183
+        	Error:      	Should be true
+        	Test:       	TestGroupStacksByDepth/groups_stacks_by_dependency_depth
+        	Messages:   	Should succeed
+    stages_test.go:190: 
+        	Error Trace:	/home/lewis/src/hormesis/internal/pipeline/stages_test.go:190
+        	Error:      	"[]" should have 3 item(s), but has 0
+        	Test:       	TestGroupStacksByDepth/groups_stacks_by_dependency_depth
+=== RUN   TestGroupStacksByDepth/handles_empty_stack_list
+--- FAIL: TestGroupStacksByDepth (0.00s)
+    --- FAIL: TestGroupStacksByDepth/groups_stacks_by_dependency_depth (0.00s)
+    --- PASS: TestGroupStacksByDepth/handles_empty_stack_list (0.00s)
+=== RUN   TestMapStacks
+=== RUN   TestMapStacks/applies_transformation_to_all_stacks
+--- PASS: TestMapStacks (0.00s)
+    --- PASS: TestMapStacks/applies_transformation_to_all_stacks (0.00s)
+=== RUN   TestFilterStacks
+=== RUN   TestFilterStacks/filters_stacks_by_custom_predicate
+--- PASS: TestFilterStacks (0.00s)
+    --- PASS: TestFilterStacks/filters_stacks_by_custom_predicate (0.00s)
+=== RUN   TestReduceStacks
+=== RUN   TestReduceStacks/reduces_stacks_to_single_value
+=== RUN   TestReduceStacks/concatenates_stack_names
+--- PASS: TestReduceStacks (0.00s)
+    --- PASS: TestReduceStacks/reduces_stacks_to_single_value (0.00s)
+    --- PASS: TestReduceStacks/concatenates_stack_names (0.00s)
+=== RUN   TestTerraformInit
+=== RUN   TestTerraformInit/initializes_all_stacks
+=== RUN   TestTerraformInit/fails_if_init_fails
+--- PASS: TestTerraformInit (0.00s)
+    --- PASS: TestTerraformInit/initializes_all_stacks (0.00s)
+    --- PASS: TestTerraformInit/fails_if_init_fails (0.00s)
+=== RUN   TestTerraformPlan
+=== RUN   TestTerraformPlan/plans_all_stacks
+=== RUN   TestTerraformPlan/fails_if_plan_fails
+=== RUN   TestTerraformPlan/prints_message_when_no_changes
+No changes detected in any stack
+--- PASS: TestTerraformPlan (0.00s)
+    --- PASS: TestTerraformPlan/plans_all_stacks (0.00s)
+    --- PASS: TestTerraformPlan/fails_if_plan_fails (0.00s)
+    --- PASS: TestTerraformPlan/prints_message_when_no_changes (0.00s)
+=== RUN   TestTerraformApply
+=== RUN   TestTerraformApply/applies_all_stacks_with_auto-approve
+[1/2] Applying stack1...
+[2/2] Applying stack2...
+=== RUN   TestTerraformApply/fails_if_apply_fails
+[1/1] Applying stack1...
+--- PASS: TestTerraformApply (0.00s)
+    --- PASS: TestTerraformApply/applies_all_stacks_with_auto-approve (0.00s)
+    --- PASS: TestTerraformApply/fails_if_apply_fails (0.00s)
+=== RUN   TestTerraformDestroy
+=== RUN   TestTerraformDestroy/destroys_all_stacks_in_reverse_order
+[1/3] Destroying stack3...
+[2/3] Destroying stack2...
+[3/3] Destroying stack1...
+=== RUN   TestTerraformDestroy/fails_if_destroy_fails
+[1/1] Destroying stack1...
+=== RUN   TestTerraformDestroy/passes_auto-approve_flag
+[1/1] Destroying stack1...
+--- PASS: TestTerraformDestroy (0.00s)
+    --- PASS: TestTerraformDestroy/destroys_all_stacks_in_reverse_order (0.00s)
+    --- PASS: TestTerraformDestroy/fails_if_destroy_fails (0.00s)
+    --- PASS: TestTerraformDestroy/passes_auto-approve_flag (0.00s)
+=== RUN   TestCaptureOutputs
+=== RUN   TestCaptureOutputs/captures_outputs_from_all_stacks
+=== RUN   TestCaptureOutputs/fails_if_output_fails
+=== RUN   TestCaptureOutputs/initializes_outputs_map_if_nil
+--- PASS: TestCaptureOutputs (0.00s)
+    --- PASS: TestCaptureOutputs/captures_outputs_from_all_stacks (0.00s)
+    --- PASS: TestCaptureOutputs/fails_if_output_fails (0.00s)
+    --- PASS: TestCaptureOutputs/initializes_outputs_map_if_nil (0.00s)
+FAIL
+coverage: 80.0% of statements
+FAIL	github.com/lewis/forge/internal/pipeline	0.005s
+FAIL

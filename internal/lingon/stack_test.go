@@ -161,7 +161,7 @@ func TestNewForgeStack(t *testing.T) {
 
 	t.Run("fails with invalid config", func(t *testing.T) {
 		config := ForgeConfig{
-			Service: "",  // Missing service name
+			Service: "", // Missing service name
 			Provider: ProviderConfig{
 				Region: "us-east-1",
 			},
@@ -190,7 +190,7 @@ func TestNewForgeStack(t *testing.T) {
 			},
 			Functions: map[string]FunctionConfig{
 				"api": {
-					Handler: "",  // Missing handler
+					Handler: "", // Missing handler
 					Runtime: "nodejs20.x",
 					Source: SourceConfig{
 						Path: "./src",
@@ -530,7 +530,7 @@ func TestLambdaFunctionResourceCreation(t *testing.T) {
 
 	t.Run("fails with invalid config", func(t *testing.T) {
 		config := FunctionConfig{
-			Handler: "",  // Missing handler
+			Handler: "", // Missing handler
 			Runtime: "nodejs20.x",
 			Source: SourceConfig{
 				Path: "./src",

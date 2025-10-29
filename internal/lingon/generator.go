@@ -106,44 +106,44 @@ func validateFunction(name string, fn FunctionConfig) error {
 
 // Stack represents a Lingon stack containing all resources
 type Stack struct {
-	Service   string
-	Provider  ProviderConfig
-	Functions map[string]*LambdaFunction
-	APIGateway O.Option[*APIGateway]
-	Tables    map[string]*DynamoDBTable
+	Service          string
+	Provider         ProviderConfig
+	Functions        map[string]*LambdaFunction
+	APIGateway       O.Option[*APIGateway]
+	Tables           map[string]*DynamoDBTable
 	EventBridgeRules map[string]*EventBridgeRule
-	StateMachines map[string]*StepFunctionsStateMachine
-	Topics    map[string]*SNSTopic
-	Queues    map[string]*SQSQueue
-	Buckets   map[string]*S3Bucket
-	Alarms    map[string]*CloudWatchAlarm
+	StateMachines    map[string]*StepFunctionsStateMachine
+	Topics           map[string]*SNSTopic
+	Queues           map[string]*SQSQueue
+	Buckets          map[string]*S3Bucket
+	Alarms           map[string]*CloudWatchAlarm
 }
 
 // LambdaFunction represents a Lingon Lambda function resource
 type LambdaFunction struct {
-	Name           string
-	Config         FunctionConfig
-	Role           *IAMRole
-	LogGroup       O.Option[*CloudWatchLogGroup]
-	FunctionURL    O.Option[*LambdaFunctionURL]
-	EventSources   []EventSourceMapping
+	Name         string
+	Config       FunctionConfig
+	Role         *IAMRole
+	LogGroup     O.Option[*CloudWatchLogGroup]
+	FunctionURL  O.Option[*LambdaFunctionURL]
+	EventSources []EventSourceMapping
 }
 
 // IAMRole represents a Lingon IAM role
 type IAMRole struct {
-	Name                 string
-	AssumeRolePolicy     string
-	ManagedPolicyArns    []string
-	InlinePolicies       []InlinePolicy
-	PermissionsBoundary  O.Option[string]
-	MaxSessionDuration   O.Option[int]
+	Name                string
+	AssumeRolePolicy    string
+	ManagedPolicyArns   []string
+	InlinePolicies      []InlinePolicy
+	PermissionsBoundary O.Option[string]
+	MaxSessionDuration  O.Option[int]
 }
 
 // CloudWatchLogGroup represents a CloudWatch log group
 type CloudWatchLogGroup struct {
-	Name              string
-	RetentionInDays   O.Option[int]
-	KMSKeyId          O.Option[string]
+	Name            string
+	RetentionInDays O.Option[int]
+	KMSKeyId        O.Option[string]
 }
 
 // LambdaFunctionURL represents a Lambda function URL
@@ -156,26 +156,26 @@ type LambdaFunctionURL struct {
 
 // EventSourceMapping represents a Lambda event source mapping
 type EventSourceMapping struct {
-	FunctionName      string
-	EventSourceArn    string
-	Config            EventSourceMappingConfig
+	FunctionName   string
+	EventSourceArn string
+	Config         EventSourceMappingConfig
 }
 
 // APIGateway represents a Lingon API Gateway
 type APIGateway struct {
-	Name        string
-	Config      APIGatewayConfig
+	Name         string
+	Config       APIGatewayConfig
 	Integrations map[string]*APIGatewayIntegration
-	Routes      map[string]*APIGatewayRoute
-	Stages      map[string]*APIGatewayStage
-	Domain      O.Option[*APIGatewayDomain]
+	Routes       map[string]*APIGatewayRoute
+	Stages       map[string]*APIGatewayStage
+	Domain       O.Option[*APIGatewayDomain]
 }
 
 // APIGatewayIntegration represents an API Gateway integration
 type APIGatewayIntegration struct {
-	APIId             string
-	IntegrationType   string
-	IntegrationURI    string
+	APIId                string
+	IntegrationType      string
+	IntegrationURI       string
 	PayloadFormatVersion string
 }
 
@@ -190,9 +190,9 @@ type APIGatewayRoute struct {
 
 // APIGatewayStage represents an API Gateway stage
 type APIGatewayStage struct {
-	APIId      string
-	Name       string
-	Config     StageConfig
+	APIId  string
+	Name   string
+	Config StageConfig
 }
 
 // APIGatewayDomain represents an API Gateway custom domain
@@ -247,16 +247,16 @@ type CloudWatchAlarm struct {
 // generateStack generates a Lingon stack from ForgeConfig
 func generateStack(config ForgeConfig) (*Stack, error) {
 	stack := &Stack{
-		Service:   config.Service,
-		Provider:  config.Provider,
-		Functions: make(map[string]*LambdaFunction),
-		Tables:    make(map[string]*DynamoDBTable),
+		Service:          config.Service,
+		Provider:         config.Provider,
+		Functions:        make(map[string]*LambdaFunction),
+		Tables:           make(map[string]*DynamoDBTable),
 		EventBridgeRules: make(map[string]*EventBridgeRule),
-		StateMachines: make(map[string]*StepFunctionsStateMachine),
-		Topics:    make(map[string]*SNSTopic),
-		Queues:    make(map[string]*SQSQueue),
-		Buckets:   make(map[string]*S3Bucket),
-		Alarms:    make(map[string]*CloudWatchAlarm),
+		StateMachines:    make(map[string]*StepFunctionsStateMachine),
+		Topics:           make(map[string]*SNSTopic),
+		Queues:           make(map[string]*SQSQueue),
+		Buckets:          make(map[string]*S3Bucket),
+		Alarms:           make(map[string]*CloudWatchAlarm),
 	}
 
 	// Generate Lambda functions
@@ -632,8 +632,8 @@ func generateCloudWatchAlarm(service, name string, config AlarmConfig) *CloudWat
 func exportToTerraform(stack *Stack) ([]byte, error) {
 	// Convert our internal Stack to ForgeConfig for Lingon
 	config := ForgeConfig{
-		Service:  stack.Service,
-		Provider: stack.Provider,
+		Service:   stack.Service,
+		Provider:  stack.Provider,
 		Functions: make(map[string]FunctionConfig),
 		Tables:    make(map[string]TableConfig),
 	}

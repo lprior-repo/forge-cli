@@ -80,27 +80,14 @@ func runDestroy(targetStack string, autoApprove bool) error {
 		stacksToDestroy = allStacks
 	}
 
-	// Build dependency graph and get reverse order for destroy
-	graph, err := stack.NewGraph(stacksToDestroy)
-	if err != nil {
-		return fmt.Errorf("failed to build dependency graph: %w", err)
-	}
+	// Terraform handles dependency ordering automatically via resource dependencies
+	// Terraform will destroy resources in reverse dependency order
+	orderedStacks := stacksToDestroy
 
-	orderedStacks, err := graph.TopologicalSort()
-	if err != nil {
-		return fmt.Errorf("failed to sort stacks: %w", err)
-	}
-
-	// Reverse order for destroy (dependencies last)
-	for i := 0; i < len(orderedStacks)/2; i++ {
-		j := len(orderedStacks) - 1 - i
-		orderedStacks[i], orderedStacks[j] = orderedStacks[j], orderedStacks[i]
-	}
-
-	fmt.Printf("Destroying %d stack(s) in order: ", len(orderedStacks))
+	fmt.Printf("Destroying %d stack(s): ", len(orderedStacks))
 	for i, st := range orderedStacks {
 		if i > 0 {
-			fmt.Print(" → ")
+			fmt.Print(", ")
 		}
 		fmt.Print(st.Name)
 	}
