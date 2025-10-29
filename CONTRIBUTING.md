@@ -21,17 +21,17 @@ cd forge
 
 2. Install dependencies:
 ```bash
-make deps
+task install
 ```
 
 3. Run tests:
 ```bash
-make test
+task test
 ```
 
 4. Build the binary:
 ```bash
-make build
+task build
 ```
 
 ## Project Structure
@@ -61,7 +61,7 @@ Forge uses a three-level testing strategy:
 Fast tests with no external dependencies. Use mocks for Terraform operations.
 
 ```bash
-make test
+task test
 # or
 go test -short ./...
 ```
@@ -86,7 +86,7 @@ func TestStackValidate(t *testing.T) {
 Require Terraform binary but no AWS credentials.
 
 ```bash
-make test-integration
+task test:integration
 # or
 go test -tags=integration ./...
 ```
@@ -113,7 +113,7 @@ func TestRealTerraformInit(t *testing.T) {
 Require AWS credentials and actually deploy resources.
 
 ```bash
-make test-e2e
+task test:e2e
 # or
 go test -tags=e2e -timeout=30m ./...
 ```
@@ -127,13 +127,13 @@ go test -tags=e2e -timeout=30m ./...
 ### Formatting
 
 ```bash
-make fmt
+task fmt
 ```
 
 ### Linting
 
 ```bash
-make lint
+task lint
 ```
 
 We use `golangci-lint`. Install from: https://golangci-lint.run/usage/install/
@@ -300,8 +300,8 @@ testdata/
 1. **Create an issue** describing the feature/bug
 2. **Fork and create a branch**: `git checkout -b feature/my-feature`
 3. **Write tests** for new functionality
-4. **Ensure tests pass**: `make test-all`
-5. **Run linter**: `make lint`
+4. **Ensure tests pass**: `task test:all`
+5. **Run linter**: `task lint`
 6. **Update documentation** (README, CONTRIBUTING, etc.)
 7. **Commit with clear messages**:
    ```

@@ -281,7 +281,7 @@ Forge uses a three-level testing strategy from terraform-exec:
 No external dependencies:
 
 ```bash
-make test
+task test
 # or
 go test -short ./...
 ```
@@ -291,7 +291,7 @@ go test -short ./...
 Requires Terraform binary:
 
 ```bash
-make test-integration
+task test:integration
 # or
 go test -tags=integration ./...
 ```
@@ -301,7 +301,7 @@ go test -tags=integration ./...
 Requires AWS credentials:
 
 ```bash
-make test-e2e
+task test:e2e
 # or
 go test -tags=e2e -timeout=30m ./...
 ```
@@ -400,16 +400,16 @@ forge deploy
 ```bash
 git clone https://github.com/lewis/forge
 cd forge
-make build
+task build
 ./bin/forge version
 ```
 
 ### Running Tests
 
 ```bash
-make test          # Unit tests
-make test-all      # Unit + integration
-make verify        # Tests + linting
+task test          # Unit tests
+task test:all      # Unit + integration
+task ci            # Tests + linting
 ```
 
 ### Project Layout
