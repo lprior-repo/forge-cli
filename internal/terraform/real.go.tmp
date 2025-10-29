@@ -115,7 +115,7 @@ func makeOutputFunc(tfPath string) OutputFunc {
 	return func(ctx context.Context, dir string) (map[string]interface{}, error) {
 		tf, err := tfexec.NewTerraform(dir, tfPath)
 		if err != nil {
-			_, _ = fmt.Errorf, err
+			return nil, fmt.Errorf("failed to create terraform: %w", err)
 		}
 
 		outputs, err := tf.Output(ctx)

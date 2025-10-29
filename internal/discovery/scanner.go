@@ -11,6 +11,15 @@ import (
 	"github.com/lewis/forge/internal/build"
 )
 
+const (
+	// RuntimeGo is the Go Lambda runtime (provided.al2023)
+	RuntimeGo = "provided.al2023"
+	// RuntimeNode is the Node.js Lambda runtime
+	RuntimeNode = "nodejs20.x"
+	// RuntimePython is the Python Lambda runtime
+	RuntimePython = "python3.13"
+)
+
 // Function represents a discovered Lambda function
 type Function struct {
 	Name       string // Function name (directory name)
@@ -47,7 +56,7 @@ func (s *Scanner) ScanFunctions() ([]Function, error) {
 		return nil, fmt.Errorf("failed to read functions directory: %w", err)
 	}
 
-	var functions []Function
+	functions := make([]Function, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -78,32 +87,32 @@ func (s *Scanner) ScanFunctions() ([]Function, error) {
 func (s *Scanner) detectRuntime(functionPath string) (string, string, error) {
 	// Go: main.go or *.go files
 	if s.fileExists(functionPath, "main.go") {
-		return "provided.al2023", "main.go", nil
+		return RuntimeGo, "main.go", nil
 	}
 	if s.hasGoFiles(functionPath) {
-		return "provided.al2023", "*.go", nil
+		return RuntimeGo, "*.go", nil
 	}
 
 	// Node.js: index.js, index.mjs, or handler.js
 	if s.fileExists(functionPath, "index.js") {
-		return "nodejs20.x", "index.js", nil
+		return RuntimeNode, "index.js", nil
 	}
 	if s.fileExists(functionPath, "index.mjs") {
-		return "nodejs20.x", "index.mjs", nil
+		return RuntimeNode, "index.mjs", nil
 	}
 	if s.fileExists(functionPath, "handler.js") {
-		return "nodejs20.x", "handler.js", nil
+		return RuntimeNode, "handler.js", nil
 	}
 
 	// Python: app.py, lambda_function.py, or handler.py
 	if s.fileExists(functionPath, "app.py") {
-		return "python3.13", "app.py", nil
+		return RuntimePython, "app.py", nil
 	}
 	if s.fileExists(functionPath, "lambda_function.py") {
-		return "python3.13", "lambda_function.py", nil
+		return RuntimePython, "lambda_function.py", nil
 	}
 	if s.fileExists(functionPath, "handler.py") {
-		return "python3.13", "handler.py", nil
+		return RuntimePython, "handler.py", nil
 	}
 
 	return "", "", fmt.Errorf("no recognized entry point found")

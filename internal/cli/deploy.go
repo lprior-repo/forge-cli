@@ -1,232 +1,111 @@
 package cli
 
 import (
-	"archive/zip"
 	"context"
 	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 
 	E "github.com/IBM/fp-go/either"
-	O "github.com/IBM/fp-go/option"
-	"github.com/lewis/forge/internal/build"
-	"github.com/lewis/forge/internal/config"
 	"github.com/lewis/forge/internal/pipeline"
-	"github.com/lewis/forge/internal/stack"
 	"github.com/lewis/forge/internal/terraform"
 	"github.com/spf13/cobra"
 )
 
-// NewDeployCmd creates the 'deploy' command
+// NewDeployCmd creates the 'deploy' command using convention-based discovery
 func NewDeployCmd() *cobra.Command {
 	var (
 		autoApprove bool
-		parallel    bool
+		namespace   string
 	)
 
 	cmd := &cobra.Command{
-		Use:   "deploy [stack-name]",
-		Short: "Build and deploy stacks",
-		Long: `Build Lambda functions and deploy infrastructure with Terraform.
-If no stack name is provided, deploys all stacks in dependency order.`,
-		Args: cobra.MaximumNArgs(1),
+		Use:   "deploy",
+		Short: "Build and deploy Lambda functions with Terraform",
+		Long: `Build Lambda functions using convention-based discovery and deploy with Terraform.
+
+Convention-based discovery:
+  - Scans src/functions/* for Lambda functions
+  - Detects runtime from entry files (main.go, index.js, app.py)
+  - Builds to .forge/build/{name}.zip
+  - Runs terraform init/plan/apply in infra/
+
+Namespace support for ephemeral environments:
+  forge deploy --namespace=pr-123
+    → Sets TF_VAR_namespace=pr-123
+    → All resources get pr-123- prefix
+    → Isolated preview environment
+
+Examples:
+  forge deploy                    # Deploy to default environment
+  forge deploy --namespace=pr-123 # Deploy to ephemeral PR environment
+  forge deploy --auto-approve     # Skip interactive approval`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var targetStack string
-			if len(args) > 0 {
-				targetStack = args[0]
-			}
-			return runDeploy(targetStack, autoApprove, parallel)
+			return runDeploy(autoApprove, namespace)
 		},
 	}
 
 	cmd.Flags().BoolVar(&autoApprove, "auto-approve", false, "Skip interactive approval")
-	cmd.Flags().BoolVar(&parallel, "parallel", false, "Deploy independent stacks in parallel")
+	cmd.Flags().StringVar(&namespace, "namespace", "", "Namespace for ephemeral environments (e.g., pr-123)")
 
 	return cmd
 }
 
-// runDeploy executes the deployment using functional pipeline
-func runDeploy(targetStack string, autoApprove, parallel bool) error {
+// runDeploy executes the deployment using functional pipeline composition
+func runDeploy(autoApprove bool, namespace string) error {
 	ctx := context.Background()
 	projectRoot, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// Load config
-	cfg, err := config.Load(projectRoot)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// Find all stacks
-	detector := stack.NewDetector(projectRoot)
-	allStacks, err := detector.FindStacks()
-	if err != nil {
-		return fmt.Errorf("failed to find stacks: %w", err)
-	}
-
-	if len(allStacks) == 0 {
-		return fmt.Errorf("no stacks found")
-	}
-
-	// Filter to target stack if specified
-	var stacksToDeploy []*stack.Stack
-	if targetStack != "" {
-		found := false
-		for _, st := range allStacks {
-			if st.Name == targetStack {
-				stacksToDeploy = []*stack.Stack{st}
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("stack not found: %s", targetStack)
-		}
-	} else {
-		stacksToDeploy = allStacks
-	}
-
-	// Terraform handles dependency ordering automatically via resource dependencies
-	// No need for manual topological sorting
-	orderedStacks := stacksToDeploy
-
-	fmt.Printf("Deploying %d stack(s) in order: ", len(orderedStacks))
-	for i, st := range orderedStacks {
-		if i > 0 {
-			fmt.Print(" → ")
-		}
-		fmt.Print(st.Name)
-	}
-	fmt.Println()
-
-	// Create functional executor
+	// Create Terraform executor (adapts to pipeline interface)
 	tfPath := findTerraformPath()
-	exec := terraform.NewExecutor(tfPath)
+	tfExec := terraform.NewExecutor(tfPath)
+	exec := newTerraformAdapter(tfExec)
 
-	// Build stage using functional approach
-	buildStage := createBuildStage()
-
-	// Create deployment pipeline: Build → Init → Plan → Apply → Outputs
+	// Compose functional pipeline:
+	// Scan → Stubs → Build → TF Init → TF Plan → TF Apply → TF Outputs
 	deployPipeline := pipeline.New(
-		buildStage,
-		pipeline.TerraformInit(exec),
-		pipeline.TerraformPlan(exec),
-		pipeline.TerraformApply(exec, autoApprove),
-		pipeline.CaptureOutputs(exec),
+		pipeline.ConventionScan(),
+		pipeline.ConventionStubs(),
+		pipeline.ConventionBuild(),
+		pipeline.ConventionTerraformInit(exec),
+		pipeline.ConventionTerraformPlan(exec, namespace),
+		pipeline.ConventionTerraformApply(exec, autoApprove),
+		pipeline.ConventionTerraformOutputs(exec),
 	)
 
-	// Initial state
+	// Initial state (immutable)
 	initialState := pipeline.State{
 		ProjectDir: projectRoot,
-		Stacks:     orderedStacks,
-		Config:     cfg,
+		Stacks:     nil, // Not used in convention mode
+		Artifacts:  make(map[string]pipeline.Artifact),
+		Outputs:    make(map[string]interface{}),
+		Config:     nil, // Will hold discovered functions
 	}
 
-	// Run pipeline
+	// Run pipeline (returns Either[error, State])
 	result := deployPipeline.Run(ctx, initialState)
 
-	// Handle result using Either
-	if E.IsLeft(result) {
-		err := E.Fold(
-			func(e error) error { return e },
-			func(s pipeline.State) error { return nil },
-		)(result)
-		return err
-	}
-
-	fmt.Println("\n✓ All stacks deployed successfully")
-	return nil
-}
-
-// createBuildStage creates a pipeline stage for building Lambda functions
-func createBuildStage() pipeline.Stage {
-	return func(ctx context.Context, s pipeline.State) E.Either[error, pipeline.State] {
-		// Initialize artifacts map if needed
-		if s.Artifacts == nil {
-			s.Artifacts = make(map[string]pipeline.Artifact)
-		}
-
-		// Create build registry
-		registry := build.NewRegistry()
-
-		// Build each stack that needs building
-		for _, st := range s.Stacks {
-			if !st.NeedsBuild() {
-				continue
+	// Handle result using functional pattern
+	return E.Fold(
+		func(err error) error {
+			return fmt.Errorf("deployment failed: %w", err)
+		},
+		func(finalState pipeline.State) error {
+			fmt.Println("\n✓ Deployment successful")
+			if namespace != "" {
+				fmt.Printf("Namespace: %s\n", namespace)
 			}
-
-			fmt.Printf("[%s] Building %s function...\n", st.Name, st.Runtime)
-
-			// Get builder from registry
-			builderOpt := registry.Get(st.Runtime)
-			if O.IsNone(builderOpt) {
-				return E.Left[pipeline.State](fmt.Errorf("unsupported runtime: %s", st.Runtime))
-			}
-
-			// Extract builder using Fold
-			builder := O.Fold(
-				func() build.BuildFunc { return nil },
-				func(b build.BuildFunc) build.BuildFunc { return b },
-			)(builderOpt)
-
-			// Prepare build config
-			outputPath := filepath.Join(st.AbsPath, st.GetBuildTarget())
-			if st.GetBuildTarget() == "lambda.zip" {
-				outputPath = filepath.Join(st.AbsPath, "lambda.zip")
-			} else {
-				outputPath = filepath.Join(st.AbsPath, "bootstrap")
-			}
-
-			cfg := build.Config{
-				SourceDir:  st.AbsPath,
-				OutputPath: outputPath,
-				Runtime:    st.Runtime,
-				Handler:    st.Handler,
-				Env:        make(map[string]string),
-			}
-
-			// Execute build
-			result := builder(ctx, cfg)
-
-			// Handle result
-			if E.IsLeft(result) {
-				err := E.Fold(
-					func(e error) error { return e },
-					func(a build.Artifact) error { return nil },
-				)(result)
-				return E.Left[pipeline.State](fmt.Errorf("failed to build %s: %w", st.Name, err))
-			}
-
-			// Extract artifact
-			artifact := E.Fold(
-				func(e error) build.Artifact { return build.Artifact{} },
-				func(a build.Artifact) build.Artifact { return a },
-			)(result)
-
-			// For Go, zip the bootstrap
-			if st.GetBuildTarget() == "bootstrap" {
-				zipPath := filepath.Join(st.AbsPath, "bootstrap.zip")
-				if err := zipFile(artifact.Path, zipPath); err != nil {
-					return E.Left[pipeline.State](fmt.Errorf("failed to zip bootstrap: %w", err))
+			if len(finalState.Outputs) > 0 {
+				fmt.Println("\nOutputs:")
+				for key, value := range finalState.Outputs {
+					fmt.Printf("  %s = %v\n", key, value)
 				}
-				fmt.Printf("[%s] Built: %s (%.2f MB)\n", st.Name, "bootstrap.zip", float64(artifact.Size)/1024/1024)
-			} else {
-				fmt.Printf("[%s] Built: %s (%.2f MB)\n", st.Name, filepath.Base(artifact.Path), float64(artifact.Size)/1024/1024)
 			}
-
-			// Store artifact in state
-			s.Artifacts[st.Name] = pipeline.Artifact{
-				Path:     artifact.Path,
-				Checksum: artifact.Checksum,
-				Size:     artifact.Size,
-			}
-		}
-
-		return E.Right[error](s)
-	}
+			return nil
+		},
+	)(result)
 }
 
 // findTerraformPath finds the terraform binary
@@ -236,32 +115,42 @@ func findTerraformPath() string {
 	return "terraform"
 }
 
+// terraformAdapter adapts terraform.Executor to pipeline.TerraformExecutor interface
+type terraformAdapter struct {
+	exec terraform.Executor
+}
 
-// zipFile creates a zip archive of a single file
-func zipFile(sourcePath, destPath string) error {
-	// Create zip file
-	zipFile, err := os.Create(destPath)
-	if err != nil {
-		return err
+func newTerraformAdapter(exec terraform.Executor) pipeline.TerraformExecutor {
+	return &terraformAdapter{exec: exec}
+}
+
+func (a *terraformAdapter) Init(ctx context.Context, dir string) error {
+	return a.exec.Init(ctx, dir, terraform.Upgrade(false))
+}
+
+func (a *terraformAdapter) Plan(ctx context.Context, dir string) (bool, error) {
+	return a.PlanWithVars(ctx, dir, nil)
+}
+
+func (a *terraformAdapter) PlanWithVars(ctx context.Context, dir string, vars map[string]string) (bool, error) {
+	var opts []terraform.PlanOption
+	opts = append(opts, terraform.PlanOut(dir+"/tfplan"))
+
+	// Add variables as options
+	for k, v := range vars {
+		opts = append(opts, terraform.PlanVar(k, v))
 	}
-	defer zipFile.Close()
 
-	zipWriter := zip.NewWriter(zipFile)
-	defer zipWriter.Close()
+	return a.exec.Plan(ctx, dir, opts...)
+}
 
-	// Add file to zip
-	w, err := zipWriter.Create(filepath.Base(sourcePath))
-	if err != nil {
-		return err
-	}
+func (a *terraformAdapter) Apply(ctx context.Context, dir string) error {
+	return a.exec.Apply(ctx, dir,
+		terraform.ApplyPlanFile(dir+"/tfplan"),
+		terraform.AutoApprove(true), // Already approved in pipeline stage
+	)
+}
 
-	// Copy file contents
-	f, err := os.Open(sourcePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = io.Copy(w, f)
-	return err
+func (a *terraformAdapter) Output(ctx context.Context, dir string) (map[string]interface{}, error) {
+	return a.exec.Output(ctx, dir)
 }

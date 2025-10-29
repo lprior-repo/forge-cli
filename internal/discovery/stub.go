@@ -11,7 +11,7 @@ import (
 // This allows Terraform to initialize even before actual builds are complete
 func CreateStubZip(outputPath string) error {
 	// Ensure parent directory exists
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0750); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -20,11 +20,13 @@ func CreateStubZip(outputPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create stub zip: %w", err)
 	}
-	defer zipFile.Close()
+	defer func() {
+		_ = zipFile.Close() // Best effort close
+	}()
 
 	// Create empty zip archive with a placeholder comment
 	zipWriter := zip.NewWriter(zipFile)
-	zipWriter.SetComment("Forge stub - will be replaced by actual build")
+	_ = zipWriter.SetComment("Forge stub - will be replaced by actual build")
 
 	if err := zipWriter.Close(); err != nil {
 		return fmt.Errorf("failed to close stub zip: %w", err)
@@ -36,7 +38,7 @@ func CreateStubZip(outputPath string) error {
 // CreateStubZips creates stub zip files for all discovered functions
 // Returns the number of stubs created
 func CreateStubZips(functions []Function, buildDir string) (int, error) {
-	if err := os.MkdirAll(buildDir, 0755); err != nil {
+	if err := os.MkdirAll(buildDir, 0750); err != nil {
 		return 0, fmt.Errorf("failed to create build directory: %w", err)
 	}
 

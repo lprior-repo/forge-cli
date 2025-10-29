@@ -86,6 +86,18 @@ func TestValidationError(t *testing.T) {
 		errMsg := err.Error()
 		assert.Equal(t, "validation error: invalid configuration", errMsg)
 	})
+
+	t.Run("Error with file and line 1", func(t *testing.T) {
+		err := &ValidationError{
+			Message: "syntax error",
+			File:    "main.tf",
+			Line:    1,
+		}
+
+		errMsg := err.Error()
+		assert.Contains(t, errMsg, "validation error at main.tf:1")
+		assert.Contains(t, errMsg, "syntax error")
+	})
 }
 
 // TestParseTerraformError tests error parsing logic
