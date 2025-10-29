@@ -170,7 +170,7 @@ func TestGenerateStackUnsupportedRuntime(t *testing.T) {
 		Description: "Test",
 	}
 
-	err = GenerateStack(tmpDir, opts)
+	err := GenerateStack(tmpDir, opts)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported runtime")
 }
@@ -186,7 +186,7 @@ func TestTemplateData(t *testing.T) {
 			Description: "My Test Stack Description",
 		}
 
-		err = GenerateStack(tmpDir, opts)
+		err := GenerateStack(tmpDir, opts)
 		require.NoError(t, err)
 
 		content, err := os.ReadFile(filepath.Join(tmpDir, "test-stack", "stack.forge.hcl"))
@@ -203,7 +203,7 @@ func TestTemplateData(t *testing.T) {
 			Runtime: "go1.x",
 		}
 
-		err = GenerateStack(tmpDir, opts)
+		err := GenerateStack(tmpDir, opts)
 		require.NoError(t, err)
 
 		content, err := os.ReadFile(filepath.Join(tmpDir, "my-service", "go.mod"))
@@ -268,7 +268,7 @@ func TestRuntimeVariants(t *testing.T) {
 				Runtime: tt.runtime,
 			}
 
-			err = GenerateStack(tmpDir, opts)
+			err := GenerateStack(tmpDir, opts)
 
 			if tt.shouldError {
 				assert.Error(t, err)
