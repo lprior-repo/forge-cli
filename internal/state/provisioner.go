@@ -150,12 +150,17 @@ func ProvisionStateBackendSync(
 ) (ProvisionResult, error) {
 	result := ProvisionStateBackend(ctx, projectDir, projectName, region, exec)
 
-	return E.Fold(
-		func(err error) (ProvisionResult, error) {
-			return ProvisionResult{}, err
-		},
-		func(res ProvisionResult) (ProvisionResult, error) {
-			return res, nil
-		},
+	if E.IsLeft(result) {
+		err := E.Fold(
+			func(e error) error { return e },
+			func(r ProvisionResult) error { return nil },
+		)(result)
+		return ProvisionResult{}, err
+	}
+
+	res := E.Fold(
+		func(e error) ProvisionResult { return ProvisionResult{} },
+		func(r ProvisionResult) ProvisionResult { return r },
 	)(result)
+	return res, nil
 }

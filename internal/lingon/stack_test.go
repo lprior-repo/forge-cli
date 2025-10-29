@@ -228,7 +228,7 @@ func TestExportTerraform(t *testing.T) {
 		stack, err := NewForgeStack(config)
 		require.NoError(t, err)
 
-		hcl, err := stack.ExportTerraform()
+		hcl, err := ExportTerraform(stack)
 
 		require.NoError(t, err)
 		assert.NotNil(t, hcl)
@@ -265,7 +265,7 @@ func TestExportTerraform(t *testing.T) {
 		stack, err := NewForgeStack(config)
 		require.NoError(t, err)
 
-		hcl, err := stack.ExportTerraform()
+		hcl, err := ExportTerraform(stack)
 
 		require.NoError(t, err)
 		hclString := string(hcl)
@@ -297,7 +297,7 @@ func TestExportTerraform(t *testing.T) {
 		stack, err := NewForgeStack(config)
 		require.NoError(t, err)
 
-		hcl, err := stack.ExportTerraform()
+		hcl, err := ExportTerraform(stack)
 
 		require.NoError(t, err)
 		hclString := string(hcl)
@@ -333,7 +333,7 @@ func TestExportTerraform(t *testing.T) {
 		stack, err := NewForgeStack(config)
 		require.NoError(t, err)
 
-		hcl, err := stack.ExportTerraform()
+		hcl, err := ExportTerraform(stack)
 
 		require.NoError(t, err)
 		hclString := string(hcl)
@@ -373,7 +373,7 @@ func TestExportTerraform(t *testing.T) {
 		stack, err := NewForgeStack(config)
 		require.NoError(t, err)
 
-		hcl, err := stack.ExportTerraform()
+		hcl, err := ExportTerraform(stack)
 
 		require.NoError(t, err)
 		hclString := string(hcl)
@@ -407,7 +407,7 @@ func TestExportTerraform(t *testing.T) {
 		stack, err := NewForgeStack(config)
 		require.NoError(t, err)
 
-		hcl, err := stack.ExportTerraform()
+		hcl, err := ExportTerraform(stack)
 
 		require.NoError(t, err)
 		hclString := string(hcl)
@@ -469,7 +469,7 @@ func TestExportTerraform(t *testing.T) {
 		stack, err := NewForgeStack(config)
 		require.NoError(t, err)
 
-		hcl, err := stack.ExportTerraform()
+		hcl, err := ExportTerraform(stack)
 
 		require.NoError(t, err)
 		hclString := string(hcl)

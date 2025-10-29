@@ -119,7 +119,7 @@ func runDestroy(targetStack string, autoApprove bool) error {
 	}
 
 	// Run pipeline
-pipeline.Run(	result := destroyPipeline, ctx, initialState)
+	result := pipeline.Run(destroyPipeline, ctx, initialState)
 
 	// Handle result
 	if E.IsLeft(result) {

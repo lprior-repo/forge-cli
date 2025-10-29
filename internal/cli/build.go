@@ -108,7 +108,13 @@ func runBuild(stubOnly bool) error {
 		)(builderOpt)
 
 		// Convert to build config
-		cfg := fn.ToBuildConfig(buildDir)
+		cfg := build.Config{
+			SourceDir:  fn.Path,
+			OutputPath: filepath.Join(buildDir, fn.Name),
+			Handler:    fn.EntryPoint,
+			Runtime:    fn.Runtime,
+			Env:        make(map[string]string),
+		}
 
 		// Execute build
 		result := builder(ctx, cfg)

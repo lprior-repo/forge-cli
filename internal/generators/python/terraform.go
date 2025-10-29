@@ -8,8 +8,8 @@ import (
 )
 
 // generateTerraformFiles generates Terraform infrastructure code
-func (g *Generator) generateTerraformFiles() error {
-	terraformDir := filepath.Join(g.projectRoot, "terraform")
+func generateTerraformFiles() error {
+	terraformDir := filepath.Join(projectRoot, "terraform")
 	if err := os.MkdirAll(terraformDir, 0755); err != nil {
 		return fmt.Errorf("failed to create terraform directory: %w", err)
 	}
@@ -22,7 +22,7 @@ func (g *Generator) generateTerraformFiles() error {
 		"terraform/iam.tf":       g.generateTerraformIAM,
 	}
 
-	if g.config.UseDynamoDB {
+	if config.UseDynamoDB {
 		files["terraform/dynamodb.tf"] = g.generateTerraformDynamoDB
 	}
 
@@ -30,7 +30,7 @@ func (g *Generator) generateTerraformFiles() error {
 	files["terraform/apigateway.tf"] = g.generateTerraformAPIGateway
 
 	for filePath, generator := range files {
-		fullPath := filepath.Join(g.projectRoot, filePath)
+		fullPath := filepath.Join(projectRoot, filePath)
 		content := generator()
 		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", filePath, err)
@@ -41,7 +41,7 @@ func (g *Generator) generateTerraformFiles() error {
 }
 
 // generateTerraformMain generates main.tf
-func (g *Generator) generateTerraformMain() string {
+func generateTerraformMain() string {
 	return `terraform {
   required_version = ">= 1.0"
 
@@ -68,8 +68,8 @@ provider "aws" {
 }
 
 // generateTerraformVariables generates variables.tf
-func (g *Generator) generateTerraformVariables() string {
-	serviceName := strings.ReplaceAll(g.config.ServiceName, "_", "-")
+func generateTerraformVariables() string {
+	serviceName := strings.ReplaceAll(config.ServiceName, "_", "-")
 
 	content := fmt.Sprintf(`variable "aws_region" {
   description = "AWS region"
@@ -116,9 +116,9 @@ variable "lambda_memory_size" {
   type        = number
   default     = 512
 }
-`, serviceName, serviceName, g.config.PythonVersion)
+`, serviceName, serviceName, config.PythonVersion)
 
-	if g.config.UseDynamoDB {
+	if config.UseDynamoDB {
 		content += `
 variable "dynamodb_billing_mode" {
   description = "DynamoDB billing mode"
@@ -144,7 +144,7 @@ variable "dynamodb_write_capacity" {
 }
 
 // generateTerraformOutputs generates outputs.tf
-func (g *Generator) generateTerraformOutputs() string {
+func generateTerraformOutputs() string {
 	content := `output "lambda_function_name" {
   description = "Lambda function name"
   value       = aws_lambda_function.main.function_name
@@ -171,7 +171,7 @@ output "api_endpoint" {
 }
 `
 
-	if g.config.UseDynamoDB {
+	if config.UseDynamoDB {
 		content += `
 output "dynamodb_table_name" {
   description = "DynamoDB table name"
@@ -189,7 +189,7 @@ output "dynamodb_table_arn" {
 }
 
 // generateTerraformLambda generates lambda.tf
-func (g *Generator) generateTerraformLambda() string {
+func generateTerraformLambda() string {
 	return fmt.Sprintf(`# Lambda deployment package
 data "archive_file" "lambda" {
   type        = "zip"
@@ -241,7 +241,7 @@ resource "aws_lambda_permission" "api_gateway" {
   source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
 }
 `, func() string {
-		if g.config.UseDynamoDB {
+		if config.UseDynamoDB {
 			return `
       TABLE_NAME                   = aws_dynamodb_table.main.name`
 		}
@@ -250,7 +250,7 @@ resource "aws_lambda_permission" "api_gateway" {
 }
 
 // generateTerraformIAM generates iam.tf
-func (g *Generator) generateTerraformIAM() string {
+func generateTerraformIAM() string {
 	content := `# Lambda execution role
 resource "aws_iam_role" "lambda" {
   name = "${var.service_name}-lambda-role-${var.environment}"
@@ -282,7 +282,7 @@ resource "aws_iam_role_policy_attachment" "lambda_xray" {
 }
 `
 
-	if g.config.UseDynamoDB {
+	if config.UseDynamoDB {
 		content += `
 # DynamoDB access policy
 resource "aws_iam_role_policy" "dynamodb" {
@@ -314,8 +314,8 @@ resource "aws_iam_role_policy" "dynamodb" {
 }
 
 // generateTerraformDynamoDB generates dynamodb.tf
-func (g *Generator) generateTerraformDynamoDB() string {
-	tableName := g.config.TableName
+func generateTerraformDynamoDB() string {
+	tableName := config.TableName
 	if tableName == "" {
 		tableName = "${var.service_name}-${var.environment}"
 	}
@@ -352,8 +352,8 @@ resource "aws_dynamodb_table" "main" {
 }
 
 // generateTerraformAPIGateway generates apigateway.tf
-func (g *Generator) generateTerraformAPIGateway() string {
-	apiPath := strings.TrimPrefix(g.config.APIPath, "/")
+func generateTerraformAPIGateway() string {
+	apiPath := strings.TrimPrefix(config.APIPath, "/")
 
 	return fmt.Sprintf(`# API Gateway HTTP API (v2)
 resource "aws_apigatewayv2_api" "main" {
@@ -411,5 +411,5 @@ resource "aws_apigatewayv2_route" "main" {
   route_key = "%s /%s"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
-`, g.config.Description, g.config.HTTPMethod, apiPath)
+`, config.Description, config.HTTPMethod, apiPath)
 }

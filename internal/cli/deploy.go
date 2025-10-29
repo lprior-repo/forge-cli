@@ -85,7 +85,7 @@ func runDeploy(autoApprove bool, namespace string) error {
 	}
 
 	// Run pipeline (returns Either[error, State])
-pipeline.Run(	result := deployPipeline, ctx, initialState)
+	result := pipeline.Run(deployPipeline, ctx, initialState)
 
 	// Handle result using functional pattern
 	return E.Fold(

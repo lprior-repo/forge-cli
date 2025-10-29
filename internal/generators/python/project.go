@@ -20,34 +20,21 @@ type ProjectConfig struct {
 	HTTPMethod     string // e.g., "POST"
 }
 
-// Generator generates Python Lambda projects
-type Generator struct {
-	projectRoot string
-	config      ProjectConfig
-}
-
-// NewGenerator creates a new Python project generator
-func NewGenerator(projectRoot string, config ProjectConfig) *Generator {
-	return &Generator{
-		projectRoot: projectRoot,
-		config:      config,
-	}
-}
-
 // Generate creates the complete Python Lambda project structure
-func (g *Generator) Generate() error {
+// Pure function - takes projectRoot and config as parameters
+func Generate(projectRoot string, config ProjectConfig) error {
 	// Create directory structure
-	if err := g.createDirectoryStructure(); err != nil {
+	if err := createDirectoryStructure(projectRoot, config); err != nil {
 		return fmt.Errorf("failed to create directory structure: %w", err)
 	}
 
 	// Generate project files
-	if err := g.generateProjectFiles(); err != nil {
+	if err := generateProjectFiles(projectRoot, config); err != nil {
 		return fmt.Errorf("failed to generate project files: %w", err)
 	}
 
 	// Generate Terraform infrastructure
-	if err := g.generateTerraformFiles(); err != nil {
+	if err := generateTerraformFiles(projectRoot, config); err != nil {
 		return fmt.Errorf("failed to generate terraform files: %w", err)
 	}
 
@@ -55,7 +42,7 @@ func (g *Generator) Generate() error {
 }
 
 // createDirectoryStructure creates all necessary directories
-func (g *Generator) createDirectoryStructure() error {
+func createDirectoryStructure() error {
 	dirs := []string{
 		"service",
 		"service/handlers",
@@ -73,7 +60,7 @@ func (g *Generator) createDirectoryStructure() error {
 	}
 
 	for _, dir := range dirs {
-		path := filepath.Join(g.projectRoot, dir)
+		path := filepath.Join(projectRoot, dir)
 		if err := os.MkdirAll(path, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
@@ -83,7 +70,7 @@ func (g *Generator) createDirectoryStructure() error {
 }
 
 // generateProjectFiles generates all project files
-func (g *Generator) generateProjectFiles() error {
+func generateProjectFiles() error {
 	files := map[string]func() string{
 		"pyproject.toml":                          g.generatePyProjectToml,
 		"README.md":                               g.generateReadme,
@@ -111,13 +98,13 @@ func (g *Generator) generateProjectFiles() error {
 		"tests/e2e/__init__.py":                   g.generateEmptyInit,
 	}
 
-	if g.config.UseDynamoDB {
+	if config.UseDynamoDB {
 		files["service/dal/dynamodb_handler.py"] = g.generateDynamoDBHandler
 		files["service/dal/models/db.py"] = g.generateDBModel
 	}
 
 	for filePath, generator := range files {
-		fullPath := filepath.Join(g.projectRoot, filePath)
+		fullPath := filepath.Join(projectRoot, filePath)
 		content := generator()
 		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", filePath, err)
@@ -128,8 +115,8 @@ func (g *Generator) generateProjectFiles() error {
 }
 
 // generatePyProjectToml generates pyproject.toml with Poetry configuration
-func (g *Generator) generatePyProjectToml() string {
-	pythonConstraint := fmt.Sprintf("^%s", g.config.PythonVersion)
+func generatePyProjectToml() string {
+	pythonConstraint := fmt.Sprintf("^%s", config.PythonVersion)
 
 	content := fmt.Sprintf(`[build-system]
 requires = ["poetry>=2.0.1"]
@@ -145,9 +132,9 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "%s"
 pydantic = "^2.0.0"
-`, g.config.ServiceName, g.config.Description, pythonConstraint)
+`, config.ServiceName, config.Description, pythonConstraint)
 
-	if g.config.UsePowertools {
+	if config.UsePowertools {
 		content += `aws-lambda-powertools = {extras = ["tracer"], version = "^3.7.0"}
 aws-lambda-env-modeler = "*"
 `
@@ -156,12 +143,12 @@ aws-lambda-env-modeler = "*"
 	content += `boto3 = "^1.26.0"
 `
 
-	if g.config.UseDynamoDB {
+	if config.UseDynamoDB {
 		content += `mypy-boto3-dynamodb = "*"
 `
 	}
 
-	if g.config.UseIdempotency {
+	if config.UseIdempotency {
 		content += `cachetools = "*"
 `
 	}
@@ -176,7 +163,7 @@ mypy = "*"
 
 [tool.ruff]
 line-length = 150
-target-version = "py` + g.config.PythonVersion[:2] + `13"
+target-version = "py` + config.PythonVersion[:2] + `13"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "C", "B"]
@@ -191,7 +178,7 @@ indent-style = "space"
 }
 
 // generateReadme generates README.md
-func (g *Generator) generateReadme() string {
+func generateReadme() string {
 	return fmt.Sprintf(`# %s
 
 %s
@@ -243,12 +230,12 @@ service/
 ## API
 
 - **%s %s** - %s
-`, g.config.ServiceName, g.config.Description, g.config.PythonVersion,
-		g.config.HTTPMethod, g.config.APIPath, g.config.Description)
+`, config.ServiceName, config.Description, config.PythonVersion,
+		config.HTTPMethod, config.APIPath, config.Description)
 }
 
 // generateGitignore generates .gitignore
-func (g *Generator) generateGitignore() string {
+func generateGitignore() string {
 	return `__pycache__/
 *.py[cod]
 *$py.class
@@ -289,7 +276,7 @@ cdk.out/
 }
 
 // generateMakefile generates Makefile
-func (g *Generator) generateMakefile() string {
+func generateMakefile() string {
 	return fmt.Sprintf(`.PHONY: install test format lint deploy clean
 
 install:
@@ -316,20 +303,20 @@ clean:
 }
 
 // generateEmptyInit generates empty __init__.py
-func (g *Generator) generateEmptyInit() string {
+func generateEmptyInit() string {
 	return ""
 }
 
 // generateHandler generates the Lambda handler
-func (g *Generator) generateHandler() string {
-	if g.config.UsePowertools {
+func generateHandler() string {
+	if config.UsePowertools {
 		return g.generatePowertoolsHandler()
 	}
 	return g.generateBasicHandler()
 }
 
 // generatePowertoolsHandler generates handler with Powertools
-func (g *Generator) generatePowertoolsHandler() string {
+func generatePowertoolsHandler() string {
 	return fmt.Sprintf(`from typing import Annotated, Any
 
 from aws_lambda_env_modeler import get_environment_variables, init_environment_variables
@@ -389,7 +376,7 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
     """Lambda handler entry point."""
     return app.resolve(event, context)
 `, func() string {
-		switch g.config.HTTPMethod {
+		switch config.HTTPMethod {
 		case "GET":
 			return "get"
 		case "POST":
@@ -401,11 +388,11 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
 		default:
 			return "post"
 		}
-	}(), g.config.Description, g.config.Description)
+	}(), config.Description, config.Description)
 }
 
 // generateBasicHandler generates basic handler without Powertools
-func (g *Generator) generateBasicHandler() string {
+func generateBasicHandler() string {
 	return `import json
 from typing import Any
 

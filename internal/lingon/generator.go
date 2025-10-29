@@ -667,7 +667,7 @@ func exportToTerraform(stack *Stack) ([]byte, error) {
 	}
 
 	// Export to Terraform HCL
-	hcl, err := lingonStack.ExportTerraform()
+	hcl, err := ExportTerraform(lingonStack)
 	if err != nil {
 		return nil, fmt.Errorf("exporting Terraform: %w", err)
 	}
