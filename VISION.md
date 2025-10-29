@@ -65,6 +65,7 @@ forge destroy --namespace=pr-${{ github.event.number }}
 ```
 
 **Key benefits:**
+
 - **Vercel-like DX** - simple commands, fast feedback, preview environments
 - **Your AWS account** - not locked to a platform, full control
 - **Zero config files** - conventions determine structure
@@ -75,7 +76,9 @@ forge destroy --namespace=pr-${{ github.event.number }}
 ## Core Principles
 
 ### 1. Generate Approved Boilerplate
+
 The first job is to **eliminate the boring setup work**:
+
 - **Scaffold Terraform infrastructure** - working templates, not empty files
 - **Set up state backend** - S3 + DynamoDB provisioned automatically
 - **Generate function code** - hello-world examples that actually deploy
@@ -84,7 +87,9 @@ The first job is to **eliminate the boring setup work**:
 Think: `create-react-app` but for serverless infrastructure.
 
 ### 2. Convention Over Configuration
+
 The second job is to **infer intent from folder structure**:
+
 - **No config files** - `src/functions/api/main.go` becomes Lambda "api" with Go runtime
 - **Auto-discovery** - scan `src/functions/*` to find what needs building
 - **Smart defaults** - sensible IAM, logging, monitoring out of the box
@@ -93,7 +98,9 @@ The second job is to **infer intent from folder structure**:
 Think: Rails/Next.js conventions, but for AWS infrastructure.
 
 ### 3. Pipeline-First Deployments
+
 The third job is to **make ephemeral environments trivial**:
+
 - **Never deploy from local** - all deployments happen in CI/CD
 - **PR preview environments** - `--namespace=pr-123` prefixes all resources
 - **Automatic cleanup** - tear down when PR closes
@@ -103,56 +110,69 @@ The third job is to **make ephemeral environments trivial**:
 Think: Vercel preview deployments, but for your AWS account.
 
 ### 4. Transparent, Not Magic
+
 Forge is **less opinionated than Vercel** by design:
+
 - **Generated Terraform is editable** - no black boxes
 - **You own the infrastructure** - it's your AWS account
 - **Conventions are discoverable** - read the code to see what happens
 - **Zero lock-in** - stop using Forge, keep the Terraform
 
 ### 5. Production-Grade Code Quality
+
 The tool itself is built to deploy production infrastructure:
+
 - **90% test coverage** - enforced by CI/CD
 - **Pure functional programming** - monadic error handling, immutable data
 - **Zero linting errors** - `golangci-lint` with strict rules
 - **Mutation testing** - ensures tests actually catch bugs
 
-If we're generating your infrastructure code, we better get it right.
+If we're generating your infrastructure and pipeline code, we better get it right.
+
+**Our goal:** Get you comfortable with how this all works so you don't need to depend on Forge. We want the proper level of abstraction, but if you need to walk away from the tool, it's a very quick and easy exit.
 
 ## Why This Matters
 
 ### The Vercel Comparison
 
 **What Vercel does great:**
+
 - Zero config deployments
 - Preview environments per PR
 - Fast feedback loop
 - Dead simple DX
 
 **Where Vercel falls short (for some teams):**
+
 - Locked to their platform
 - Can't use your AWS account
 - Limited customization
 - Opaque infrastructure
+- Stuck on NextJS and Typescript
 
 **Forge gives you:**
+
 - ✅ Same great DX (conventions, previews, fast feedback)
 - ✅ Your AWS account (full control, no platform lock-in)
-- ✅ Transparent infrastructure (editable Terraform)
+- ✅ Transparent and understandable code (editable Terraform)
 - ✅ Customizable (approved patterns for your org)
 
 ### For Individual Developers
+
 - **10 minutes to production** - `forge new` to deployed Lambda
-- **No YAML hell** - conventions over configuration
+- **No YAML** - We've all written enough YAML for a lifetime
 - **Learn Terraform** properly while using it (readable output)
 - **Preview environments** - test before merging
 
 ### For Teams
+
 - **PR previews** - isolated AWS resources per pull request
 - **Pipeline-driven** - all deploys from CI/CD, auditable
 - **Reproducible** - same commands work everywhere
 - **No vendor lock-in** - own your infrastructure code
 
 ### For Enterprises
+
 - **Approved patterns** - customize boilerplate templates for your org
 - **Compliance-ready** - standardized IAM, logging, encryption
 - **Cost tracking** - namespace tags enable per-environment attribution
@@ -161,6 +181,7 @@ If we're generating your infrastructure code, we better get it right.
 ## The Workflow
 
 ### Local Development (One-Time Setup)
+
 ```bash
 # 1. Generate boilerplate
 forge new my-app --runtime=go --auto-state
@@ -175,11 +196,20 @@ forge build
   → Scans src/functions/*
   → Detects runtimes automatically
   → Builds to .forge/build/*.zip
+
+# 3. Test locally
+forge plan
+  → Runs terraform plan locally
+  → Preview infrastructure changes
+  → Validate before pushing
+
+# 4. Run tests locally before pushing
 ```
 
 ### CI/CD Pipeline (Where Deploys Happen)
 
 **Production deployment** (`.github/workflows/deploy.yml`):
+
 ```yaml
 on:
   push:
@@ -196,6 +226,7 @@ jobs:
 ```
 
 **PR preview environment** (`.github/workflows/pr-preview.yml`):
+
 ```yaml
 on:
   pull_request:
@@ -211,6 +242,7 @@ jobs:
 ```
 
 **PR cleanup** (`.github/workflows/pr-cleanup.yml`):
+
 ```yaml
 on:
   pull_request:
@@ -226,14 +258,17 @@ jobs:
 ```
 
 **Key insight:** Deploy commands run in pipelines, not locally. This ensures all infrastructure changes are:
+
 - ✅ Tracked in git
 - ✅ Auditable via CI logs
 - ✅ Reproducible
 - ✅ Approved via PR process
+- ✅ **Avoids Terraform concurrency conflicts** - prevents the scenario where someone runs `forge deploy` locally while a pipeline deployment is still running, or commits changes 2 minutes after a local deploy. We handle concurrency on the pipeline, but can't prevent collisions if deployments run locally too.
 
 ## Project Structure
 
 **Required:**
+
 ```
 my-app/
 ├── infra/              # Terraform infrastructure (source of truth)
@@ -244,6 +279,7 @@ my-app/
 ```
 
 **Convention (optional but recommended):**
+
 ```
 └── src/
     └── functions/      # Lambda functions (auto-discovered)
@@ -254,6 +290,7 @@ my-app/
 ```
 
 Forge scans `src/functions/*` to automatically detect:
+
 - **Function names** - directory name (e.g., `api`, `worker`)
 - **Runtimes** - detected from entry files:
   - `main.go` or `*.go` → Go (`provided.al2023`)
@@ -264,6 +301,7 @@ Forge scans `src/functions/*` to automatically detect:
 ## What Forge Does NOT Do (By Design)
 
 Forge is minimal by design. Developers handle:
+
 - **Dependencies** - `go.mod`, `requirements.txt`, `package.json` (per function)
 - **Shared code** - organize as needed, ensure it compiles
 - **Secrets** - `.env` files, AWS Secrets Manager, SSM Parameter Store
@@ -287,25 +325,26 @@ Forge leverages [serverless.tf](https://serverless.tf/) Terraform modules when a
 - **Battle-tested** - used by thousands of production deployments
 
 This is the **automation sweet spot**:
+
 - More opinionated than raw Terraform (faster start)
 - Less opinionated than frameworks (easy customization)
 - Built on standard Terraform (zero lock-in)
 
 ## Comparison
 
-| Feature | Forge | Vercel | Serverless Framework | SAM | Raw Terraform |
-|---------|-------|--------|---------------------|-----|---------------|
-| **DX** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐ |
-| Your AWS account | ✅ Yes | ❌ No | ✅ Yes | ✅ Yes | ✅ Yes |
-| Config files | **0** (convention) | 0 | serverless.yml | template.yaml | *.tf |
-| Lock-in | **None** | High | High | Medium | None |
-| Transparent infra | **Full** (editable .tf) | Opaque | Hidden CloudFormation | Hidden CloudFormation | Full |
-| PR previews | **Built-in** (pipeline) | Built-in | Plugin | Manual | Manual |
-| State management | **Auto** (S3+DynamoDB) | N/A | N/A | N/A | Manual |
-| Boilerplate gen | **Yes** (approved patterns) | No | Limited | Limited | None |
-| Learning curve | **Low** | Low | Medium | Medium | High |
-| Exit strategy | **Edit .tf** | Migrate | Eject | Switch tools | N/A |
-| Cost control | **Namespace tags** | Per-project | Manual | Manual | Manual |
+| Feature           | Forge                       | Vercel      | Serverless Framework  | SAM                   | Raw Terraform |
+| ----------------- | --------------------------- | ----------- | --------------------- | --------------------- | ------------- |
+| **DX**            | ⭐⭐⭐⭐⭐                  | ⭐⭐⭐⭐⭐  | ⭐⭐⭐                | ⭐⭐                  | ⭐            |
+| Your AWS account  | ✅ Yes                      | ❌ No       | ✅ Yes                | ✅ Yes                | ✅ Yes        |
+| Config files      | **0** (convention)          | 0           | serverless.yml        | template.yaml         | \*.tf         |
+| Lock-in           | **None**                    | High        | High                  | Medium                | None          |
+| Transparent infra | **Full** (editable .tf)     | Opaque      | Hidden CloudFormation | Hidden CloudFormation | Full          |
+| PR previews       | **Built-in** (pipeline)     | Built-in    | Plugin                | Manual                | Manual        |
+| State management  | **Auto** (S3+DynamoDB)      | N/A         | N/A                   | N/A                   | Manual        |
+| Boilerplate gen   | **Yes** (approved patterns) | No          | Limited               | Limited               | None          |
+| Learning curve    | **Low**                     | Low         | Medium                | Medium                | High          |
+| Exit strategy     | **Edit .tf**                | Migrate     | Eject                 | Switch tools          | N/A           |
+| Cost control      | **Namespace tags**          | Per-project | Manual                | Manual                | Manual        |
 
 **Forge = Vercel DX + AWS control + Terraform transparency**
 
@@ -322,5 +361,3 @@ Forge is built to production standards from day 1:
 **CI/CD enforces these standards** - PRs that violate them are rejected.
 
 This isn't just rigor for its own sake—it ensures Forge is reliable enough to deploy production infrastructure.
-
-
