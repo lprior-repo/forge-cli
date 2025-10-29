@@ -1,0 +1,161 @@
+version: '3'
+
+vars:
+  BUILD_DIR: .build
+  LAMBDA_DIR: .build/lambda
+  SERVICE_NAME: orders-service
+  AWS_REGION: us-east-1
+
+tasks:
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+      - rm -rf terraform/.terraform
+      - rm -rf terraform/terraform.tfstate*
+
+  install:
+    desc: Install Python dependencies with Poetry
+    cmds:
+      - poetry install --no-root
+
+  build:
+    desc: Build Lambda deployment package
+    deps: [clean]
+    cmds:
+      - mkdir -p {{.LAMBDA_DIR}}
+      - echo "📦 Copying service code..."
+      - cp -r service {{.LAMBDA_DIR}}/
+      - echo "📦 Installing production dependencies..."
+      - poetry export -f requirements.txt --without-hashes --output {{.BUILD_DIR}}/requirements.txt
+      - pip install -r {{.BUILD_DIR}}/requirements.txt -t {{.LAMBDA_DIR}} --upgrade --quiet
+      - echo "✅ Lambda package built in {{.LAMBDA_DIR}}"
+      - du -sh {{.LAMBDA_DIR}}
+
+  test:
+    desc: Run Python tests
+    cmds:
+      - poetry run pytest tests/ -v
+
+  lint:
+    desc: Lint Python code
+    cmds:
+      - poetry run ruff check .
+
+  format:
+    desc: Format Python code
+    cmds:
+      - poetry run ruff format .
+
+  tf-init:
+    desc: Initialize Terraform
+    dir: terraform
+    cmds:
+      - terraform init
+
+  tf-validate:
+    desc: Validate Terraform configuration
+    dir: terraform
+    deps: [tf-init]
+    cmds:
+      - terraform validate
+
+  tf-plan:
+    desc: Terraform plan
+    dir: terraform
+    deps: [build, tf-init]
+    cmds:
+      - terraform plan -out=tfplan
+
+  tf-apply:
+    desc: Terraform apply
+    dir: terraform
+    deps: [tf-plan]
+    cmds:
+      - terraform apply tfplan
+      - rm -f tfplan
+
+  deploy:
+    desc: Build and deploy to AWS
+    cmds:
+      - task: build
+      - task: tf-apply
+
+  destroy:
+    desc: Destroy infrastructure
+    dir: terraform
+    cmds:
+      - terraform destroy -auto-approve
+
+  outputs:
+    desc: Show Terraform outputs
+    dir: terraform
+    cmds:
+      - terraform output -json | jq '.'
+
+  test-api:
+    desc: Test the deployed API
+    dir: terraform
+    cmds:
+      - |
+        API_URL=$(terraform output -raw api_endpoint)
+        echo "Testing API at: $API_URL"
+        curl -X POST "$API_URL" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "test-order",
+            "count": 5
+          }' | jq '.'
+
+  logs:
+    desc: Tail Lambda logs
+    cmds:
+      - |
+        FUNCTION_NAME=$(cd terraform && terraform output -raw lambda_function_name)
+        aws logs tail "/aws/lambda/$FUNCTION_NAME" --follow --region {{.AWS_REGION}}
+
+  invoke:
+    desc: Invoke Lambda function directly
+    cmds:
+      - |
+        FUNCTION_NAME=$(cd terraform && terraform output -raw lambda_function_name)
+        aws lambda invoke \
+          --function-name "$FUNCTION_NAME" \
+          --payload '{"body": "{\"name\":\"test\",\"count\":3}"}' \
+          --region {{.AWS_REGION}} \
+          response.json
+        cat response.json | jq '.'
+        rm -f response.json
+
+  status:
+    desc: Show deployment status
+    cmds:
+      - |
+        cd terraform
+        if [ -f terraform.tfstate ]; then
+          echo "✅ Infrastructure deployed"
+          echo ""
+          echo "📊 Resources:"
+          terraform show -json | jq -r '.values.root_module.resources[] | "  - \(.type): \(.name)"'
+          echo ""
+          echo "🌐 Endpoints:"
+          terraform output
+        else
+          echo "❌ Infrastructure not deployed yet"
+          echo "Run: task deploy"
+        fi
+
+  full-test:
+    desc: Full test cycle (lint, test, build, validate)
+    cmds:
+      - task: format
+      - task: lint
+      - task: test
+      - task: build
+      - task: tf-validate
+      - echo "✅ All checks passed!"
+
+  help:
+    desc: Show available tasks
+    cmds:
+      - task --list

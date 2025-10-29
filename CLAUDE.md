@@ -10,50 +10,69 @@ The codebase follows **functional programming principles** using monadic error h
 
 ## Development Commands
 
+**IMPORTANT**: This project uses **Taskfile** (not Make) for all development tasks. Run `task` or `task --list` to see available commands.
+
 ### Testing
 ```bash
-# Unit tests (fast, <1s)
-make test
-go test -v -short ./...
+# Unit tests (fast, ~5s) - Excludes AWS resources for speed
+task test
+task test:unit
 
 # Integration tests (requires terraform binary, ~10s)
-make test-integration
-go test -v -tags=integration ./...
-
-# E2E tests (requires AWS credentials, ~30m)
-make test-e2e
-go test -v -tags=e2e -timeout=30m ./...
+task test:integration
 
 # All tests (unit + integration)
-make test-all
+task test:all
 
-# Test specific package
-go test -v ./internal/build/...
+# Coverage reports
+task coverage              # Text coverage report
+task coverage:html         # HTML coverage report in browser
+task coverage:check        # Verify 90% coverage threshold
+
+# Benchmarks
+task bench                 # Run benchmarks
+
+# Mutation Testing
+task mutation              # Run mutation testing on all non-generated code
+task mutation:verbose      # Verbose mutation testing output
+task mutation:package PKG=internal/build  # Test specific package
 ```
+
+**Performance Note**: The codebase includes `internal/lingon/aws/` with 2,671 generated AWS resource packages (~1M lines of code) providing complete type-safe Terraform support. These are excluded from test runs by default for performance (saves ~2 minutes per test run). The test tasks automatically filter these out using:
+```bash
+go list ./internal/... | grep -v '/internal/lingon/aws'
+```
+
+**Mutation Testing**: Uses [go-mutesting](https://github.com/avito-tech/go-mutesting) to verify test suite quality by introducing mutations (bugs) and checking if tests catch them. The mutation score indicates the percentage of mutations killed by tests (higher is better). Requires Nushell (`nu`).
 
 ### Building
 ```bash
 # Build binary to bin/forge
-make build
+task build
 
-# Install to $GOPATH/bin
-make install
-go install ./cmd/forge
+# Install dependencies
+task install
 ```
 
 ### Code Quality
 ```bash
 # Format code
-make fmt
+task fmt
+
+# Run go vet
+task vet
 
 # Run linter (requires golangci-lint)
-make lint
+task lint
 
-# Tests + linting
-make verify
+# Full CI checks (fmt, vet, test, coverage)
+task ci
 
-# Tidy dependencies
-make tidy
+# Full CI with integration tests
+task ci:full
+
+# Clean artifacts
+task clean
 ```
 
 ## Architecture

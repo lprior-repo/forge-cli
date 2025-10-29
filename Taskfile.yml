@@ -2,6 +2,9 @@ version: '3'
 
 vars:
   COVERAGE_THRESHOLD: 90
+  # Exclude generated AWS resources (2,671 packages, ~1M LOC) for faster testing
+  TEST_PACKAGES:
+    sh: go list ./internal/... | grep -v '/internal/lingon/aws'
 
 tasks:
   default:
@@ -16,19 +19,19 @@ tasks:
       - go mod tidy
 
   test:
-    desc: Run all unit tests
+    desc: Run all unit tests (excludes AWS resources for speed)
     cmds:
-      - go test ./internal/... -v
+      - go test {{.TEST_PACKAGES}} -v
 
   test:unit:
-    desc: Run unit tests only (fast)
+    desc: Run unit tests only (fast, excludes AWS resources)
     cmds:
-      - go test ./internal/... -v -short
+      - go test {{.TEST_PACKAGES}} -v -short
 
   test:integration:
     desc: Run integration tests (requires terraform, go, python, npm)
     cmds:
-      - go test ./internal/... -tags=integration -v
+      - go test {{.TEST_PACKAGES}} -tags=integration -v
 
   test:all:
     desc: Run all tests (unit + integration)
@@ -39,14 +42,14 @@ tasks:
   coverage:
     desc: Generate coverage report
     cmds:
-      - go test ./internal/... -coverprofile=coverage.out -covermode=atomic
+      - go test {{.TEST_PACKAGES}} -coverprofile=coverage.out -covermode=atomic
       - go tool cover -func=coverage.out
       - echo "Coverage report saved to coverage.out"
 
   coverage:html:
     desc: Generate HTML coverage report and open in browser
     cmds:
-      - go test ./internal/... -coverprofile=coverage.out -covermode=atomic
+      - go test {{.TEST_PACKAGES}} -coverprofile=coverage.out -covermode=atomic
       - go tool cover -html=coverage.out -o coverage.html
       - echo "Coverage report saved to coverage.html"
       - xdg-open coverage.html 2>/dev/null || open coverage.html 2>/dev/null || echo "Open coverage.html in your browser"
@@ -55,7 +58,7 @@ tasks:
     desc: Check if coverage meets threshold ({{.COVERAGE_THRESHOLD}}%)
     cmds:
       - |
-        go test ./internal/... -coverprofile=coverage.out -covermode=atomic
+        go test {{.TEST_PACKAGES}} -coverprofile=coverage.out -covermode=atomic
         COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Current coverage: ${COVERAGE}%"
         if (( $(echo "$COVERAGE < {{.COVERAGE_THRESHOLD}}" | bc -l) )); then
@@ -68,19 +71,43 @@ tasks:
   coverage:integration:
     desc: Generate coverage including integration tests
     cmds:
-      - go test ./internal/... -tags=integration -coverprofile=coverage-integration.out -covermode=atomic
+      - go test {{.TEST_PACKAGES}} -tags=integration -coverprofile=coverage-integration.out -covermode=atomic
       - go tool cover -func=coverage-integration.out
       - echo "Integration coverage report saved to coverage-integration.out"
 
   bench:
     desc: Run benchmarks
     cmds:
-      - go test ./internal/... -bench=. -benchmem -run=^$ -v
+      - go test {{.TEST_PACKAGES}} -bench=. -benchmem -run=^$ -v
 
   bench:integration:
     desc: Run integration benchmarks
     cmds:
-      - go test ./internal/... -tags=integration -bench=. -benchmem -run=^$ -v
+      - go test {{.TEST_PACKAGES}} -tags=integration -bench=. -benchmem -run=^$ -v
+
+  mutation:
+    desc: Run mutation testing on non-generated code (requires nu shell)
+    cmds:
+      - |
+        if ! command -v nu &> /dev/null; then
+          echo "Nushell (nu) not found. Install from https://www.nushell.sh/"
+          exit 1
+        fi
+        if ! command -v go-mutesting &> /dev/null; then
+          echo "Installing go-mutesting..."
+          go install github.com/avito-tech/go-mutesting/cmd/go-mutesting@latest
+        fi
+        nu scripts/mutation-test.nu
+
+  mutation:verbose:
+    desc: Run mutation testing with verbose output
+    cmds:
+      - nu scripts/mutation-test.nu --verbose
+
+  mutation:package:
+    desc: Run mutation testing on specific package (usage\: task mutation\:package PKG=internal/build)
+    cmds:
+      - nu scripts/mutation-test.nu --package {{.PKG}}
 
   lint:
     desc: Run linters (requires golangci-lint)
