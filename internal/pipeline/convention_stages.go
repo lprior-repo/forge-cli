@@ -221,12 +221,19 @@ func ConventionTerraformOutputs(exec TerraformExecutor) Stage {
 	}
 }
 
-// TerraformExecutor interface for convention-based stages
-// This allows stages to work with simplified terraform operations
-type TerraformExecutor interface {
-	Init(ctx context.Context, dir string) error
-	Plan(ctx context.Context, dir string) (bool, error)
-	PlanWithVars(ctx context.Context, dir string, vars map[string]string) (bool, error)
-	Apply(ctx context.Context, dir string) error
-	Output(ctx context.Context, dir string) (map[string]interface{}, error)
+// Terraform operation function types - pure functional approach
+type TerraformInitFunc func(ctx context.Context, dir string) error
+type TerraformPlanFunc func(ctx context.Context, dir string) (bool, error)
+type TerraformPlanWithVarsFunc func(ctx context.Context, dir string, vars map[string]string) (bool, error)
+type TerraformApplyFunc func(ctx context.Context, dir string) error
+type TerraformOutputFunc func(ctx context.Context, dir string) (map[string]interface{}, error)
+
+// TerraformExecutor is a collection of terraform functions (not methods!)
+// This follows functional programming - functions as first-class values
+type TerraformExecutor struct {
+	Init         TerraformInitFunc
+	Plan         TerraformPlanFunc
+	PlanWithVars TerraformPlanWithVarsFunc
+	Apply        TerraformApplyFunc
+	Output       TerraformOutputFunc
 }

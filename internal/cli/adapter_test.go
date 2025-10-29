@@ -57,14 +57,15 @@ func newMockExecutor(state *mockExecutorState) terraform.Executor {
 	}
 }
 
-// TestTerraformAdapterInit tests the Init method
-func TestTerraformAdapterInit(t *testing.T) {
+// TestAdaptTerraformExecutorInit tests the function!)
+func TestAdaptTerraformExecutorInit(t *testing.T) {
 	t.Run("calls terraform executor Init with correct options", func(t *testing.T) {
 		state := &mockExecutorState{}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		// Pure functional adapter - no OOP, no methods!
+		adapted := adaptTerraformExecutor(mock)
 
-		err := adapter.Init(context.Background(), "/test/dir")
+		err := adapted.Init(context.Background(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.True(t, state.initCalled)
@@ -73,23 +74,23 @@ func TestTerraformAdapterInit(t *testing.T) {
 	t.Run("propagates Init errors", func(t *testing.T) {
 		state := &mockExecutorState{initErr: assert.AnError}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		err := adapter.Init(context.Background(), "/test/dir")
+		err := adapted.Init(context.Background(), "/test/dir")
 
 		assert.Error(t, err)
 		assert.True(t, state.initCalled)
 	})
 }
 
-// TestTerraformAdapterPlan tests the Plan method
-func TestTerraformAdapterPlan(t *testing.T) {
+// TestAdaptTerraformExecutorPlan tests the function
+func TestAdaptTerraformExecutorPlan(t *testing.T) {
 	t.Run("calls PlanWithVars with nil vars", func(t *testing.T) {
 		state := &mockExecutorState{planResult: true}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		hasChanges, err := adapter.Plan(context.Background(), "/test/dir")
+		hasChanges, err := adapted.Plan(context.Background(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.True(t, hasChanges)
@@ -99,28 +100,28 @@ func TestTerraformAdapterPlan(t *testing.T) {
 	t.Run("propagates Plan errors", func(t *testing.T) {
 		state := &mockExecutorState{planErr: assert.AnError}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		_, err := adapter.Plan(context.Background(), "/test/dir")
+		_, err := adapted.Plan(context.Background(), "/test/dir")
 
 		assert.Error(t, err)
 		assert.True(t, state.planCalled)
 	})
 }
 
-// TestTerraformAdapterPlanWithVars tests the PlanWithVars method
-func TestTerraformAdapterPlanWithVars(t *testing.T) {
+// TestAdaptTerraformExecutorPlanWithVars tests the function
+func TestAdaptTerraformExecutorPlanWithVars(t *testing.T) {
 	t.Run("calls terraform executor Plan with variables", func(t *testing.T) {
 		state := &mockExecutorState{planResult: true}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
 		vars := map[string]string{
 			"region":    "us-west-2",
 			"namespace": "pr-123",
 		}
 
-		hasChanges, err := adapter.PlanWithVars(context.Background(), "/test/dir", vars)
+		hasChanges, err := adapted.PlanWithVars(context.Background(), "/test/dir", vars)
 
 		require.NoError(t, err)
 		assert.True(t, hasChanges)
@@ -132,9 +133,9 @@ func TestTerraformAdapterPlanWithVars(t *testing.T) {
 	t.Run("handles nil vars", func(t *testing.T) {
 		state := &mockExecutorState{planResult: false}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		hasChanges, err := adapter.PlanWithVars(context.Background(), "/test/dir", nil)
+		hasChanges, err := adapted.PlanWithVars(context.Background(), "/test/dir", nil)
 
 		require.NoError(t, err)
 		assert.False(t, hasChanges)
@@ -144,23 +145,23 @@ func TestTerraformAdapterPlanWithVars(t *testing.T) {
 	t.Run("propagates Plan errors", func(t *testing.T) {
 		state := &mockExecutorState{planErr: assert.AnError}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		_, err := adapter.PlanWithVars(context.Background(), "/test/dir", map[string]string{"key": "value"})
+		_, err := adapted.PlanWithVars(context.Background(), "/test/dir", map[string]string{"key": "value"})
 
 		assert.Error(t, err)
 		assert.True(t, state.planCalled)
 	})
 }
 
-// TestTerraformAdapterApply tests the Apply method
-func TestTerraformAdapterApply(t *testing.T) {
+// TestAdaptTerraformExecutorApply tests the function
+func TestAdaptTerraformExecutorApply(t *testing.T) {
 	t.Run("calls terraform executor Apply with plan file", func(t *testing.T) {
 		state := &mockExecutorState{}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		err := adapter.Apply(context.Background(), "/test/dir")
+		err := adapted.Apply(context.Background(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.True(t, state.applyCalled)
@@ -171,17 +172,17 @@ func TestTerraformAdapterApply(t *testing.T) {
 	t.Run("propagates Apply errors", func(t *testing.T) {
 		state := &mockExecutorState{applyErr: assert.AnError}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		err := adapter.Apply(context.Background(), "/test/dir")
+		err := adapted.Apply(context.Background(), "/test/dir")
 
 		assert.Error(t, err)
 		assert.True(t, state.applyCalled)
 	})
 }
 
-// TestTerraformAdapterOutput tests the Output method
-func TestTerraformAdapterOutput(t *testing.T) {
+// TestAdaptTerraformExecutorOutput tests the function
+func TestAdaptTerraformExecutorOutput(t *testing.T) {
 	t.Run("calls terraform executor Output and returns outputs", func(t *testing.T) {
 		expectedOutputs := map[string]interface{}{
 			"function_arn":  "arn:aws:lambda:us-east-1:123456789012:function:my-function",
@@ -189,9 +190,9 @@ func TestTerraformAdapterOutput(t *testing.T) {
 		}
 		state := &mockExecutorState{outputs: expectedOutputs}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		outputs, err := adapter.Output(context.Background(), "/test/dir")
+		outputs, err := adapted.Output(context.Background(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedOutputs, outputs)
@@ -201,9 +202,9 @@ func TestTerraformAdapterOutput(t *testing.T) {
 	t.Run("propagates Output errors", func(t *testing.T) {
 		state := &mockExecutorState{outputErr: assert.AnError}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		_, err := adapter.Output(context.Background(), "/test/dir")
+		_, err := adapted.Output(context.Background(), "/test/dir")
 
 		assert.Error(t, err)
 		assert.True(t, state.outputCalled)
@@ -212,9 +213,9 @@ func TestTerraformAdapterOutput(t *testing.T) {
 	t.Run("handles empty outputs", func(t *testing.T) {
 		state := &mockExecutorState{outputs: make(map[string]interface{})}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 
-		outputs, err := adapter.Output(context.Background(), "/test/dir")
+		outputs, err := adapted.Output(context.Background(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.Empty(t, outputs)
@@ -222,8 +223,8 @@ func TestTerraformAdapterOutput(t *testing.T) {
 	})
 }
 
-// TestTerraformAdapterIntegration tests the full adapter lifecycle
-func TestTerraformAdapterIntegration(t *testing.T) {
+// TestAdaptTerraformExecutorIntegration tests the full functional adapter workflow
+func TestAdaptTerraformExecutorIntegration(t *testing.T) {
 	t.Run("full deployment workflow", func(t *testing.T) {
 		state := &mockExecutorState{
 			planResult: true,
@@ -232,28 +233,28 @@ func TestTerraformAdapterIntegration(t *testing.T) {
 			},
 		}
 		mock := newMockExecutor(state)
-		adapter := &terraformAdapter{exec: mock}
+		adapted := adaptTerraformExecutor(mock)
 		ctx := context.Background()
 		dir := "/test/infra"
 
 		// Init
-		err := adapter.Init(ctx, dir)
+		err := adapted.Init(ctx, dir)
 		require.NoError(t, err)
 		assert.True(t, state.initCalled)
 
 		// Plan with vars
-		hasChanges, err := adapter.PlanWithVars(ctx, dir, map[string]string{"namespace": "test"})
+		hasChanges, err := adapted.PlanWithVars(ctx, dir, map[string]string{"namespace": "test"})
 		require.NoError(t, err)
 		assert.True(t, hasChanges)
 		assert.True(t, state.planCalled)
 
 		// Apply
-		err = adapter.Apply(ctx, dir)
+		err = adapted.Apply(ctx, dir)
 		require.NoError(t, err)
 		assert.True(t, state.applyCalled)
 
 		// Output
-		outputs, err := adapter.Output(ctx, dir)
+		outputs, err := adapted.Output(ctx, dir)
 		require.NoError(t, err)
 		assert.Equal(t, "https://api.example.com", outputs["api_url"])
 		assert.True(t, state.outputCalled)

@@ -58,10 +58,10 @@ func runDeploy(autoApprove bool, namespace string) error {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// Create Terraform executor (adapts to pipeline interface)
+	// Create Terraform executor using pure functional composition
 	tfPath := findTerraformPath()
 	tfExec := terraform.NewExecutor(tfPath)
-	exec := newTerraformAdapter(tfExec)
+	exec := adaptTerraformExecutor(tfExec)
 
 	// Compose functional pipeline:
 	// Scan → Stubs → Build → TF Init → TF Plan → TF Apply → TF Outputs
@@ -115,42 +115,42 @@ func findTerraformPath() string {
 	return "terraform"
 }
 
-// terraformAdapter adapts terraform.Executor to pipeline.TerraformExecutor interface
-type terraformAdapter struct {
-	exec terraform.Executor
-}
+// adaptTerraformExecutor adapts terraform.Executor to pipeline.TerraformExecutor
+// Pure functional approach: returns a struct with function fields, NO METHODS!
+func adaptTerraformExecutor(exec terraform.Executor) pipeline.TerraformExecutor {
+	return pipeline.TerraformExecutor{
+		// Init function - no mutation, pure composition
+		Init: func(ctx context.Context, dir string) error {
+			return exec.Init(ctx, dir, terraform.Upgrade(false))
+		},
 
-func newTerraformAdapter(exec terraform.Executor) pipeline.TerraformExecutor {
-	return &terraformAdapter{exec: exec}
-}
+		// Plan function - calls PlanWithVars with nil vars
+		Plan: func(ctx context.Context, dir string) (bool, error) {
+			opts := []terraform.PlanOption{terraform.PlanOut(dir + "/tfplan")}
+			return exec.Plan(ctx, dir, opts...)
+		},
 
-func (a *terraformAdapter) Init(ctx context.Context, dir string) error {
-	return a.exec.Init(ctx, dir, terraform.Upgrade(false))
-}
+		// PlanWithVars function - adds variable options functionally
+		PlanWithVars: func(ctx context.Context, dir string, vars map[string]string) (bool, error) {
+			opts := []terraform.PlanOption{terraform.PlanOut(dir + "/tfplan")}
+			// Functional transformation: vars → options
+			for k, v := range vars {
+				opts = append(opts, terraform.PlanVar(k, v))
+			}
+			return exec.Plan(ctx, dir, opts...)
+		},
 
-func (a *terraformAdapter) Plan(ctx context.Context, dir string) (bool, error) {
-	return a.PlanWithVars(ctx, dir, nil)
-}
+		// Apply function - pure function call, no state
+		Apply: func(ctx context.Context, dir string) error {
+			return exec.Apply(ctx, dir,
+				terraform.ApplyPlanFile(dir+"/tfplan"),
+				terraform.AutoApprove(true),
+			)
+		},
 
-func (a *terraformAdapter) PlanWithVars(ctx context.Context, dir string, vars map[string]string) (bool, error) {
-	var opts []terraform.PlanOption
-	opts = append(opts, terraform.PlanOut(dir+"/tfplan"))
-
-	// Add variables as options
-	for k, v := range vars {
-		opts = append(opts, terraform.PlanVar(k, v))
+		// Output function - pure retrieval
+		Output: func(ctx context.Context, dir string) (map[string]interface{}, error) {
+			return exec.Output(ctx, dir)
+		},
 	}
-
-	return a.exec.Plan(ctx, dir, opts...)
-}
-
-func (a *terraformAdapter) Apply(ctx context.Context, dir string) error {
-	return a.exec.Apply(ctx, dir,
-		terraform.ApplyPlanFile(dir+"/tfplan"),
-		terraform.AutoApprove(true), // Already approved in pipeline stage
-	)
-}
-
-func (a *terraformAdapter) Output(ctx context.Context, dir string) (map[string]interface{}, error) {
-	return a.exec.Output(ctx, dir)
 }

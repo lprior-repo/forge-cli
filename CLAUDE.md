@@ -40,6 +40,74 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The codebase follows **functional programming principles** using monadic error handling (Either/Option), pure functions, and immutable data structures from `github.com/IBM/fp-go`.
 
+## Project Vision & Philosophy
+
+### The Problem Forge Solves
+
+Serverless deployment tools fall into two camps:
+1. **Too opinionated** (Serverless Framework, SAM): Lock you into YAML configs, proprietary patterns, vendor lock-in
+2. **Too low-level** (raw Terraform): Verbose, repetitive, steep learning curve
+
+**Forge bridges this gap**: Convention over configuration + raw Terraform power + zero lock-in.
+
+### Core Principles
+
+1. **Convention Over Configuration (Omakase)**
+   - Inspired by Ruby on Rails and DHH's philosophy
+   - Zero config files (`forge.yaml`, `serverless.yml`, etc.)
+   - Smart defaults that just work
+   - Exit ramp: customize Terraform directly when needed
+
+2. **Pure Functional Programming**
+   - Data/Actions/Calculations separation
+   - Pure core, imperative shell
+   - Railway-oriented programming (Either monad)
+   - Immutable data structures
+   - No hidden state, no surprises
+
+3. **Minimal Magic, Maximum Control**
+   - No black box abstractions
+   - Generated Terraform is readable and editable
+   - Conventions are discoverable (scan `src/functions/*`)
+   - Developer owns the infrastructure code
+
+4. **Production-Ready from Day 1**
+   - Ephemeral PR environments built-in
+   - Terraform state management handled
+   - Multi-region support
+   - Cost tracking via namespace tags
+
+### The Forge Workflow
+
+```bash
+# 1. Scaffold new project (convention-based)
+forge new my-app --runtime=go --auto-state
+
+# 2. Build functions (auto-discovery)
+forge build
+
+# 3. Deploy to production
+forge deploy
+
+# 4. Preview PR changes (ephemeral env)
+forge deploy --namespace=pr-123
+
+# 5. Cleanup
+forge destroy --namespace=pr-123
+```
+
+### What Makes Forge Different
+
+| Feature | Forge | Serverless Framework | SAM | Raw Terraform |
+|---------|-------|---------------------|-----|---------------|
+| Config files | **0** (convention) | serverless.yml | template.yaml | *.tf |
+| Lock-in | **None** | High | Medium | None |
+| Terraform control | **Full** | Hidden | None | Full |
+| PR previews | **Built-in** | Plugin | Manual | Manual |
+| State management | **Auto** | N/A | N/A | Manual |
+| Learning curve | **Low** | Medium | Medium | High |
+| Exit strategy | **Edit .tf** | Eject | Switch tools | N/A |
+
 ## Core Philosophy: Convention Over Configuration
 
 **Forge follows Omakase principles** (inspired by Ruby on Rails and DHH's philosophy):
@@ -170,6 +238,157 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: forge destroy --namespace=pr-${{ github.event.number }}
+```
+
+This creates isolated AWS environments per PR with zero configuration.
+
+## Feature Roadmap & Implementation Status
+
+### ✅ Phase 1: Core Foundation (COMPLETE)
+- [x] Convention-based function discovery (`src/functions/*`)
+- [x] Runtime auto-detection (Go, Python, Node.js)
+- [x] Functional pipeline architecture (pure core + imperative shell)
+- [x] `forge build` - Build all functions with caching
+- [x] `forge deploy` - Deploy with Terraform
+- [x] Namespace support for ephemeral environments
+- [x] `forge new` - Scaffold convention-based projects
+
+### 🚧 Phase 2: Production Readiness (IN PROGRESS)
+- [x] Terraform state management design
+- [ ] **`forge new --auto-state`** - Auto-provision S3 bucket + DynamoDB for state
+- [ ] Backend.tf generation with namespace-aware state keys
+- [ ] Complete Terraform templates (Lambda + IAM + Function URLs)
+- [ ] AWS credential validation
+- [ ] Multi-account support (AWS profiles)
+
+### 📋 Phase 3: Developer Experience (PLANNED)
+- [ ] **Interactive TUI** for project setup (bubbletea)
+  - Runtime selection
+  - AWS account/region picker
+  - State bucket configuration
+  - Visual feedback during deployment
+- [ ] `forge logs` - Tail CloudWatch logs by namespace
+- [ ] `forge list` - Show all deployed namespaces
+- [ ] `forge destroy` - Enhanced with namespace discovery
+- [ ] Hot reload / watch mode (`forge watch`)
+
+### 📋 Phase 4: CI/CD Integration (PLANNED)
+- [ ] GitHub Actions workflow generation
+- [ ] GitLab CI pipeline generation
+- [ ] Automatic PR environment provisioning
+- [ ] Automatic cleanup on PR close
+- [ ] Cost estimation per PR
+- [ ] Deployment status comments on PRs
+
+### 📋 Phase 5: Advanced Features (PLANNED)
+- [ ] Lambda Layers support for shared dependencies
+- [ ] Multi-function projects (API Gateway routing)
+- [ ] DynamoDB table auto-provisioning
+- [ ] SQS/SNS auto-wiring
+- [ ] Custom domains with Route53
+- [ ] VPC configuration helpers
+- [ ] Secrets management integration (AWS Secrets Manager)
+
+### 📋 Phase 6: Observability (PLANNED)
+- [ ] Cost tracking dashboard per namespace
+- [ ] Performance metrics
+- [ ] Error rate monitoring
+- [ ] Deployment rollback support
+- [ ] State drift detection
+
+## Terraform State Management Design
+
+### Problem
+Terraform requires remote state for team collaboration and PR environments. Manual S3 bucket setup is tedious and error-prone.
+
+### Solution: `forge new --auto-state`
+
+**What it does:**
+1. Detects AWS credentials (profile, env vars, or prompt)
+2. Creates S3 bucket: `{project-name}-terraform-state`
+3. Enables versioning and encryption
+4. Creates DynamoDB table: `{project-name}-state-lock`
+5. Generates `infra/backend.tf` with dynamic state keys
+
+**Generated backend.tf:**
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "my-app-terraform-state"
+    key            = "forge/${var.namespace}terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "my-app-state-lock"
+  }
+}
+```
+
+**Namespace-aware state:**
+- Default deployment: `forge/terraform.tfstate`
+- PR environment: `forge/pr-123-terraform.tfstate`
+- Each namespace has isolated state
+
+**Pure functional design:**
+```go
+// PURE: Generate backend config (calculation)
+func GenerateBackendTF(opts StateConfig) string
+
+// ACTION: Provision S3 bucket (I/O)
+func ProvisionStateBucket(cfg StateConfig) Either[error, BucketInfo]
+
+// ACTION: Provision DynamoDB table (I/O)
+func ProvisionLockTable(cfg StateConfig) Either[error, TableInfo]
+```
+
+### Interactive TUI Design (Phase 3)
+
+**Bubbletea-based TUI** following The Elm Architecture (functional!):
+```go
+type Model struct {
+    // Immutable state
+    Step       SetupStep
+    Runtime    string
+    Region     string
+    Profile    string
+    AutoState  bool
+    BucketName string
+}
+
+type Msg interface{} // Messages (events)
+
+// Pure: Update model based on message
+func (m Model) Update(msg Msg) (Model, tea.Cmd)
+
+// Pure: Render view from model
+func (m Model) View() string
+```
+
+**User experience:**
+```
+┌─────────────────────────────────────────┐
+│  🔨 Forge Project Setup                 │
+├─────────────────────────────────────────┤
+│                                         │
+│  Project: my-app                        │
+│                                         │
+│  Select Runtime:                        │
+│    ○ Go                                 │
+│    ● Python         ← (selected)       │
+│    ○ Node.js                            │
+│                                         │
+│  ⚙️  AWS Configuration                  │
+│    Region:  [us-east-1        ▼]       │
+│    Profile: [default          ▼]       │
+│                                         │
+│  🗄️  Terraform State                    │
+│    ☑ Auto-create S3 bucket             │
+│    Bucket: my-app-terraform-state       │
+│    ☑ Enable state locking (DynamoDB)   │
+│                                         │
+│  ✓ AWS credentials validated            │
+│                                         │
+│  [Continue ⏎] [Cancel ^C]              │
+└─────────────────────────────────────────┘
 ```
 
 This creates isolated AWS environments per PR with zero configuration.

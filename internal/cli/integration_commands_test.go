@@ -465,15 +465,20 @@ func TestRunDestroyWithMultipleStacks(t *testing.T) {
 	})
 }
 
-// TestTerraformAdapter tests the terraformAdapter implementation
-func TestTerraformAdapter(t *testing.T) {
-	t.Run("adapter wraps terraform executor", func(t *testing.T) {
-		// Test that the adapter pattern is used
+// TestAdaptTerraformExecutor tests the functional adapter
+func TestAdaptTerraformExecutor(t *testing.T) {
+	t.Run("functional adapter creates struct with function fields", func(t *testing.T) {
+		// Test pure functional adaptation - NO OOP, NO METHODS!
 		tfPath := findTerraformPath()
 		tfExec := terraform.NewExecutor(tfPath)
-		adapter := newTerraformAdapter(tfExec)
+		adapted := adaptTerraformExecutor(tfExec)
 
-		assert.NotNil(t, adapter)
+		// Verify all function fields are set
+		assert.NotNil(t, adapted.Init)
+		assert.NotNil(t, adapted.Plan)
+		assert.NotNil(t, adapted.PlanWithVars)
+		assert.NotNil(t, adapted.Apply)
+		assert.NotNil(t, adapted.Output)
 	})
 }
 
