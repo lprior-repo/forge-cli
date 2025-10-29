@@ -3,7 +3,7 @@ package python
 import "fmt"
 
 // generateEnvVars generates environment variables model
-func generateEnvVars() string {
+func generateEnvVars(config ProjectConfig) string {
 	content := `from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, HttpUrl, PositiveInt
@@ -49,7 +49,7 @@ class Observability(BaseModel):
 }
 
 // generateInputModel generates Pydantic input model
-func generateInputModel() string {
+func generateInputModel(config ProjectConfig) string {
 	return `from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator
@@ -82,7 +82,7 @@ class RequestInput(BaseModel):
 }
 
 // generateOutputModel generates Pydantic output model
-func generateOutputModel() string {
+func generateOutputModel(config ProjectConfig) string {
 	return `from typing import Annotated
 
 from pydantic import BaseModel, Field
@@ -117,7 +117,7 @@ class ErrorOutput(BaseModel):
 }
 
 // generateObservability generates observability utilities
-func generateObservability() string {
+func generateObservability(config ProjectConfig) string {
 	if config.UsePowertools {
 		return fmt.Sprintf(`from aws_lambda_powertools import Logger, Metrics, Tracer
 
@@ -147,7 +147,7 @@ def log_error(message: str, **kwargs):
 }
 
 // generateRestAPI generates REST API resolver
-func generateRestAPI() string {
+func generateRestAPI(config ProjectConfig) string {
 	if config.UsePowertools {
 		return fmt.Sprintf(`from aws_lambda_powertools.event_handler import APIGatewayRestResolver
 
@@ -165,7 +165,7 @@ API_PATH = '` + config.APIPath + `'
 }
 
 // generateBusinessLogic generates business logic layer
-func generateBusinessLogic() string {
+func generateBusinessLogic(config ProjectConfig) string {
 	content := `import uuid
 from typing import Any
 
@@ -257,7 +257,7 @@ from service.models.output import RequestOutput
 }
 
 // generateDynamoDBHandler generates DynamoDB data access layer
-func generateDynamoDBHandler() string {
+func generateDynamoDBHandler(config ProjectConfig) string {
 	return `import boto3
 from typing import Any
 
@@ -286,7 +286,7 @@ def delete_item(table_name: str, key: dict[str, Any]) -> None:
 }
 
 // generateDBModel generates database model
-func generateDBModel() string {
+func generateDBModel(config ProjectConfig) string {
 	return `from typing import Annotated
 
 from pydantic import BaseModel, Field

@@ -42,7 +42,7 @@ func Generate(projectRoot string, config ProjectConfig) error {
 }
 
 // createDirectoryStructure creates all necessary directories
-func createDirectoryStructure() error {
+func createDirectoryStructure(projectRoot string, config ProjectConfig) error {
 	dirs := []string{
 		"service",
 		"service/handlers",
@@ -70,37 +70,37 @@ func createDirectoryStructure() error {
 }
 
 // generateProjectFiles generates all project files
-func generateProjectFiles() error {
+func generateProjectFiles(projectRoot string, config ProjectConfig) error {
 	files := map[string]func() string{
-		"pyproject.toml":                          g.generatePyProjectToml,
-		"README.md":                               g.generateReadme,
-		".gitignore":                              g.generateGitignore,
-		"Makefile":                                g.generateMakefile,
-		"service/__init__.py":                     g.generateEmptyInit,
-		"service/handlers/__init__.py":            g.generateEmptyInit,
-		"service/handlers/models/__init__.py":     g.generateEmptyInit,
-		"service/handlers/utils/__init__.py":      g.generateEmptyInit,
-		"service/logic/__init__.py":               g.generateEmptyInit,
-		"service/logic/utils/__init__.py":         g.generateEmptyInit,
-		"service/dal/__init__.py":                 g.generateEmptyInit,
-		"service/dal/models/__init__.py":          g.generateEmptyInit,
-		"service/models/__init__.py":              g.generateEmptyInit,
-		"service/handlers/handle_request.py":      g.generateHandler,
-		"service/handlers/models/env_vars.py":     g.generateEnvVars,
-		"service/handlers/utils/observability.py": g.generateObservability,
-		"service/handlers/utils/rest_api.py":      g.generateRestAPI,
-		"service/models/input.py":                 g.generateInputModel,
-		"service/models/output.py":                g.generateOutputModel,
-		"service/logic/business_logic.py":         g.generateBusinessLogic,
-		"tests/__init__.py":                       g.generateEmptyInit,
-		"tests/unit/__init__.py":                  g.generateEmptyInit,
-		"tests/integration/__init__.py":           g.generateEmptyInit,
-		"tests/e2e/__init__.py":                   g.generateEmptyInit,
+		"pyproject.toml":                          func() string { return generatePyProjectToml(config) },
+		"README.md":                               func() string { return generateReadme(config) },
+		".gitignore":                              func() string { return generateGitignore(config) },
+		"Makefile":                                func() string { return generateMakefile(config) },
+		"service/__init__.py":                     generateEmptyInit,
+		"service/handlers/__init__.py":            generateEmptyInit,
+		"service/handlers/models/__init__.py":     generateEmptyInit,
+		"service/handlers/utils/__init__.py":      generateEmptyInit,
+		"service/logic/__init__.py":               generateEmptyInit,
+		"service/logic/utils/__init__.py":         generateEmptyInit,
+		"service/dal/__init__.py":                 generateEmptyInit,
+		"service/dal/models/__init__.py":          generateEmptyInit,
+		"service/models/__init__.py":              generateEmptyInit,
+		"service/handlers/handle_request.py":      func() string { return generateHandler(config) },
+		"service/handlers/models/env_vars.py":     func() string { return generateEnvVars(config) },
+		"service/handlers/utils/observability.py": func() string { return generateObservability(config) },
+		"service/handlers/utils/rest_api.py":      func() string { return generateRestAPI(config) },
+		"service/models/input.py":                 func() string { return generateInputModel(config) },
+		"service/models/output.py":                func() string { return generateOutputModel(config) },
+		"service/logic/business_logic.py":         func() string { return generateBusinessLogic(config) },
+		"tests/__init__.py":                       generateEmptyInit,
+		"tests/unit/__init__.py":                  generateEmptyInit,
+		"tests/integration/__init__.py":           generateEmptyInit,
+		"tests/e2e/__init__.py":                   generateEmptyInit,
 	}
 
 	if config.UseDynamoDB {
-		files["service/dal/dynamodb_handler.py"] = g.generateDynamoDBHandler
-		files["service/dal/models/db.py"] = g.generateDBModel
+		files["service/dal/dynamodb_handler.py"] = func() string { return generateDynamoDBHandler(config) }
+		files["service/dal/models/db.py"] = func() string { return generateDBModel(config) }
 	}
 
 	for filePath, generator := range files {
@@ -115,7 +115,7 @@ func generateProjectFiles() error {
 }
 
 // generatePyProjectToml generates pyproject.toml with Poetry configuration
-func generatePyProjectToml() string {
+func generatePyProjectToml(config ProjectConfig) string {
 	pythonConstraint := fmt.Sprintf("^%s", config.PythonVersion)
 
 	content := fmt.Sprintf(`[build-system]
@@ -178,7 +178,7 @@ indent-style = "space"
 }
 
 // generateReadme generates README.md
-func generateReadme() string {
+func generateReadme(config ProjectConfig) string {
 	return fmt.Sprintf(`# %s
 
 %s
@@ -235,7 +235,7 @@ service/
 }
 
 // generateGitignore generates .gitignore
-func generateGitignore() string {
+func generateGitignore(config ProjectConfig) string {
 	return `__pycache__/
 *.py[cod]
 *$py.class
@@ -276,7 +276,7 @@ cdk.out/
 }
 
 // generateMakefile generates Makefile
-func generateMakefile() string {
+func generateMakefile(config ProjectConfig) string {
 	return fmt.Sprintf(`.PHONY: install test format lint deploy clean
 
 install:
@@ -308,15 +308,15 @@ func generateEmptyInit() string {
 }
 
 // generateHandler generates the Lambda handler
-func generateHandler() string {
+func generateHandler(config ProjectConfig) string {
 	if config.UsePowertools {
-		return g.generatePowertoolsHandler()
+		return generatePowertoolsHandler(config)
 	}
-	return g.generateBasicHandler()
+	return generateBasicHandler(config)
 }
 
 // generatePowertoolsHandler generates handler with Powertools
-func generatePowertoolsHandler() string {
+func generatePowertoolsHandler(config ProjectConfig) string {
 	return fmt.Sprintf(`from typing import Annotated, Any
 
 from aws_lambda_env_modeler import get_environment_variables, init_environment_variables
@@ -392,7 +392,7 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
 }
 
 // generateBasicHandler generates basic handler without Powertools
-func generateBasicHandler() string {
+func generateBasicHandler(config ProjectConfig) string {
 	return `import json
 from typing import Any
 

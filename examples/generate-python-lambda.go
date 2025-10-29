@@ -48,8 +48,7 @@ func main() {
 	fmt.Printf("   DynamoDB: %v\n", config.UseDynamoDB)
 	fmt.Println()
 
-	generator := python.NewGenerator(projectRoot, config)
-	if err := generator.Generate(); err != nil {
+	if err := python.Generate(projectRoot, config); err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Error generating project: %v\n", err)
 		os.Exit(1)
 	}
