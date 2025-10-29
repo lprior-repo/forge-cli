@@ -70,13 +70,7 @@ func createProject(name, defaultRuntime string, autoState bool) error {
 		return fmt.Errorf("directory %s already exists", name)
 	}
 
-	// Create generator
-	gen, err := scaffold.NewGenerator(projectDir)
-	if err != nil {
-		return fmt.Errorf("failed to create generator: %w", err)
-	}
-
-	// Generate project structure
+	// Generate project structure (pure functional - no OOP)
 	opts := &scaffold.ProjectOptions{
 		Name:   name,
 		Region: region,
@@ -85,7 +79,7 @@ func createProject(name, defaultRuntime string, autoState bool) error {
 		opts.Region = "us-east-1"
 	}
 
-	if err := gen.GenerateProject(opts); err != nil {
+	if err := scaffold.GenerateProject(projectDir, opts); err != nil {
 		return fmt.Errorf("failed to generate project: %w", err)
 	}
 
@@ -152,13 +146,7 @@ func createStack(name, runtime, desc string) error {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// Create generator
-	gen, err := scaffold.NewGenerator(projectRoot)
-	if err != nil {
-		return fmt.Errorf("failed to create generator: %w", err)
-	}
-
-	// Generate stack
+	// Generate stack (pure functional - no OOP)
 	opts := &scaffold.StackOptions{
 		Name:        name,
 		Runtime:     runtime,
@@ -168,7 +156,7 @@ func createStack(name, runtime, desc string) error {
 		_, _, _ = opts.Description, fmt.Sprintf, name
 	}
 
-	if err := gen.GenerateStack(opts); err != nil {
+	if err := scaffold.GenerateStack(projectRoot, opts); err != nil {
 		return fmt.Errorf("failed to generate stack: %w", err)
 	}
 

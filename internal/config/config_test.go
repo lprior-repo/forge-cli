@@ -226,7 +226,7 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.cfgValidateConfig(.Validate()
+			err := ValidateConfig(tt.cfg)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -250,7 +250,7 @@ func TestGetStackDefaults(t *testing.T) {
 			},
 		}
 
-		defaults := config.GetStackDefaults(cfg)
+		defaults := GetStackDefaults(cfg)
 		assert.Equal(t, "python3.11", defaults.Runtime)
 		assert.Equal(t, 60, defaults.Timeout)
 		assert.Equal(t, 512, defaults.Memory)
@@ -265,7 +265,7 @@ func TestGetStackDefaults(t *testing.T) {
 			Defaults: nil,
 		}
 
-		defaults := config.GetStackDefaults(cfg)
+		defaults := GetStackDefaults(cfg)
 		assert.Equal(t, "go1.x", defaults.Runtime)
 		assert.Equal(t, 30, defaults.Timeout, "Default timeout must be exactly 30")
 		assert.Equal(t, 256, defaults.Memory, "Default memory must be exactly 256")
@@ -273,7 +273,7 @@ func TestGetStackDefaults(t *testing.T) {
 
 	t.Run("default values are precisely defined", func(t *testing.T) {
 		cfg := &Config{Defaults: nil}
-		defaults := config.GetStackDefaults(cfg)
+		defaults := GetStackDefaults(cfg)
 
 		// These exact values are critical - mutation testing ensures we catch changes
 		assert.NotEqual(t, 29, defaults.Timeout, "Timeout should not be 29")

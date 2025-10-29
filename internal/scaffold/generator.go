@@ -7,18 +7,6 @@ import (
 	"strings"
 )
 
-// Generator generates project scaffolding using pure Go code
-type Generator struct {
-	projectRoot string
-}
-
-// NewGenerator creates a new scaffold generator
-func NewGenerator(projectRoot string) (*Generator, error) {
-	return &Generator{
-		projectRoot: projectRoot,
-	}, nil
-}
-
 // ProjectOptions configures project generation
 type ProjectOptions struct {
 	Name   string
@@ -33,27 +21,28 @@ type StackOptions struct {
 }
 
 // GenerateProject creates a new forge project structure
-func (g *Generator) GenerateProject(opts *ProjectOptions) error {
+// Pure function - no methods, takes projectRoot as parameter
+func GenerateProject(projectRoot string, opts *ProjectOptions) error {
 	// Create project directory
-	if err := os.MkdirAll(g.projectRoot, 0755); err != nil {
+	if err := os.MkdirAll(projectRoot, 0755); err != nil {
 		return fmt.Errorf("failed to create project directory: %w", err)
 	}
 
 	// Generate forge.hcl
 	forgeHCL := generateForgeHCL(opts)
-	if err := os.WriteFile(filepath.Join(g.projectRoot, "forge.hcl"), []byte(forgeHCL), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectRoot, "forge.hcl"), []byte(forgeHCL), 0644); err != nil {
 		return fmt.Errorf("failed to write forge.hcl: %w", err)
 	}
 
 	// Generate .gitignore
 	gitignore := generateGitignore()
-	if err := os.WriteFile(filepath.Join(g.projectRoot, ".gitignore"), []byte(gitignore), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectRoot, ".gitignore"), []byte(gitignore), 0644); err != nil {
 		return fmt.Errorf("failed to write .gitignore: %w", err)
 	}
 
 	// Generate README.md
 	readme := generateReadme(opts)
-	if err := os.WriteFile(filepath.Join(g.projectRoot, "README.md"), []byte(readme), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectRoot, "README.md"), []byte(readme), 0644); err != nil {
 		return fmt.Errorf("failed to write README.md: %w", err)
 	}
 
@@ -61,8 +50,9 @@ func (g *Generator) GenerateProject(opts *ProjectOptions) error {
 }
 
 // GenerateStack creates a new stack with the specified runtime
-func (g *Generator) GenerateStack(opts *StackOptions) error {
-	stackDir := filepath.Join(g.projectRoot, opts.Name)
+// Pure function - no methods, takes projectRoot as parameter
+func GenerateStack(projectRoot string, opts *StackOptions) error {
+	stackDir := filepath.Join(projectRoot, opts.Name)
 
 	// Create stack directory
 	if err := os.MkdirAll(stackDir, 0755); err != nil {
@@ -78,20 +68,21 @@ func (g *Generator) GenerateStack(opts *StackOptions) error {
 	// Generate runtime-specific files
 	switch {
 	case strings.HasPrefix(opts.Runtime, "go"), strings.HasPrefix(opts.Runtime, "provided"):
-		return g.generateGoStack(stackDir, opts)
+		return generateGoStack(stackDir, opts)
 	case strings.HasPrefix(opts.Runtime, "python"):
-		return g.generatePythonStack(stackDir, opts)
+		return generatePythonStack(stackDir, opts)
 	case strings.HasPrefix(opts.Runtime, "nodejs"):
-		return g.generateNodeStack(stackDir, opts)
+		return generateNodeStack(stackDir, opts)
 	case strings.HasPrefix(opts.Runtime, "java"):
-		return g.generateJavaStack(stackDir, opts)
+		return generateJavaStack(stackDir, opts)
 	default:
 		return fmt.Errorf("unsupported runtime: %s", opts.Runtime)
 	}
 }
 
 // generateGoStack creates Go-specific files
-func (g *Generator) generateGoStack(stackDir string, opts *StackOptions) error {
+// Pure function - no methods
+func generateGoStack(stackDir string, opts *StackOptions) error {
 	// Generate main.go
 	mainGo := generateGoMain(opts)
 	if err := os.WriteFile(filepath.Join(stackDir, "main.go"), []byte(mainGo), 0644); err != nil {
@@ -114,7 +105,8 @@ func (g *Generator) generateGoStack(stackDir string, opts *StackOptions) error {
 }
 
 // generatePythonStack creates Python-specific files
-func (g *Generator) generatePythonStack(stackDir string, opts *StackOptions) error {
+// Pure function - no methods
+func generatePythonStack(stackDir string, opts *StackOptions) error {
 	// Generate handler.py
 	handler := generatePythonHandler(opts)
 	if err := os.WriteFile(filepath.Join(stackDir, "handler.py"), []byte(handler), 0644); err != nil {
@@ -137,7 +129,8 @@ func (g *Generator) generatePythonStack(stackDir string, opts *StackOptions) err
 }
 
 // generateNodeStack creates Node.js-specific files
-func (g *Generator) generateNodeStack(stackDir string, opts *StackOptions) error {
+// Pure function - no methods
+func generateNodeStack(stackDir string, opts *StackOptions) error {
 	// Generate index.js
 	index := generateNodeIndex(opts)
 	if err := os.WriteFile(filepath.Join(stackDir, "index.js"), []byte(index), 0644); err != nil {
@@ -160,7 +153,8 @@ func (g *Generator) generateNodeStack(stackDir string, opts *StackOptions) error
 }
 
 // generateJavaStack creates Java-specific files
-func (g *Generator) generateJavaStack(stackDir string, opts *StackOptions) error {
+// Pure function - no methods
+func generateJavaStack(stackDir string, opts *StackOptions) error {
 	// Create Java directory structure
 	javaDir := filepath.Join(stackDir, "src", "main", "java", "com", "example")
 	if err := os.MkdirAll(javaDir, 0755); err != nil {

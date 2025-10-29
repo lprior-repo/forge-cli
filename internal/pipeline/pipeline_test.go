@@ -67,7 +67,7 @@ func TestPipelineExecution(t *testing.T) {
 			},
 		)
 
-		result := pipeline.Run(context.Background(), State{})
+		result := Run(pipeline, context.Background(), State{})
 
 		assert.True(t, E.IsRight(result), "Pipeline should succeed")
 		assert.Equal(t, []string{"stage1", "stage2", "stage3"}, execution)
@@ -91,7 +91,7 @@ func TestPipelineExecution(t *testing.T) {
 			},
 		)
 
-		result := pipeline.Run(context.Background(), State{})
+		result := Run(pipeline, context.Background(), State{})
 
 		assert.True(t, E.IsLeft(result), "Pipeline should fail")
 		assert.Equal(t, []string{"stage1", "stage2-error"}, execution, "Should stop after error")
@@ -114,7 +114,7 @@ func TestPipelineExecution(t *testing.T) {
 			},
 		)
 
-		result := pipeline.Run(context.Background(), State{})
+		result := Run(pipeline, context.Background(), State{})
 
 		require.True(t, E.IsRight(result))
 
@@ -186,7 +186,7 @@ func TestPipelineErrorHandling(t *testing.T) {
 				}
 
 				pipeline := New(stages...)
-				result := pipeline.Run(context.Background(), State{})
+				result := Run(pipeline, context.Background(), State{})
 
 				assert.True(t, E.IsLeft(result), "Should fail when stage %d fails", tc.failStage)
 			})
@@ -197,7 +197,7 @@ func TestPipelineErrorHandling(t *testing.T) {
 		pipeline := New()
 
 		initialState := State{ProjectDir: "/test"}
-		result := pipeline.Run(context.Background(), initialState)
+		result := Run(pipeline, context.Background(), initialState)
 
 		assert.True(t, E.IsRight(result))
 
@@ -284,7 +284,7 @@ func TestStateMutation(t *testing.T) {
 			},
 		)
 
-		result := pipeline.Run(context.Background(), State{})
+		result := Run(pipeline, context.Background(), State{})
 		assert.True(t, E.IsRight(result))
 	})
 }
@@ -309,7 +309,7 @@ func BenchmarkPipeline(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pipeline.Run(context.Background(), State{})
+			Run(pipeline, context.Background(), State{})
 		}
 	})
 
@@ -325,7 +325,7 @@ func BenchmarkPipeline(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pipeline.Run(context.Background(), State{})
+			Run(pipeline, context.Background(), State{})
 		}
 	})
 }

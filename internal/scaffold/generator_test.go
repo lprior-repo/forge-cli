@@ -9,31 +9,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestNewGenerator tests generator creation
-func TestNewGenerator(t *testing.T) {
-	t.Run("creates generator successfully", func(t *testing.T) {
+// TestGenerateProject tests that functions work without needing a generator struct
+func TestGenerateFunctional(t *testing.T) {
+	t.Run("can call functions without generator", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		gen, err := NewGenerator(tmpDir)
-
+		// Pure functional - no generator needed
+		opts := &ProjectOptions{
+			Name:   "test",
+			Region: "us-east-1",
+		}
+		err := GenerateProject(tmpDir, opts)
 		require.NoError(t, err)
-		assert.NotNil(t, gen)
-		assert.Equal(t, tmpDir, gen.projectRoot)
 	})
 }
 
-// TestGenerateProject tests project generation
-func TestGenerateProject(t *testing.T) {
+// TestGenerateProjectFiles tests project generation
+func TestGenerateProjectFiles(t *testing.T) {
 	t.Run("generates complete project structure", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		gen, err := NewGenerator(tmpDir)
-		require.NoError(t, err)
 
 		opts := &ProjectOptions{
 			Name:   "test-project",
 			Region: "us-east-1",
 		}
 
-		err = gen.GenerateProject(opts)
+		err := GenerateProject(tmpDir, opts)
 		require.NoError(t, err)
 
 		// Verify files were created
@@ -44,15 +44,13 @@ func TestGenerateProject(t *testing.T) {
 
 	t.Run("forge.hcl contains project name", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		gen, err := NewGenerator(tmpDir)
-		require.NoError(t, err)
 
 		opts := &ProjectOptions{
 			Name:   "my-project",
 			Region: "us-west-2",
 		}
 
-		err = gen.GenerateProject(opts)
+		err := GenerateProject(tmpDir, opts)
 		require.NoError(t, err)
 
 		content, err := os.ReadFile(filepath.Join(tmpDir, "forge.hcl"))
@@ -66,8 +64,6 @@ func TestGenerateProject(t *testing.T) {
 // TestGenerateGoStack tests Go stack generation
 func TestGenerateGoStack(t *testing.T) {
 	tmpDir := t.TempDir()
-	gen, err := NewGenerator(tmpDir)
-	require.NoError(t, err)
 
 	opts := &StackOptions{
 		Name:        "api",
@@ -75,7 +71,7 @@ func TestGenerateGoStack(t *testing.T) {
 		Description: "API Lambda",
 	}
 
-	err = gen.GenerateStack(opts)
+	err := GenerateStack(tmpDir, opts)
 	require.NoError(t, err)
 
 	stackDir := filepath.Join(tmpDir, "api")
@@ -90,8 +86,6 @@ func TestGenerateGoStack(t *testing.T) {
 // TestGeneratePythonStack tests Python stack generation
 func TestGeneratePythonStack(t *testing.T) {
 	tmpDir := t.TempDir()
-	gen, err := NewGenerator(tmpDir)
-	require.NoError(t, err)
 
 	opts := &StackOptions{
 		Name:        "worker",
@@ -99,7 +93,7 @@ func TestGeneratePythonStack(t *testing.T) {
 		Description: "Worker Lambda",
 	}
 
-	err = gen.GenerateStack(opts)
+	err := GenerateStack(tmpDir, opts)
 	require.NoError(t, err)
 
 	stackDir := filepath.Join(tmpDir, "worker")
@@ -114,8 +108,6 @@ func TestGeneratePythonStack(t *testing.T) {
 // TestGenerateNodeStack tests Node.js stack generation
 func TestGenerateNodeStack(t *testing.T) {
 	tmpDir := t.TempDir()
-	gen, err := NewGenerator(tmpDir)
-	require.NoError(t, err)
 
 	opts := &StackOptions{
 		Name:        "frontend",
@@ -123,7 +115,7 @@ func TestGenerateNodeStack(t *testing.T) {
 		Description: "Frontend Lambda",
 	}
 
-	err = gen.GenerateStack(opts)
+	err := GenerateStack(tmpDir, opts)
 	require.NoError(t, err)
 
 	stackDir := filepath.Join(tmpDir, "frontend")
@@ -143,8 +135,6 @@ func TestGenerateNodeStack(t *testing.T) {
 // TestGenerateJavaStack tests Java stack generation
 func TestGenerateJavaStack(t *testing.T) {
 	tmpDir := t.TempDir()
-	gen, err := NewGenerator(tmpDir)
-	require.NoError(t, err)
 
 	opts := &StackOptions{
 		Name:        "service",
@@ -152,7 +142,7 @@ func TestGenerateJavaStack(t *testing.T) {
 		Description: "Service Lambda",
 	}
 
-	err = gen.GenerateStack(opts)
+	err := GenerateStack(tmpDir, opts)
 	require.NoError(t, err)
 
 	stackDir := filepath.Join(tmpDir, "service")
@@ -173,8 +163,6 @@ func TestGenerateJavaStack(t *testing.T) {
 // TestGenerateStackUnsupportedRuntime tests error handling for unsupported runtimes
 func TestGenerateStackUnsupportedRuntime(t *testing.T) {
 	tmpDir := t.TempDir()
-	gen, err := NewGenerator(tmpDir)
-	require.NoError(t, err)
 
 	opts := &StackOptions{
 		Name:        "test",
@@ -182,7 +170,7 @@ func TestGenerateStackUnsupportedRuntime(t *testing.T) {
 		Description: "Test",
 	}
 
-	err = gen.GenerateStack(opts)
+	err = GenerateStack(tmpDir, opts)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported runtime")
 }
@@ -191,8 +179,6 @@ func TestGenerateStackUnsupportedRuntime(t *testing.T) {
 func TestTemplateData(t *testing.T) {
 	t.Run("stack template includes description", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		gen, err := NewGenerator(tmpDir)
-		require.NoError(t, err)
 
 		opts := &StackOptions{
 			Name:        "test-stack",
@@ -200,7 +186,7 @@ func TestTemplateData(t *testing.T) {
 			Description: "My Test Stack Description",
 		}
 
-		err = gen.GenerateStack(opts)
+		err = GenerateStack(tmpDir, opts)
 		require.NoError(t, err)
 
 		content, err := os.ReadFile(filepath.Join(tmpDir, "test-stack", "stack.forge.hcl"))
@@ -211,15 +197,13 @@ func TestTemplateData(t *testing.T) {
 
 	t.Run("go.mod contains stack name as module", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		gen, err := NewGenerator(tmpDir)
-		require.NoError(t, err)
 
 		opts := &StackOptions{
 			Name:    "my-service",
 			Runtime: "go1.x",
 		}
 
-		err = gen.GenerateStack(opts)
+		err = GenerateStack(tmpDir, opts)
 		require.NoError(t, err)
 
 		content, err := os.ReadFile(filepath.Join(tmpDir, "my-service", "go.mod"))
@@ -232,8 +216,6 @@ func TestTemplateData(t *testing.T) {
 // TestMultipleStacks tests generating multiple stacks
 func TestMultipleStacks(t *testing.T) {
 	tmpDir := t.TempDir()
-	gen, err := NewGenerator(tmpDir)
-	require.NoError(t, err)
 
 	stacks := []StackOptions{
 		{Name: "api", Runtime: "go1.x", Description: "API"},
@@ -243,7 +225,7 @@ func TestMultipleStacks(t *testing.T) {
 
 	for _, opts := range stacks {
 		opt := opts // capture loop variable
-		err := gen.GenerateStack(&opt)
+		err := GenerateStack(tmpDir, &opt)
 		require.NoError(t, err)
 	}
 
@@ -280,15 +262,13 @@ func TestRuntimeVariants(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.runtime, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			gen, err := NewGenerator(tmpDir)
-			require.NoError(t, err)
 
 			opts := &StackOptions{
 				Name:    "test",
 				Runtime: tt.runtime,
 			}
 
-			err = gen.GenerateStack(opts)
+			err = GenerateStack(tmpDir, opts)
 
 			if tt.shouldError {
 				assert.Error(t, err)
@@ -303,8 +283,6 @@ func TestRuntimeVariants(t *testing.T) {
 // TestTemplateRendering tests that templates render without errors
 func TestTemplateRendering(t *testing.T) {
 	tmpDir := t.TempDir()
-	gen, err := NewGenerator(tmpDir)
-	require.NoError(t, err)
 
 	// Test each template type
 	runtimes := []string{
@@ -322,7 +300,7 @@ func TestTemplateRendering(t *testing.T) {
 				Description: "Test stack for " + runtime,
 			}
 
-			err := gen.GenerateStack(opts)
+			err := GenerateStack(tmpDir, opts)
 			require.NoError(t, err)
 
 			// Verify main.tf was generated
