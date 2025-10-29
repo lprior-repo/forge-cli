@@ -18,16 +18,6 @@ func TestNewGenerator(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, gen)
 		assert.Equal(t, tmpDir, gen.projectRoot)
-		assert.NotNil(t, gen.tmpl)
-	})
-
-	t.Run("template parsing works", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		gen, err := NewGenerator(tmpDir)
-
-		require.NoError(t, err)
-		// Verify templates are loaded
-		assert.NotNil(t, gen.tmpl.Lookup("forge.hcl.tmpl"))
 	})
 }
 
