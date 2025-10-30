@@ -78,7 +78,6 @@ func runDeploy(autoApprove bool, namespace string) error {
 	// Initial state (immutable)
 	initialState := pipeline.State{
 		ProjectDir: projectRoot,
-		Stacks:     nil, // Not used in convention mode
 		Artifacts:  make(map[string]pipeline.Artifact),
 		Outputs:    make(map[string]interface{}),
 		Config:     nil, // Will hold discovered functions

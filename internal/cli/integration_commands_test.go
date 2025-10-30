@@ -211,65 +211,9 @@ func TestRunDestroyErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to destroy without forge.hcl
-		err = runDestroy("", false)
+		err = runDestroy(false)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to load config")
-	})
-
-	t.Run("fails when no stacks found", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
-
-		err := os.Chdir(tmpDir)
-		require.NoError(t, err)
-
-		// Create minimal forge.hcl with correct block syntax
-		forgeHCL := `project {
-  name   = "test-project"
-  region = "us-east-1"
-}`
-		err = os.WriteFile("forge.hcl", []byte(forgeHCL), 0644)
-		require.NoError(t, err)
-
-		// Try to destroy with no stacks
-		err = runDestroy("", false)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "no stacks found")
-	})
-
-	t.Run("fails when target stack not found", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
-
-		err := os.Chdir(tmpDir)
-		require.NoError(t, err)
-
-		// Create forge.hcl with correct block syntax
-		forgeHCL := `project {
-  name   = "test-project"
-  region = "us-east-1"
-}`
-		err = os.WriteFile("forge.hcl", []byte(forgeHCL), 0644)
-		require.NoError(t, err)
-
-		// Create a stack
-		err = os.MkdirAll("stacks/api", 0755)
-		require.NoError(t, err)
-
-		stackHCL := `stack {
-  name        = "api"
-  runtime     = "go1.x"
-  description = "API stack"
-}`
-		err = os.WriteFile("stacks/api/stack.forge.hcl", []byte(stackHCL), 0644)
-		require.NoError(t, err)
-
-		// Try to destroy non-existent stack
-		err = runDestroy("nonexistent", false)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "stack not found")
 	})
 }
 
@@ -459,7 +403,7 @@ func TestRunDestroyWithMultipleStacks(t *testing.T) {
 		}
 
 		// Try to destroy with auto-approve (avoids confirmation prompt)
-		err = runDestroy("", true)
+		err = runDestroy(true)
 		// May succeed or fail depending on terraform setup, but we exercised the multi-stack path
 		// We don't assert error here since the test environment may have mock terraform
 	})
