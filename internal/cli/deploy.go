@@ -8,6 +8,7 @@ import (
 	E "github.com/IBM/fp-go/either"
 	"github.com/lewis/forge/internal/pipeline"
 	"github.com/lewis/forge/internal/terraform"
+	"github.com/lewis/forge/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -52,10 +53,18 @@ Examples:
 
 // runDeploy executes the deployment using functional pipeline composition
 func runDeploy(autoApprove bool, namespace string) error {
+	out := ui.DefaultOutput()
+
 	ctx := context.Background()
 	projectRoot, err := os.Getwd()
 	if err != nil {
+		out.Error("Failed to get current directory: %v", err)
 		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	out.Header("Deploying Lambda Functions")
+	if namespace != "" {
+		out.Info("Deploying to namespace: %s", namespace)
 	}
 
 	// Create Terraform executor using pure functional composition
@@ -89,17 +98,24 @@ func runDeploy(autoApprove bool, namespace string) error {
 	// Handle result using functional pattern
 	return E.Fold(
 		func(err error) error {
+			out.Error("Deployment failed: %v", err)
+			out.Print("")
+			out.Warning("Troubleshooting tips:")
+			out.Print("  • Check that Terraform is installed: terraform version")
+			out.Print("  • Verify AWS credentials are configured: aws sts get-caller-identity")
+			out.Print("  • Review function build logs in .forge/build/")
+			out.Print("  • Run 'forge build' separately to test builds")
 			return fmt.Errorf("deployment failed: %w", err)
 		},
 		func(finalState pipeline.State) error {
-			fmt.Println("\n✓ Deployment successful")
+			out.Success("Deployment completed successfully")
 			if namespace != "" {
-				fmt.Printf("Namespace: %s\n", namespace)
+				out.Info("Namespace: %s", namespace)
 			}
 			if len(finalState.Outputs) > 0 {
-				fmt.Println("\nOutputs:")
+				out.Header("Terraform Outputs")
 				for key, value := range finalState.Outputs {
-					fmt.Printf("  %s = %v\n", key, value)
+					out.Print("  %s = %v", key, value)
 				}
 			}
 			return nil

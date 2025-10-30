@@ -20,6 +20,7 @@ func generateTerraformFiles(projectRoot string, config ProjectConfig) error {
 		"terraform/outputs.tf":   func() string { return generateTerraformOutputs(config) },
 		"terraform/lambda.tf":    func() string { return generateTerraformLambda(config) },
 		"terraform/iam.tf":       func() string { return generateTerraformIAM(config) },
+		"Taskfile.yml":           func() string { return generateTaskfile(config) },
 	}
 
 	if config.UseDynamoDB {
@@ -241,11 +242,16 @@ resource "aws_lambda_permission" "api_gateway" {
   source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
 }
 `, func() string {
+		envVars := ""
 		if config.UseDynamoDB {
-			return `
+			envVars += `
       TABLE_NAME                   = aws_dynamodb_table.main.name`
 		}
-		return ""
+		if config.UseIdempotency && config.UseDynamoDB {
+			envVars += `
+      IDEMPOTENCY_TABLE_NAME       = aws_dynamodb_table.main.name`
+		}
+		return envVars
 	}())
 }
 
@@ -412,4 +418,191 @@ resource "aws_apigatewayv2_route" "main" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 `, config.Description, config.HTTPMethod, apiPath)
+}
+
+// generateTaskfile generates Taskfile.yml with uv-based build
+func generateTaskfile(config ProjectConfig) string {
+	serviceName := strings.ReplaceAll(config.ServiceName, "_", "-")
+
+	// Build list of Python dependencies
+	deps := []string{
+		"pydantic",
+		"boto3",
+	}
+
+	if config.UsePowertools {
+		deps = append(deps, `"aws-lambda-powertools[tracer]"`, "aws-lambda-env-modeler")
+	}
+
+	if config.UseDynamoDB {
+		deps = append(deps, "mypy-boto3-dynamodb")
+	}
+
+	if config.UseIdempotency {
+		deps = append(deps, "cachetools")
+	}
+
+	depsStr := strings.Join(deps, " ")
+
+	return fmt.Sprintf(`version: '3'
+
+vars:
+  BUILD_DIR: .build
+  LAMBDA_DIR: .build/lambda
+  SERVICE_NAME: %s
+  AWS_REGION: us-east-1
+
+tasks:
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+      - rm -rf terraform/.terraform
+      - rm -rf terraform/terraform.tfstate*
+
+  install:
+    desc: Install Python dependencies with uv (dev dependencies)
+    cmds:
+      - uv pip install --python %s %s pytest pytest-mock pytest-cov ruff mypy
+
+  build:
+    desc: Build Lambda deployment package using uv (fast!)
+    deps: [clean]
+    cmds:
+      - mkdir -p {{.LAMBDA_DIR}}
+      - echo "📦 Copying service code..."
+      - cp -r service {{.LAMBDA_DIR}}/
+      - echo "📦 Installing production dependencies with uv..."
+      - uv pip install --python %s --target {{.LAMBDA_DIR}} %s
+      - echo "✅ Lambda package built in {{.LAMBDA_DIR}}"
+      - du -sh {{.LAMBDA_DIR}}
+
+  test:
+    desc: Run Python tests
+    cmds:
+      - pytest tests/ -v
+
+  lint:
+    desc: Lint Python code
+    cmds:
+      - ruff check .
+
+  format:
+    desc: Format Python code
+    cmds:
+      - ruff format .
+
+  tf-init:
+    desc: Initialize Terraform
+    dir: terraform
+    cmds:
+      - terraform init
+
+  tf-validate:
+    desc: Validate Terraform configuration
+    dir: terraform
+    deps: [tf-init]
+    cmds:
+      - terraform validate
+
+  tf-plan:
+    desc: Terraform plan
+    dir: terraform
+    deps: [build, tf-init]
+    cmds:
+      - terraform plan -out=tfplan
+
+  tf-apply:
+    desc: Terraform apply
+    dir: terraform
+    deps: [tf-plan]
+    cmds:
+      - terraform apply tfplan
+      - rm -f tfplan
+
+  deploy:
+    desc: Build and deploy to AWS
+    cmds:
+      - task: build
+      - task: tf-apply
+
+  destroy:
+    desc: Destroy infrastructure
+    dir: terraform
+    cmds:
+      - terraform destroy -auto-approve
+
+  outputs:
+    desc: Show Terraform outputs
+    dir: terraform
+    cmds:
+      - terraform output -json | jq '.'
+
+  test-api:
+    desc: Test the deployed API
+    dir: terraform
+    cmds:
+      - |
+        API_URL=$(terraform output -raw api_gateway_url)%s
+        echo "Testing API at: $API_URL"
+        curl -X %s "$API_URL" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "test-order",
+            "count": 5
+          }' | jq '.'
+
+  logs:
+    desc: Tail Lambda logs
+    cmds:
+      - |
+        FUNCTION_NAME=$(cd terraform && terraform output -raw lambda_function_name)
+        aws logs tail "/aws/lambda/$FUNCTION_NAME" --follow --region {{.AWS_REGION}}
+
+  invoke:
+    desc: Invoke Lambda function directly
+    cmds:
+      - |
+        FUNCTION_NAME=$(cd terraform && terraform output -raw lambda_function_name)
+        aws lambda invoke \
+          --function-name "$FUNCTION_NAME" \
+          --payload '{"body": "{\"name\":\"test\",\"count\":3}"}' \
+          --region {{.AWS_REGION}} \
+          response.json
+        cat response.json | jq '.'
+        rm -f response.json
+
+  status:
+    desc: Show deployment status
+    cmds:
+      - |
+        cd terraform
+        if [ -f terraform.tfstate ]; then
+          echo "✅ Infrastructure deployed"
+          echo ""
+          echo "📊 Resources:"
+          terraform show -json | jq -r '.values.root_module.resources[] | "  - \(.type): \(.name)"'
+          echo ""
+          echo "🌐 Endpoints:"
+          terraform output
+        else
+          echo "❌ Infrastructure not deployed yet"
+          echo "Run: task deploy"
+        fi
+
+  full-test:
+    desc: Full test cycle (lint, test, build, validate)
+    cmds:
+      - task: format
+      - task: lint
+      - task: test
+      - task: build
+      - task: tf-validate
+      - echo "✅ All checks passed!"
+
+  help:
+    desc: Show available tasks
+    cmds:
+      - task --list
+`, serviceName, config.PythonVersion, depsStr, config.PythonVersion, depsStr, config.APIPath, config.HTTPMethod)
 }

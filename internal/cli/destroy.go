@@ -9,6 +9,7 @@ import (
 	"github.com/lewis/forge/internal/config"
 	"github.com/lewis/forge/internal/pipeline"
 	"github.com/lewis/forge/internal/terraform"
+	"github.com/lewis/forge/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -33,26 +34,36 @@ func NewDestroyCmd() *cobra.Command {
 
 // runDestroy executes the destroy operation
 func runDestroy(autoApprove bool) error {
+	out := ui.DefaultOutput()
+	prompter := ui.NewPrompter(os.Stdin, os.Stdout)
+
 	ctx := context.Background()
 	projectRoot, err := os.Getwd()
 	if err != nil {
+		out.Error("Failed to get current directory: %v", err)
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
 	// Load config
 	cfg, err := config.Load(projectRoot)
 	if err != nil {
+		out.Error("Failed to load configuration: %v", err)
+		out.Warning("Make sure you're in a Forge project directory")
+		out.Print("  • Check that forge.hcl exists")
+		out.Print("  • Run 'forge new' to create a new project")
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	fmt.Println("Destroying infrastructure...")
+	out.Header("Destroying Infrastructure")
+	out.Warning("This will destroy all AWS resources managed by this project")
 
+	// Require explicit confirmation for destructive action
 	if !autoApprove {
-		fmt.Print("\nThis will destroy all resources. Continue? (yes/no): ")
-		var response string
-		fmt.Scanln(&response)
-		if response != "yes" {
-			fmt.Println("Destroy cancelled")
+		if !prompter.ConfirmDestruction(
+			"You are about to PERMANENTLY DELETE all infrastructure",
+			projectRoot,
+		) {
+			out.Info("Destroy cancelled")
 			return nil
 		}
 	}
@@ -75,15 +86,23 @@ func runDestroy(autoApprove bool) error {
 	// Run pipeline
 	result := pipeline.Run(destroyPipeline, ctx, initialState)
 
-	// Handle result
-	if E.IsLeft(result) {
-		err := E.Fold(
-			func(e error) error { return e },
-			func(s pipeline.State) error { return nil },
-		)(result)
-		return err
-	}
-
-	fmt.Println("\n✓ Infrastructure destroyed")
-	return nil
+	// Handle result using functional pattern
+	return E.Fold(
+		func(err error) error {
+			out.Error("Destroy failed: %v", err)
+			out.Print("")
+			out.Warning("Troubleshooting tips:")
+			out.Print("  • Check Terraform state is accessible")
+			out.Print("  • Verify AWS credentials are valid")
+			out.Print("  • Review .terraform/ directory for issues")
+			out.Print("  • Try running 'terraform destroy' manually in infra/")
+			return fmt.Errorf("destroy failed: %w", err)
+		},
+		func(finalState pipeline.State) error {
+			out.Success("Infrastructure destroyed successfully")
+			out.Print("")
+			out.Dim("All AWS resources have been removed")
+			return nil
+		},
+	)(result)
 }

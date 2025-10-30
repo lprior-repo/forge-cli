@@ -22,6 +22,7 @@ resource "aws_lambda_function" "main" {
       LOG_LEVEL                    = "INFO"
       ENVIRONMENT                  = var.environment
       TABLE_NAME                   = aws_dynamodb_table.main.name
+      IDEMPOTENCY_TABLE_NAME       = aws_dynamodb_table.main.name
     }
   }
 

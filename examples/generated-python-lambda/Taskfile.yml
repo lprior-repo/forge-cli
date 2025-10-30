@@ -15,37 +15,36 @@ tasks:
       - rm -rf terraform/terraform.tfstate*
 
   install:
-    desc: Install Python dependencies with Poetry
+    desc: Install Python dependencies with uv (dev dependencies)
     cmds:
-      - poetry install --no-root
+      - uv pip install --python 3.13 pydantic boto3 "aws-lambda-powertools[tracer]" aws-lambda-env-modeler mypy-boto3-dynamodb cachetools pytest pytest-mock pytest-cov ruff mypy
 
   build:
-    desc: Build Lambda deployment package
+    desc: Build Lambda deployment package using uv (fast!)
     deps: [clean]
     cmds:
       - mkdir -p {{.LAMBDA_DIR}}
       - echo "📦 Copying service code..."
       - cp -r service {{.LAMBDA_DIR}}/
-      - echo "📦 Installing production dependencies..."
-      - poetry export -f requirements.txt --without-hashes --output {{.BUILD_DIR}}/requirements.txt
-      - pip install -r {{.BUILD_DIR}}/requirements.txt -t {{.LAMBDA_DIR}} --upgrade --quiet
+      - echo "📦 Installing production dependencies with uv..."
+      - uv pip install --python 3.13 --target {{.LAMBDA_DIR}} pydantic boto3 "aws-lambda-powertools[tracer]" aws-lambda-env-modeler mypy-boto3-dynamodb cachetools
       - echo "✅ Lambda package built in {{.LAMBDA_DIR}}"
       - du -sh {{.LAMBDA_DIR}}
 
   test:
     desc: Run Python tests
     cmds:
-      - poetry run pytest tests/ -v
+      - pytest tests/ -v
 
   lint:
     desc: Lint Python code
     cmds:
-      - poetry run ruff check .
+      - ruff check .
 
   format:
     desc: Format Python code
     cmds:
-      - poetry run ruff format .
+      - ruff format .
 
   tf-init:
     desc: Initialize Terraform
@@ -98,7 +97,7 @@ tasks:
     dir: terraform
     cmds:
       - |
-        API_URL=$(terraform output -raw api_endpoint)
+        API_URL=$(terraform output -raw api_gateway_url)/api/orders
         echo "Testing API at: $API_URL"
         curl -X POST "$API_URL" \
           -H "Content-Type: application/json" \

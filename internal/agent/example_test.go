@@ -55,10 +55,10 @@ func ExampleGenerateFunction_pureCalculation() {
 	//
 	// 	// Validation (guard clauses)
 	// 	if !(price.GreaterThan(decimal.Zero)) {
-	// 		return decimal.Decimal{}, nil, fmt.Errorf("price must be positive")
+	// 		return decimal.Decimal{}, fmt.Errorf("price must be positive")
 	// 	}
 	// 	if !(customerTier == "gold" || customerTier == "silver" || customerTier == "bronze") {
-	// 		return decimal.Decimal{}, nil, fmt.Errorf("invalid customer tier")
+	// 		return decimal.Decimal{}, fmt.Errorf("invalid customer tier")
 	// 	}
 	//
 	// 	// TODO: Implement pure calculation logic
@@ -296,9 +296,11 @@ func TestGenerateStruct(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Contains(t, code, "type User struct {")
-	assert.Contains(t, code, "ID string")
-	assert.Contains(t, code, "Email string")
-	assert.Contains(t, code, "CreatedAt time.Time")
+	assert.Contains(t, code, "ID")
+	assert.Contains(t, code, "string")
+	assert.Contains(t, code, "Email")
+	assert.Contains(t, code, "CreatedAt")
+	assert.Contains(t, code, "time.Time")
 }
 
 // TestVisibility tests exported vs unexported naming

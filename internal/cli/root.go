@@ -31,6 +31,7 @@ It combines the power of Terraform with streamlined Lambda deployment workflows.
 	// Add subcommands
 	cmd.AddCommand(
 		NewNewCmd(),
+		NewAddCmd(),
 		NewBuildCmd(),
 		NewDeployCmd(),
 		NewDestroyCmd(),

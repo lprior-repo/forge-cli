@@ -50,7 +50,7 @@ def handle_request(request_input: Annotated[RequestInput, Body(embed=False, medi
 
 
 @init_environment_variables(model=HandlerEnvVars)
-@logger.inject_lambda_context(correlation_id_path=correlation_paths.API_GATEWAY_REST)
+@logger.inject_lambda_context(correlation_id_path=correlation_paths.API_GATEWAY_HTTP)
 @metrics.log_metrics
 @tracer.capture_lambda_handler(capture_response=False)
 def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:

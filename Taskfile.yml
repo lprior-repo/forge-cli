@@ -104,8 +104,8 @@ tasks:
     cmds:
       - nu scripts/mutation-test.nu --verbose
 
-  mutation:package:
-    desc: Run mutation testing on specific package (usage\: task mutation\:package PKG=internal/build)
+  mutation-package:
+    desc: "Run mutation testing on specific package (usage: task mutation-package PKG=internal/build)"
     cmds:
       - nu scripts/mutation-test.nu --package {{.PKG}}
 

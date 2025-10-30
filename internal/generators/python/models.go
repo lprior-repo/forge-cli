@@ -149,13 +149,13 @@ def log_error(message: str, **kwargs):
 // generateRestAPI generates REST API resolver
 func generateRestAPI(config ProjectConfig) string {
 	if config.UsePowertools {
-		return fmt.Sprintf(`from aws_lambda_powertools.event_handler import APIGatewayRestResolver
+		return fmt.Sprintf(`from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 
 # API configuration
 API_PATH = '%s'
 
-# Initialize API resolver
-app = APIGatewayRestResolver()
+# Initialize API resolver (HTTP API v2)
+app = APIGatewayHttpResolver()
 `, config.APIPath)
 	}
 

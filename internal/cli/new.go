@@ -33,7 +33,14 @@ Auto-state provisioning:
     → Auto-provisions S3 bucket for Terraform state
     → Auto-provisions DynamoDB table for state locking
     → Generates backend.tf with namespace-aware configuration
-    → Production-ready state management from day 1`,
+    → Production-ready state management from day 1
+
+Lambda function projects:
+  forge new lambda my-service
+    → Creates a complete Lambda project with infrastructure
+    → Python/Go/Node.js runtime support
+    → DynamoDB, API Gateway, CloudWatch integrated
+    → uv-based builds (10-100x faster)`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Determine if this is a new project or new stack
@@ -57,6 +64,9 @@ Auto-state provisioning:
 	cmd.Flags().StringVar(&runtime, "runtime", "go1.x", "Runtime for the stack (go1.x, python3.11, nodejs20.x)")
 	cmd.Flags().StringVar(&description, "description", "", "Stack description")
 	cmd.Flags().BoolVar(&autoState, "auto-state", false, "Auto-provision S3 bucket and DynamoDB table for Terraform state")
+
+	// Add lambda subcommand
+	cmd.AddCommand(NewLambdaCmd())
 
 	return cmd
 }

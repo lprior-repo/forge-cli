@@ -59,9 +59,18 @@ func GenerateStruct(spec CodeSpec) (string, error) {
 	// Struct declaration
 	parts = append(parts, fmt.Sprintf("type %s struct {", spec.Name))
 
-	// Fields
+	// Calculate max field name length for alignment
+	maxNameLen := 0
 	for _, field := range spec.Inputs {
-		fieldLine := fmt.Sprintf("\t%s %s", field.Name, field.Type)
+		if len(field.Name) > maxNameLen {
+			maxNameLen = len(field.Name)
+		}
+	}
+
+	// Fields with alignment
+	for _, field := range spec.Inputs {
+		padding := strings.Repeat(" ", maxNameLen-len(field.Name))
+		fieldLine := fmt.Sprintf("\t%s%s %s", field.Name, padding, field.Type)
 		if field.Doc != "" {
 			fieldLine += " // " + field.Doc
 		}
@@ -251,32 +260,32 @@ func generateValidation(spec CodeSpec) []string {
 	// NonNil checks
 	for _, param := range spec.Validation.RequireNonNil {
 		lines = append(lines, fmt.Sprintf(
-			"\tif %s == nil {\n\t\treturn %s, fmt.Errorf(\"%s cannot be nil\")\n\t}",
-			param, zeroValues(spec.Outputs), param,
+			"\tif %s == nil {\n\t\treturn %sfmt.Errorf(\"%s cannot be nil\")\n\t}",
+			param, returnPrefix(spec.Outputs), param,
 		))
 	}
 
 	// NonEmpty checks
 	for _, param := range spec.Validation.RequireNonEmpty {
 		lines = append(lines, fmt.Sprintf(
-			"\tif len(%s) == 0 {\n\t\treturn %s, fmt.Errorf(\"%s cannot be empty\")\n\t}",
-			param, zeroValues(spec.Outputs), param,
+			"\tif len(%s) == 0 {\n\t\treturn %sfmt.Errorf(\"%s cannot be empty\")\n\t}",
+			param, returnPrefix(spec.Outputs), param,
 		))
 	}
 
 	// Positive checks
 	for _, param := range spec.Validation.RequirePositive {
 		lines = append(lines, fmt.Sprintf(
-			"\tif %s <= 0 {\n\t\treturn %s, fmt.Errorf(\"%s must be positive\")\n\t}",
-			param, zeroValues(spec.Outputs), param,
+			"\tif %s <= 0 {\n\t\treturn %sfmt.Errorf(\"%s must be positive\")\n\t}",
+			param, returnPrefix(spec.Outputs), param,
 		))
 	}
 
 	// Custom guards
 	for _, guard := range spec.Validation.Custom {
 		lines = append(lines, fmt.Sprintf(
-			"\tif !(%s) {\n\t\treturn %s, fmt.Errorf(\"%s\")\n\t}",
-			guard.Condition, zeroValues(spec.Outputs), guard.ErrorMsg,
+			"\tif !(%s) {\n\t\treturn %sfmt.Errorf(\"%s\")\n\t}",
+			guard.Condition, returnPrefix(spec.Outputs), guard.ErrorMsg,
 		))
 	}
 
@@ -337,6 +346,35 @@ func zeroValue(typ string) string {
 		// Assume struct, use zero value syntax
 		return typ + "{}"
 	}
+}
+
+// returnPrefix generates the prefix for return statements with error (PURE)
+// For functions returning only error: returns ""
+// For functions returning (T, error): returns "T{}, " or appropriate zero values
+func returnPrefix(outputs []Parameter) string {
+	if len(outputs) == 0 {
+		return ""
+	}
+
+	// If only returning error, no prefix needed
+	if len(outputs) == 1 && outputs[0].Type == "error" {
+		return ""
+	}
+
+	// Return zero values for all non-error outputs, followed by ", "
+	nonErrorOutputs := lo.Filter(outputs, func(p Parameter, _ int) bool {
+		return p.Type != "error"
+	})
+
+	if len(nonErrorOutputs) == 0 {
+		return ""
+	}
+
+	zeros := lo.Map(nonErrorOutputs, func(p Parameter, _ int) string {
+		return zeroValue(p.Type)
+	})
+
+	return strings.Join(zeros, ", ") + ", "
 }
 
 // hasContextParam checks if inputs include context.Context (PURE)

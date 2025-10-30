@@ -1,0 +1,394 @@
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	E "github.com/IBM/fp-go/either"
+	"github.com/lewis/forge/internal/generators"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// Helper to extract ProjectState from Either
+func extractState(result E.Either[error, generators.ProjectState]) generators.ProjectState {
+	return E.Fold(
+		func(error) generators.ProjectState { return generators.ProjectState{} },
+		func(s generators.ProjectState) generators.ProjectState { return s },
+	)(result)
+}
+
+// Helper to extract error from ProjectState Either
+func extractStateError(result E.Either[error, generators.ProjectState]) error {
+	return E.Fold(
+		func(e error) error { return e },
+		func(generators.ProjectState) error { return nil },
+	)(result)
+}
+
+// Helper to extract WrittenFiles from Either
+func extractWritten(result E.Either[error, generators.WrittenFiles]) generators.WrittenFiles {
+	return E.Fold(
+		func(error) generators.WrittenFiles { return generators.WrittenFiles{} },
+		func(w generators.WrittenFiles) generators.WrittenFiles { return w },
+	)(result)
+}
+
+// TestCreateGeneratorRegistry tests registry creation
+func TestCreateGeneratorRegistry(t *testing.T) {
+	registry := createGeneratorRegistry()
+
+	assert.NotNil(t, registry)
+
+	// Should have SQS generator registered
+	gen, ok := registry.Get(generators.ResourceSQS)
+	assert.True(t, ok, "SQS generator should be registered")
+	assert.NotNil(t, gen)
+}
+
+// TestDiscoverProjectState tests project state discovery
+func TestDiscoverProjectState(t *testing.T) {
+	t.Run("infra directory not found", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		result := discoverProjectState(tmpDir)
+
+		require.True(t, E.IsLeft(result), "Should fail when infra/ doesn't exist")
+		err := extractStateError(result)
+		assert.Contains(t, err.Error(), "infra/ directory not found")
+	})
+
+	t.Run("empty infra directory", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		result := discoverProjectState(tmpDir)
+
+		require.True(t, E.IsRight(result), "Should succeed with empty infra/")
+		state := extractState(result)
+
+		assert.Equal(t, tmpDir, state.ProjectRoot)
+		assert.Empty(t, state.InfraFiles)
+		assert.Empty(t, state.Functions)
+		assert.Empty(t, state.Queues)
+	})
+
+	t.Run("discovers .tf files", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		// Create test .tf files
+		files := []string{"main.tf", "variables.tf", "outputs.tf"}
+		for _, file := range files {
+			path := filepath.Join(infraDir, file)
+			require.NoError(t, os.WriteFile(path, []byte("# test"), 0644))
+		}
+
+		// Create non-.tf file (should be ignored)
+		require.NoError(t, os.WriteFile(filepath.Join(infraDir, "readme.md"), []byte("test"), 0644))
+
+		result := discoverProjectState(tmpDir)
+
+		require.True(t, E.IsRight(result), "Should succeed")
+		state := extractState(result)
+
+		assert.Len(t, state.InfraFiles, 3, "Should find 3 .tf files")
+		for _, file := range files {
+			expectedPath := filepath.Join(infraDir, file)
+			assert.Contains(t, state.InfraFiles, expectedPath)
+		}
+	})
+}
+
+// TestWriteGeneratedFiles tests file writing logic
+func TestWriteGeneratedFiles(t *testing.T) {
+	t.Run("create new file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+
+		code := generators.GeneratedCode{
+			Files: []generators.FileToWrite{
+				{
+					Path:    "sqs.tf",
+					Content: "# SQS resource",
+					Mode:    generators.WriteModeCreate,
+				},
+			},
+		}
+
+		result := writeGeneratedFiles(code, infraDir)
+
+		require.True(t, E.IsRight(result), "Should succeed")
+		written := extractWritten(result)
+
+		assert.Len(t, written.Created, 1)
+		assert.Contains(t, written.Created, "sqs.tf")
+
+		// Verify file exists and has correct content
+		filePath := filepath.Join(infraDir, "sqs.tf")
+		content, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+		assert.Equal(t, "# SQS resource", string(content))
+	})
+
+	t.Run("create mode skips existing file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		// Create existing file
+		filePath := filepath.Join(infraDir, "sqs.tf")
+		require.NoError(t, os.WriteFile(filePath, []byte("existing"), 0644))
+
+		code := generators.GeneratedCode{
+			Files: []generators.FileToWrite{
+				{
+					Path:    "sqs.tf",
+					Content: "# New content",
+					Mode:    generators.WriteModeCreate,
+				},
+			},
+		}
+
+		result := writeGeneratedFiles(code, infraDir)
+
+		require.True(t, E.IsRight(result), "Should succeed")
+		written := extractWritten(result)
+
+		assert.Len(t, written.Skipped, 1)
+		assert.Contains(t, written.Skipped, "sqs.tf")
+
+		// Verify file content unchanged
+		content, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+		assert.Equal(t, "existing", string(content))
+	})
+
+	t.Run("append mode creates new file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+
+		code := generators.GeneratedCode{
+			Files: []generators.FileToWrite{
+				{
+					Path:    "sqs.tf",
+					Content: "# SQS resource",
+					Mode:    generators.WriteModeAppend,
+				},
+			},
+		}
+
+		result := writeGeneratedFiles(code, infraDir)
+
+		require.True(t, E.IsRight(result), "Should succeed")
+		written := extractWritten(result)
+
+		assert.Len(t, written.Created, 1)
+
+		// Verify file exists
+		filePath := filepath.Join(infraDir, "sqs.tf")
+		content, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+		assert.Contains(t, string(content), "# SQS resource")
+	})
+
+	t.Run("append mode adds to existing file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		// Create existing file
+		filePath := filepath.Join(infraDir, "outputs.tf")
+		require.NoError(t, os.WriteFile(filePath, []byte("# Existing outputs"), 0644))
+
+		code := generators.GeneratedCode{
+			Files: []generators.FileToWrite{
+				{
+					Path:    "outputs.tf",
+					Content: "# New output",
+					Mode:    generators.WriteModeAppend,
+				},
+			},
+		}
+
+		result := writeGeneratedFiles(code, infraDir)
+
+		require.True(t, E.IsRight(result), "Should succeed")
+		written := extractWritten(result)
+
+		assert.Len(t, written.Updated, 1)
+		assert.Contains(t, written.Updated, "outputs.tf")
+
+		// Verify both contents present
+		content, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+		assert.Contains(t, string(content), "# Existing outputs")
+		assert.Contains(t, string(content), "# New output")
+	})
+
+	t.Run("writes multiple files", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+
+		code := generators.GeneratedCode{
+			Files: []generators.FileToWrite{
+				{
+					Path:    "sqs.tf",
+					Content: "# SQS resource",
+					Mode:    generators.WriteModeCreate,
+				},
+				{
+					Path:    "outputs.tf",
+					Content: "# Outputs",
+					Mode:    generators.WriteModeCreate,
+				},
+				{
+					Path:    "lambda.tf",
+					Content: "# Lambda integration",
+					Mode:    generators.WriteModeCreate,
+				},
+			},
+		}
+
+		result := writeGeneratedFiles(code, infraDir)
+
+		require.True(t, E.IsRight(result), "Should succeed")
+		written := extractWritten(result)
+
+		assert.Len(t, written.Created, 3)
+
+		// Verify all files exist
+		for _, file := range code.Files {
+			filePath := filepath.Join(infraDir, file.Path)
+			_, err := os.Stat(filePath)
+			assert.NoError(t, err, "File %s should exist", file.Path)
+		}
+	})
+
+	t.Run("creates infra directory if missing", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+
+		code := generators.GeneratedCode{
+			Files: []generators.FileToWrite{
+				{
+					Path:    "sqs.tf",
+					Content: "# SQS resource",
+					Mode:    generators.WriteModeCreate,
+				},
+			},
+		}
+
+		result := writeGeneratedFiles(code, infraDir)
+
+		require.True(t, E.IsRight(result), "Should succeed")
+
+		// Verify infra directory was created
+		stat, err := os.Stat(infraDir)
+		require.NoError(t, err)
+		assert.True(t, stat.IsDir())
+	})
+
+	t.Run("update mode appends to file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		// Create existing file
+		filePath := filepath.Join(infraDir, "lambda.tf")
+		require.NoError(t, os.WriteFile(filePath, []byte("# Existing Lambda"), 0644))
+
+		code := generators.GeneratedCode{
+			Files: []generators.FileToWrite{
+				{
+					Path:    "lambda.tf",
+					Content: "# Updated Lambda",
+					Mode:    generators.WriteModeUpdate,
+				},
+			},
+		}
+
+		result := writeGeneratedFiles(code, infraDir)
+
+		require.True(t, E.IsRight(result), "Should succeed")
+		written := extractWritten(result)
+
+		assert.Len(t, written.Updated, 1)
+
+		// Verify content was appended
+		content, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+		assert.Contains(t, string(content), "# Existing Lambda")
+		assert.Contains(t, string(content), "# Updated Lambda")
+	})
+}
+
+// TestWriteGeneratedFiles_Permissions tests file permission handling
+func TestWriteGeneratedFiles_Permissions(t *testing.T) {
+	tmpDir := t.TempDir()
+	infraDir := filepath.Join(tmpDir, "infra")
+
+	code := generators.GeneratedCode{
+		Files: []generators.FileToWrite{
+			{
+				Path:    "sqs.tf",
+				Content: "# SQS resource",
+				Mode:    generators.WriteModeCreate,
+			},
+		},
+	}
+
+	result := writeGeneratedFiles(code, infraDir)
+	require.True(t, E.IsRight(result))
+
+	// Verify file permissions
+	filePath := filepath.Join(infraDir, "sqs.tf")
+	stat, err := os.Stat(filePath)
+	require.NoError(t, err)
+
+	mode := stat.Mode()
+	assert.Equal(t, os.FileMode(0644), mode.Perm(), "File should have 0644 permissions")
+}
+
+// TestWriteGeneratedFiles_ErrorHandling tests error scenarios
+func TestWriteGeneratedFiles_ErrorHandling(t *testing.T) {
+	t.Run("invalid path", func(t *testing.T) {
+		// Use a path that will fail (like a file as directory)
+		tmpDir := t.TempDir()
+		filePath := filepath.Join(tmpDir, "file.txt")
+		require.NoError(t, os.WriteFile(filePath, []byte("test"), 0644))
+
+		// Try to use file as directory
+		infraDir := filePath
+
+		code := generators.GeneratedCode{
+			Files: []generators.FileToWrite{
+				{
+					Path:    "sqs.tf",
+					Content: "# SQS resource",
+					Mode:    generators.WriteModeCreate,
+				},
+			},
+		}
+
+		result := writeGeneratedFiles(code, infraDir)
+
+		require.True(t, E.IsLeft(result), "Should fail with invalid path")
+	})
+}
+
+// TestAddCommand_FlagDefaults tests command flag defaults
+func TestAddCommand_FlagDefaults(t *testing.T) {
+	// Reset flags to defaults
+	addToFunc = ""
+	addRaw = false
+	addNoModule = false
+
+	// Verify defaults
+	assert.Empty(t, addToFunc)
+	assert.False(t, addRaw)
+	assert.False(t, addNoModule)
+}
