@@ -35,7 +35,8 @@ func TestDetectorFindStacks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stacks, err := FindStacks(tt.projectDir)
+			detector := NewDetector(tt.projectDir)
+			stacks, err := detector.FindStacks()
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantCount, len(stacks))
@@ -58,7 +59,8 @@ func TestDetectorDependencyResolution(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("resolves relative dependencies", func(t *testing.T) {
-		stacks, err := FindStacks(filepath.Join(testdataDir, "multi-function"))
+		detector := NewDetector(filepath.Join(testdataDir, "multi-function"))
+		stacks, err := detector.FindStacks()
 		require.NoError(t, err)
 
 		// Find the api stack which has a dependency on shared
@@ -77,7 +79,8 @@ func TestDetectorDependencyResolution(t *testing.T) {
 	})
 
 	t.Run("worker stack has correct dependency", func(t *testing.T) {
-		stacks, err := FindStacks(filepath.Join(testdataDir, "multi-function"))
+		detector := NewDetector(filepath.Join(testdataDir, "multi-function"))
+		stacks, err := detector.FindStacks()
 		require.NoError(t, err)
 
 		// Find the worker stack which has a dependency on shared
@@ -96,7 +99,8 @@ func TestDetectorDependencyResolution(t *testing.T) {
 	})
 
 	t.Run("stack with no dependencies", func(t *testing.T) {
-		stacks, err := FindStacks(filepath.Join(testdataDir, "multi-function"))
+		detector := NewDetector(filepath.Join(testdataDir, "multi-function"))
+		stacks, err := detector.FindStacks()
 		require.NoError(t, err)
 
 		// Find the shared stack which has no dependencies
@@ -184,7 +188,7 @@ func TestStackValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateStack(tt.stack)
+			err := tt.stack.Validate()
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg, "Error message should contain expected text")
@@ -221,7 +225,7 @@ func TestGetBuildTarget(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Stack{Runtime: tt.runtime}
-			got := GetBuildTarget(s)
+			got := s.GetBuildTarget()
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -283,7 +287,7 @@ func TestNeedsBuild(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Stack{Runtime: tt.runtime}
-			got := NeedsBuild(s)
+			got := s.NeedsBuild()
 			assert.Equal(t, tt.want, got, "Runtime %s should NeedsBuild=%v", tt.runtime, tt.want)
 		})
 	}
@@ -356,7 +360,7 @@ func TestStackStructure(t *testing.T) {
 
 		assert.Equal(t, "simple", stack.Name)
 		assert.Empty(t, stack.Dependencies)
-		assert.NoError(t, ValidateStack(stack))
+		assert.NoError(t, stack.Validate())
 	})
 
 	t.Run("stack with nil dependencies", func(t *testing.T) {
@@ -368,6 +372,6 @@ func TestStackStructure(t *testing.T) {
 
 		assert.Equal(t, "simple", stack.Name)
 		assert.Nil(t, stack.Dependencies)
-		assert.NoError(t, ValidateStack(stack))
+		assert.NoError(t, stack.Validate())
 	})
 }

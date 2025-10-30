@@ -26,8 +26,7 @@ func TestGeneratePythonLambdaProject(t *testing.T) {
 	}
 
 	// Generate project
-	generator := NewGenerator(projectDir, config)
-	err := generator.Generate()
+	err := Generate(projectDir, config)
 	if err != nil {
 		t.Fatalf("Failed to generate project: %v", err)
 	}
@@ -129,8 +128,7 @@ func TestGenerateBasicPythonLambda(t *testing.T) {
 	}
 
 	// Generate project
-	generator := NewGenerator(projectDir, config)
-	err := generator.Generate()
+	err := Generate(projectDir, config)
 	if err != nil {
 		t.Fatalf("Failed to generate project: %v", err)
 	}

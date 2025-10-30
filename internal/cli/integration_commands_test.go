@@ -337,7 +337,7 @@ func TestCreateProjectErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to create project in same location
-		err = createProject("test-project", "go1.x")
+		err = createProject("test-project", "go1.x", false)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "already exists")
 	})
@@ -534,7 +534,7 @@ func TestCommandIntegration(t *testing.T) {
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
 
-		err = createProject("test-project", "go1.x")
+		err = createProject("test-project", "go1.x", false)
 		require.NoError(t, err)
 
 		// Verify project was created in current directory
@@ -553,7 +553,7 @@ func TestCommandIntegration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a project first since createStack requires forge.hcl
-		err = createProject("test-project", "go1.x")
+		err = createProject("test-project", "go1.x", false)
 		require.NoError(t, err)
 
 		// Change to project directory

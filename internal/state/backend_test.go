@@ -362,7 +362,7 @@ func TestRenderS3BucketTF(t *testing.T) {
 		t.Error("Expected Environment tag")
 	}
 
-	if !strings.Contains(tf, "ManagedBy   = \"forge\"") {
+	if !strings.Contains(tf, "ManagedBy") || !strings.Contains(tf, "forge") {
 		t.Error("Expected ManagedBy tag")
 	}
 

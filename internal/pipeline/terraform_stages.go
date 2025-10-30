@@ -8,97 +8,77 @@ import (
 	"github.com/lewis/forge/internal/terraform"
 )
 
-// TerraformInit creates a stage that initializes all stacks
+// TerraformInit creates a stage that initializes terraform in the project directory
 func TerraformInit(exec terraform.Executor) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
-		// Execute init for each stack
-		for _, st := range s.Stacks {
-			if err := exec.Init(ctx, st.Path); err != nil {
-				return E.Left[State](fmt.Errorf("init failed for %s: %w", st.Name, err))
-			}
+		if err := exec.Init(ctx, s.ProjectDir); err != nil {
+			return E.Left[State](fmt.Errorf("init failed: %w", err))
 		}
 
 		return E.Right[error](s)
 	}
 }
 
-// TerraformPlan creates a stage that plans all stacks
+// TerraformPlan creates a stage that plans terraform in the project directory
 func TerraformPlan(exec terraform.Executor) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
-		hasAnyChanges := false
-
-		for _, st := range s.Stacks {
-			hasChanges, err := exec.Plan(ctx, st.Path)
-			if err != nil {
-				return E.Left[State](fmt.Errorf("plan failed for %s: %w", st.Name, err))
-			}
-			if hasChanges {
-				hasAnyChanges = true
-			}
+		hasChanges, err := exec.Plan(ctx, s.ProjectDir)
+		if err != nil {
+			return E.Left[State](fmt.Errorf("plan failed: %w", err))
 		}
 
-		if !hasAnyChanges {
-			fmt.Println("No changes detected in any stack")
+		if !hasChanges {
+			fmt.Println("No changes detected")
 		}
 
 		return E.Right[error](s)
 	}
 }
 
-// TerraformApply creates a stage that applies all stacks
+// TerraformApply creates a stage that applies terraform in the project directory
 func TerraformApply(exec terraform.Executor, autoApprove bool) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		opts := []terraform.ApplyOption{
 			terraform.AutoApprove(autoApprove),
 		}
 
-		for idx, st := range s.Stacks {
-			fmt.Printf("[%d/%d] Applying %s...\n", idx+1, len(s.Stacks), st.Name)
+		fmt.Println("Applying infrastructure...")
 
-			if err := exec.Apply(ctx, st.Path, opts...); err != nil {
-				return E.Left[State](fmt.Errorf("apply failed for %s: %w", st.Name, err))
-			}
+		if err := exec.Apply(ctx, s.ProjectDir, opts...); err != nil {
+			return E.Left[State](fmt.Errorf("apply failed: %w", err))
 		}
 
 		return E.Right[error](s)
 	}
 }
 
-// TerraformDestroy creates a stage that destroys all stacks
+// TerraformDestroy creates a stage that destroys terraform infrastructure
 func TerraformDestroy(exec terraform.Executor, autoApprove bool) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		opts := []terraform.DestroyOption{
 			terraform.DestroyAutoApprove(autoApprove),
 		}
 
-		// Reverse order for destroy (dependencies last)
-		for i := len(s.Stacks) - 1; i >= 0; i-- {
-			st := s.Stacks[i]
-			fmt.Printf("[%d/%d] Destroying %s...\n", len(s.Stacks)-i, len(s.Stacks), st.Name)
-
-			if err := exec.Destroy(ctx, st.Path, opts...); err != nil {
-				return E.Left[State](fmt.Errorf("destroy failed for %s: %w", st.Name, err))
-			}
+		if err := exec.Destroy(ctx, s.ProjectDir, opts...); err != nil {
+			return E.Left[State](fmt.Errorf("destroy failed: %w", err))
 		}
 
 		return E.Right[error](s)
 	}
 }
 
-// CaptureOutputs captures terraform outputs from all stacks
+// CaptureOutputs captures terraform outputs from the project directory
 func CaptureOutputs(exec terraform.Executor) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		if s.Outputs == nil {
 			s.Outputs = make(map[string]interface{})
 		}
 
-		for _, st := range s.Stacks {
-			outputs, err := exec.Output(ctx, st.Path)
-			if err != nil {
-				return E.Left[State](fmt.Errorf("failed to get outputs for %s: %w", st.Name, err))
-			}
-			s.Outputs[st.Name] = outputs
+		outputs, err := exec.Output(ctx, s.ProjectDir)
+		if err != nil {
+			return E.Left[State](fmt.Errorf("failed to get outputs: %w", err))
 		}
+		s.Outputs["main"] = outputs
 
 		return E.Right[error](s)
 	}

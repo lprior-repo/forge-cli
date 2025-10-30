@@ -6,13 +6,11 @@ import (
 
 	E "github.com/IBM/fp-go/either"
 	O "github.com/IBM/fp-go/option"
-	"github.com/lewis/forge/internal/stack"
 )
 
 // State carries data through the pipeline
 type State struct {
 	ProjectDir string
-	Stacks     []*stack.Stack
 	Artifacts  map[string]Artifact
 	Outputs    map[string]interface{}
 	Config     interface{}
