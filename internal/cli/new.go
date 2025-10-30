@@ -24,23 +24,64 @@ func NewNewCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "new [project-name]",
-		Short: "Create a new Forge project or stack",
-		Long: `Create a new Forge project with initial configuration,
-or add a new stack to an existing project.
+		Short: "Create a new Forge project with zero configuration",
+		Long: `
+╭──────────────────────────────────────────────────────────────╮
+│  🔨 Forge Project Generator                                 │
+╰──────────────────────────────────────────────────────────────╯
 
-Auto-state provisioning:
+Create a new serverless project with convention-over-configuration.
+No YAML files, no config templates - just pure Terraform + smart defaults.
+
+🎯 What you get:
+  ✓ Convention-based project structure (src/functions/*)
+  ✓ Auto-detected runtimes (Go, Python, Node.js)
+  ✓ Production-ready Terraform templates
+  ✓ Optional remote state with --auto-state
+  ✓ Namespace support for PR preview environments
+
+📦 Project Structure Created:
+  my-app/
+  ├── infra/              # Terraform infrastructure (edit freely!)
+  │   ├── main.tf         # Lambda resources
+  │   ├── variables.tf    # Input variables
+  │   └── outputs.tf      # Output values
+  └── src/
+      └── functions/      # Lambda functions (auto-discovered)
+          └── api/        # Example function
+              └── main.go # Entry point
+
+🚀 Quick Start Examples:
+
+  # Minimal project (local state)
+  forge new my-app
+
+  # Production-ready project (remote state)
   forge new my-app --auto-state
-    → Auto-provisions S3 bucket for Terraform state
-    → Auto-provisions DynamoDB table for state locking
-    → Generates backend.tf with namespace-aware configuration
-    → Production-ready state management from day 1
+    → Creates S3 bucket: my-app-terraform-state
+    → Creates DynamoDB table: my-app-state-lock
+    → Generates backend.tf with encryption
+    → Ready for team collaboration!
 
-Lambda function projects:
-  forge new lambda my-service
-    → Creates a complete Lambda project with infrastructure
-    → Python/Go/Node.js runtime support
-    → DynamoDB, API Gateway, CloudWatch integrated
-    → uv-based builds (10-100x faster)`,
+  # Specialized Lambda projects
+  forge new lambda my-api
+    → Full Lambda + API Gateway setup
+    → Python/Go/Node.js support
+    → Fast uv-based builds
+
+💡 Pro Tips:
+  • Use --auto-state for team projects and CI/CD
+  • State is namespace-aware for PR environments
+  • Customize infra/ Terraform files as needed
+  • No lock-in - it's just Terraform underneath
+
+📖 Next Steps After Creation:
+  1. cd my-app
+  2. Add code to src/functions/
+  3. forge build          # Build all functions
+  4. forge deploy         # Deploy to AWS
+  5. forge deploy --namespace=pr-123  # Ephemeral preview env
+`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Determine if this is a new project or new stack
@@ -93,29 +134,74 @@ func createProject(name, defaultRuntime string, autoState bool) error {
 		return fmt.Errorf("failed to generate project: %w", err)
 	}
 
-	fmt.Printf("✓ Created Forge project: %s\n", name)
+	// Success banner
+	fmt.Println("")
+	fmt.Println("╭────────────────────────────────────────────────────────────╮")
+	fmt.Println("│                                                            │")
+	fmt.Println("│  🎉 Success! Your Forge project is ready                  │")
+	fmt.Println("│                                                            │")
+	fmt.Println("╰────────────────────────────────────────────────────────────╯")
+	fmt.Println("")
+	fmt.Printf("✨ Created: %s/\n", name)
+	fmt.Println("")
+	fmt.Println("📁 Project Structure:")
+	fmt.Printf("   %s/\n", name)
+	fmt.Println("   ├── infra/              # Terraform infrastructure")
+	fmt.Println("   │   ├── main.tf         # Lambda resources")
+	fmt.Println("   │   ├── variables.tf    # Input variables")
+	fmt.Println("   │   └── outputs.tf      # Output values")
+	fmt.Println("   └── src/")
+	fmt.Println("       └── functions/      # Your Lambda functions")
+	fmt.Println("           └── api/        # Example function")
+	fmt.Println("               └── main.go # Entry point")
+	fmt.Println("")
 
 	// Auto-provision state backend if requested
 	if autoState {
-		fmt.Println("\nProvisioning Terraform state backend...")
+		fmt.Println("🔄 Provisioning Terraform state backend...")
+		fmt.Println("")
 		if err := provisionStateBackend(projectDir, name, opts.Region); err != nil {
-			fmt.Printf("Warning: Failed to provision state backend: %v\n", err)
-			fmt.Println("You can manually set up state later or run with --auto-state again")
+			fmt.Printf("⚠️  Warning: Failed to provision state backend: %v\n", err)
+			fmt.Println("💡 You can manually set up state later or re-run:")
+			fmt.Printf("   forge new --auto-state\n")
 		} else {
-			fmt.Println("✓ State backend provisioned successfully")
+			fmt.Println("✅ State backend provisioned successfully")
+			fmt.Println("🔒 Your Terraform state is now encrypted and locked")
 		}
+		fmt.Println("")
 	}
 
-	fmt.Printf("\nNext steps:\n")
-	fmt.Printf("  cd %s\n", name)
-	fmt.Printf("  # Add your Lambda function code to src/functions/\n")
-	fmt.Printf("  forge build\n")
-	fmt.Printf("  forge deploy\n")
+	// Next steps with clear visual hierarchy
+	fmt.Println("🚀 Next Steps:")
+	fmt.Println("")
+	fmt.Println("   1. Navigate to your project:")
+	fmt.Printf("      cd %s\n", name)
+	fmt.Println("")
+	fmt.Println("   2. Add your Lambda function code:")
+	fmt.Println("      # Edit src/functions/api/main.go")
+	fmt.Println("      # Or add new functions in src/functions/")
+	fmt.Println("")
+	fmt.Println("   3. Build your functions:")
+	fmt.Println("      forge build")
+	fmt.Println("")
+	fmt.Println("   4. Deploy to AWS:")
+	fmt.Println("      forge deploy")
+	fmt.Println("")
 
 	if !autoState {
-		fmt.Println("\nOptional: Set up remote state")
-		fmt.Printf("  forge new --auto-state  # Provision S3 + DynamoDB for state\n")
+		fmt.Println("💡 Pro Tip: For team projects, set up remote state:")
+		fmt.Println("   forge new --auto-state")
+		fmt.Println("   → Auto-creates S3 bucket + DynamoDB table")
+		fmt.Println("   → Enables team collaboration & CI/CD")
+		fmt.Println("")
 	}
+
+	fmt.Println("📚 Need Help?")
+	fmt.Println("   forge --help        # All commands")
+	fmt.Println("   forge build --help  # Build documentation")
+	fmt.Println("   forge deploy --help # Deployment options")
+	fmt.Println("")
+	fmt.Println("✨ Happy building!")
 
 	return nil
 }

@@ -27,23 +27,73 @@ func NewLambdaCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "lambda [project-name]",
-		Short: "Create a new Lambda function project",
-		Long: `Create a new Lambda function project with complete infrastructure.
+		Short: "Create production-ready Lambda project with infrastructure",
+		Long: `
+╭──────────────────────────────────────────────────────────────╮
+│  ⚡ Forge Lambda Generator                                  │
+╰──────────────────────────────────────────────────────────────╯
 
-Generates a production-ready Lambda project with:
-  • AWS Lambda Powertools (logging, metrics, tracing)
+Generate production-ready Lambda projects with best practices built-in.
+Complete with observability, validation, testing, and infrastructure.
+
+🎯 What You Get (Python):
+  • AWS Lambda Powertools integration
+    - Structured logging with correlation IDs
+    - Metrics and custom metrics
+    - X-Ray tracing out of the box
   • Pydantic models with validation
-  • 3-layer architecture (handler → logic → dal)
+  • Clean 3-layer architecture:
+    - Handler layer (API contract)
+    - Logic layer (business logic)
+    - DAL layer (data access)
   • DynamoDB integration (optional)
-  • Terraform infrastructure
-  • uv-based build system (10-100x faster than pip)
+  • Terraform infrastructure as code
+  • uv-based builds (10-100x faster than pip)
 
-Examples:
+📦 Included Infrastructure:
+  • Lambda function (Python 3.13)
+  • API Gateway v2 (HTTP API)
+  • DynamoDB table with encryption
+  • IAM roles with least privilege
+  • CloudWatch logs and alarms
+  • X-Ray tracing enabled
+
+⚡ Build System:
+  • Taskfile with 15+ commands
+  • No Poetry installation required
+  • Fast dependency resolution with uv
+  • Automatic Lambda layer support
+
+🚀 Examples:
+
+  # Python Lambda with DynamoDB
   forge new lambda my-service
-  forge new lambda my-service --runtime python
-  forge new lambda my-service --runtime python --dynamodb
+
+  # Python Lambda without DynamoDB
+  forge new lambda my-service --no-dynamodb
+
+  # Customize all options
+  forge new lambda my-service \
+    --runtime python \
+    --function handler \
+    --api-path /api/orders \
+    --method POST
+
+  # Coming soon: Go and Node.js
   forge new lambda my-service --runtime go
-  forge new lambda my-service --runtime nodejs`,
+  forge new lambda my-service --runtime nodejs
+
+💡 Pro Tips:
+  • Start with defaults, customize later
+  • All generated code is editable
+  • Terraform infra is in infra/ directory
+  • Use 'task' commands for common operations
+
+📋 Available Runtimes:
+  • python (default) - Python 3.13 with Powertools ✅
+  • go - Coming soon
+  • nodejs - Coming soon
+`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			projectName := args[0]

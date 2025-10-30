@@ -19,8 +19,57 @@ func NewDestroyCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "destroy",
-		Short: "Destroy infrastructure",
-		Long:  `Destroy infrastructure with Terraform in the current directory.`,
+		Short: "Destroy infrastructure and clean up AWS resources",
+		Long: `
+╭──────────────────────────────────────────────────────────────╮
+│  💥 Forge Destroy                                           │
+╰──────────────────────────────────────────────────────────────╯
+
+Safely tear down all AWS resources managed by Terraform.
+Includes confirmation prompts to prevent accidental deletion.
+
+⚠️  Warning: This Action is Destructive
+  This command will PERMANENTLY DELETE all infrastructure defined
+  in your infra/ directory, including:
+  • Lambda functions
+  • API Gateways
+  • DynamoDB tables
+  • S3 buckets (if configured for deletion)
+  • IAM roles and policies
+  • CloudWatch log groups
+
+🛡️  Safety Features:
+  • Interactive confirmation required by default
+  • Shows resource plan before destruction
+  • Requires --auto-approve to skip confirmation
+  • Dry-run with 'terraform plan -destroy' first
+
+🚀 Examples:
+
+  # Interactive destroy with confirmation
+  forge destroy
+
+  # Non-interactive (CI/CD, cleanup scripts)
+  forge destroy --auto-approve
+
+  # Destroy specific namespace (PR cleanup)
+  forge destroy --namespace=pr-123 --auto-approve
+
+💡 Pro Tips:
+  • Always review the plan before confirming
+  • Use namespaces to destroy only preview environments
+  • Backup important data before destroying
+  • Consider using 'terraform state' commands for partial cleanup
+
+📋 Recommended Workflow:
+  1. Review what will be destroyed:
+     cd infra && terraform plan -destroy
+
+  2. If satisfied, run:
+     forge destroy
+
+  3. Confirm when prompted
+`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runDestroy(autoApprove)

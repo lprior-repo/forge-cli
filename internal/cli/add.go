@@ -21,26 +21,55 @@ var (
 // addCmd represents the add command
 var addCmd = &cobra.Command{
 	Use:   "add <resource-type> <name>",
-	Short: "Add a new AWS resource to your project",
-	Long: `Add a new AWS resource with automatic Terraform code generation.
+	Short: "Add AWS resources with generated Terraform code",
+	Long: `
+╭──────────────────────────────────────────────────────────────╮
+│  ➕ Forge Add Resource                                      │
+╰──────────────────────────────────────────────────────────────╯
 
-Supported resource types:
-  sqs          - SQS queue with optional Lambda integration
+Generate production-ready Terraform code for AWS resources.
+Smart defaults, best practices, and Lambda integrations built-in.
+
+📦 Supported Resource Types:
+  sqs          - SQS queue with DLQ, encryption, monitoring
   dynamodb     - DynamoDB table (coming soon)
   sns          - SNS topic (coming soon)
-  s3           - S3 bucket (coming soon)
+  s3           - S3 bucket with versioning (coming soon)
 
-Examples:
+🎯 What You Get:
+  • Production-ready Terraform modules
+  • AWS best practices applied automatically
+  • Optional Lambda function integration
+  • Encryption and monitoring configured
+  • IAM policies generated
+
+🚀 Examples:
+
   # Add standalone SQS queue
   forge add sqs orders-queue
+    → Creates SQS queue with DLQ
+    → Configures encryption at rest
+    → Sets up CloudWatch alarms
 
-  # Add SQS queue with Lambda integration
+  # Add SQS queue with Lambda trigger
   forge add sqs orders-queue --to=processor
+    → Links queue to Lambda function
+    → Generates IAM permissions
+    → Configures batch settings
 
-  # Use raw resources instead of modules
+  # Use raw Terraform resources (no modules)
   forge add sqs orders-queue --raw
 
-The generated Terraform code will be written to your infra/ directory.
+💡 Pro Tips:
+  • Generated code is fully editable
+  • Uses Terraform modules by default for simplicity
+  • Use --raw for maximum control
+  • Review generated code before applying
+
+📁 Output:
+  infra/
+  ├── sqs_orders_queue.tf      # Generated resource
+  └── sqs_orders_queue_iam.tf  # Generated IAM policies
 `,
 	Args: cobra.ExactArgs(2),
 	RunE: runAdd,

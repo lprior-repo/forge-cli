@@ -12,9 +12,30 @@ const version = "0.1.0"
 func NewVersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "Print version information",
+		Short: "Show version information",
+		Long: `
+╭──────────────────────────────────────────────────────────────╮
+│  ℹ️  Forge Version Info                                     │
+╰──────────────────────────────────────────────────────────────╯
+
+Display version information and build details.
+`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Forge version %s\n", version)
+			fmt.Println("")
+			fmt.Println("╭─────────────────────────────────────╮")
+			fmt.Println("│  Forge - Serverless Infrastructure  │")
+			fmt.Println("╰─────────────────────────────────────╯")
+			fmt.Println("")
+			fmt.Printf("  Version:  %s\n", version)
+			fmt.Println("  License:  MIT")
+			fmt.Println("  Repo:     https://github.com/lewis/forge")
+			fmt.Println("")
+			fmt.Println("💡 Check for updates:")
+			fmt.Println("   git pull origin master")
+			fmt.Println("")
+			fmt.Println("📚 Documentation:")
+			fmt.Println("   forge --help")
+			fmt.Println("")
 		},
 	}
 

@@ -22,20 +22,51 @@ func NewBuildCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "build",
-		Short: "Build Lambda functions using convention-based discovery",
-		Long: `Scans src/functions/* to discover Lambda functions and builds them.
+		Short: "Build Lambda functions with convention-based discovery",
+		Long: `
+╭──────────────────────────────────────────────────────────────╮
+│  🔨 Forge Build System                                      │
+╰──────────────────────────────────────────────────────────────╯
 
-Conventions:
-  - Function name = directory name
-  - Runtime detected from entry file:
-    - main.go or *.go → Go (provided.al2023)
-    - index.js/handler.js → Node.js (nodejs20.x)
-    - app.py/lambda_function.py → Python (python3.13)
-  - Output: .forge/build/{name}.zip
+Build Lambda functions with zero configuration.
+Automatically discovers functions, detects runtimes, and creates deployment packages.
 
-Examples:
-  forge build              # Build all functions
-  forge build --stub-only  # Create empty stub zips only`,
+🎯 Conventions (No Config Required):
+  • Function name = directory name (e.g., src/functions/api → api)
+  • Runtime auto-detection from entry files:
+    - main.go or *.go        → Go (provided.al2023)
+    - index.js/handler.js    → Node.js (nodejs20.x)
+    - app.py/lambda_function → Python (python3.13)
+  • Output: .forge/build/{name}.zip
+
+📦 Build Process:
+  1. Scans src/functions/* for function directories
+  2. Detects runtime from entry file
+  3. Runs runtime-specific builder (go build, npm install, pip)
+  4. Creates deployment package with dependencies
+  5. Generates SHA256 checksum for caching
+
+🚀 Examples:
+
+  # Build all functions in src/functions/
+  forge build
+
+  # Create stub zips only (for terraform init)
+  forge build --stub-only
+
+💡 Pro Tips:
+  • Build artifacts are cached by checksum
+  • Dependencies are bundled automatically
+  • Stub zips allow Terraform to initialize before real build
+  • Use --verbose to see detailed build output
+
+📁 Expected Structure:
+  src/functions/
+  ├── api/          # Function: api
+  │   └── main.go   # Runtime: Go
+  └── worker/       # Function: worker
+      └── index.js  # Runtime: Node.js
+`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runBuild(stubOnly)
 		},

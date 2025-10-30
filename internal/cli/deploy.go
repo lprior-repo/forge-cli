@@ -22,24 +22,56 @@ func NewDeployCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "deploy",
 		Short: "Build and deploy Lambda functions with Terraform",
-		Long: `Build Lambda functions using convention-based discovery and deploy with Terraform.
+		Long: `
+╭──────────────────────────────────────────────────────────────╮
+│  🚀 Forge Deploy                                            │
+╰──────────────────────────────────────────────────────────────╯
 
-Convention-based discovery:
-  - Scans src/functions/* for Lambda functions
-  - Detects runtime from entry files (main.go, index.js, app.py)
-  - Builds to .forge/build/{name}.zip
-  - Runs terraform init/plan/apply in infra/
+Build Lambda functions and deploy infrastructure with Terraform.
+One command to go from code to production AWS resources.
 
-Namespace support for ephemeral environments:
+🎯 What It Does:
+  1. Scans src/functions/* for Lambda functions
+  2. Auto-detects runtimes (Go, Python, Node.js)
+  3. Builds deployment packages
+  4. Runs terraform init/plan/apply in infra/
+  5. Outputs deployed URLs and resources
+
+🌟 Namespace Support (PR Previews):
+  Deploy to isolated ephemeral environments for testing:
+
   forge deploy --namespace=pr-123
     → Sets TF_VAR_namespace=pr-123
-    → All resources get pr-123- prefix
-    → Isolated preview environment
+    → All resources prefixed: my-app-pr-123-*
+    → Completely isolated AWS environment
+    → Perfect for PR preview deployments
 
-Examples:
-  forge deploy                    # Deploy to default environment
-  forge deploy --namespace=pr-123 # Deploy to ephemeral PR environment
-  forge deploy --auto-approve     # Skip interactive approval`,
+🚀 Examples:
+
+  # Deploy to production (default environment)
+  forge deploy
+
+  # Deploy to ephemeral PR environment
+  forge deploy --namespace=pr-123
+
+  # Non-interactive deployment (CI/CD)
+  forge deploy --auto-approve
+
+  # Deploy to specific region
+  forge deploy --region=us-west-2
+
+💡 Pro Tips:
+  • Use namespaces for PR preview environments
+  • Each namespace has isolated Terraform state
+  • Combine with GitHub Actions for automatic PR deploys
+  • Use --auto-approve in CI/CD pipelines
+
+📋 Requirements:
+  • Terraform installed (terraform version)
+  • AWS credentials configured
+  • infra/ directory with Terraform config
+  • src/functions/ with Lambda code
+`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runDeploy(autoApprove, namespace)
 		},
