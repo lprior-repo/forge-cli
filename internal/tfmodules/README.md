@@ -359,7 +359,7 @@ func main() {
 }
 ```
 
-### Example 9: EventBridge with Lambda Targets
+### Example 9: EventBridge Integration Patterns
 
 ```go
 import "github.com/lewis/forge/internal/tfmodules/eventbridge"
@@ -367,21 +367,48 @@ import "github.com/lewis/forge/internal/tfmodules/eventbridge"
 func main() {
     bus := eventbridge.NewModule("orders")
 
-    // Add rule with event pattern
-    rule := eventbridge.Rule{
-        Description: strPtr("Order created events"),
-        EventPattern: strPtr(`{
-            "source": ["order.service"],
-            "detail-type": ["Order Created"]
-        }`),
-    }
-    bus.WithRule("order_created", rule)
+    // Pattern 1: Event-driven Lambda integration
+    bus.WithEventPatternRule("order_created", "Process new orders", `{
+        "source": ["order.service"],
+        "detail-type": ["Order Created"]
+    }`, true).
+        WithLambdaTarget("order_created", "arn:aws:lambda:us-east-1:123:function:process-order")
 
-    // Add Lambda target
-    target := eventbridge.Target{
-        ARN: "arn:aws:lambda:us-east-1:123456789012:function:processor",
-    }
-    bus.WithTarget("order_created", target)
+    // Pattern 2: Schedule-driven Step Functions integration
+    bus.WithScheduleRule("daily_report", "Generate daily report", "cron(0 9 * * ? *)", true).
+        WithStepFunctionsTarget("daily_report", "arn:aws:states:us-east-1:123:stateMachine:report")
+
+    // Pattern 3: Fan-out to SQS and SNS
+    bus.WithEventPatternRule("inventory_low", "Low inventory alert", `{
+        "source": ["inventory.service"],
+        "detail-type": ["Stock Low"]
+    }`, true).
+        WithSQSTarget("inventory_low", "arn:aws:sqs:us-east-1:123:queue/restock").
+        WithSNSTarget("inventory_low", "arn:aws:sns:us-east-1:123:topic/alerts")
+
+    // Pattern 4: Kinesis stream integration for real-time analytics
+    bus.WithEventPatternRule("user_activity", "Track user events", `{
+        "source": ["app.frontend"],
+        "detail-type": ["User Action"]
+    }`, true).
+        WithKinesisTarget("user_activity", "arn:aws:kinesis:us-east-1:123:stream/analytics")
+
+    // Pattern 5: ECS task integration for batch processing
+    bus.WithEventPatternRule("batch_job", "Trigger batch processing", `{
+        "source": ["batch.scheduler"],
+        "detail-type": ["Job Ready"]
+    }`, true).
+        WithECSTarget("batch_job",
+            "arn:aws:ecs:us-east-1:123:cluster/batch-cluster",
+            "arn:aws:ecs:us-east-1:123:task-definition/processor:1",
+            []string{"subnet-abc123", "subnet-def456"},
+        )
+
+    // Pattern 6: API Destination for HTTP webhooks
+    bus.WithEventPatternRule("webhook_event", "Send to external API", `{
+        "source": ["webhook.trigger"]
+    }`, true).
+        WithAPIDestinationTarget("webhook_event", "arn:aws:events:us-east-1:123:destination/webhook")
 }
 ```
 
