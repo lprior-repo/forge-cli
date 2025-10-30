@@ -148,9 +148,9 @@ type Module struct {
 | Module | Package | Status | Variables |
 |--------|---------|--------|-----------|
 | SQS | `tfmodules/sqs` | ✅ Complete | 60+ |
-| DynamoDB | `tfmodules/dynamodb` | 🚧 In Progress | 40+ |
-| SNS | `tfmodules/sns` | 🚧 In Progress | 40+ |
-| S3 | `tfmodules/s3` | 🚧 In Progress | 80+ |
+| DynamoDB | `tfmodules/dynamodb` | ✅ Complete | 48 |
+| SNS | `tfmodules/sns` | ✅ Complete | 45 |
+| S3 | `tfmodules/s3` | ✅ Complete | 90+ |
 | Lambda | `tfmodules/lambda` | 📋 Planned | 140+ |
 | EventBridge | `tfmodules/eventbridge` | 📋 Planned | 80+ |
 | API Gateway V2 | `tfmodules/apigatewayv2` | 📋 Planned | 60+ |
@@ -210,7 +210,87 @@ func main() {
 }
 ```
 
-### Example 4: Stack of Multiple Modules
+### Example 4: DynamoDB Table with Streams
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/dynamodb"
+
+func main() {
+    table := dynamodb.NewModule("users")
+
+    // Configure primary key
+    table.WithHashKey("userId", "S").
+        WithRangeKey("timestamp", "N")
+
+    // Enable streams for Lambda triggers
+    table.WithStreams("NEW_AND_OLD_IMAGES")
+
+    // Add Global Secondary Index
+    gsi := dynamodb.GlobalSecondaryIndex{
+        Name:           "email-index",
+        HashKey:        "email",
+        ProjectionType: "ALL",
+    }
+    table.WithGSI(gsi)
+
+    // Enable TTL
+    table.WithTTL("expiresAt")
+}
+```
+
+### Example 5: SNS Topic with Subscriptions
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/sns"
+
+func main() {
+    topic := sns.NewModule("notifications")
+
+    // Configure as FIFO topic
+    topic.WithFIFO(true).WithEncryption("alias/aws/sns")
+
+    // Add Lambda subscription
+    topic.WithLambdaSubscription(
+        "processor",
+        "arn:aws:lambda:us-east-1:123456789012:function:processor",
+    )
+
+    // Add SQS subscription with raw message delivery
+    topic.WithSQSSubscription(
+        "queue_sub",
+        "arn:aws:sqs:us-east-1:123456789012:queue",
+        true, // raw message delivery
+    )
+}
+```
+
+### Example 6: S3 Bucket with Security Features
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/s3"
+
+func main() {
+    bucket := s3.NewModule("secure-data")
+
+    // Enable versioning and encryption
+    bucket.WithVersioning(true).
+        WithEncryption("arn:aws:kms:us-east-1:123456789012:key/12345")
+
+    // Configure access logging
+    bucket.WithLogging("logs-bucket", "secure-data/")
+
+    // Add CORS rules
+    bucket.WithCORS(
+        []string{"https://example.com"},
+        []string{"GET", "PUT"},
+        []string{"*"},
+    )
+
+    // Public access is blocked by default
+}
+```
+
+### Example 7: Stack of Multiple Modules
 
 ```go
 import "github.com/lewis/forge/internal/tfmodules"

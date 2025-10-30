@@ -274,3 +274,19 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	}
 	return m
 }
+
+// LocalName returns the local identifier for this module instance
+// This is extracted from the Name field if set, or defaults to "sqs_queue"
+func (m *Module) LocalName() string {
+	if m.Name != nil {
+		return *m.Name
+	}
+	return "sqs_queue"
+}
+
+// Configuration generates the HCL configuration for this module
+// This is a placeholder - full HCL generation will be implemented later
+func (m *Module) Configuration() (string, error) {
+	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
+	return "", nil
+}

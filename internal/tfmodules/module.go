@@ -4,8 +4,6 @@ package tfmodules
 
 import (
 	"fmt"
-
-	"github.com/golingon/lingon/pkg/terra"
 )
 
 // Module is the base interface that all Terraform modules must implement.
@@ -74,14 +72,13 @@ func NewOutput(module Module, attribute string) Output {
 
 // Ref returns the Terraform reference string for this output.
 // Example: "module.my_queue.queue_arn"
-func (o Output) Ref() terra.StringValue {
-	ref := terra.NewReference(fmt.Sprintf("module.%s.%s", o.module.LocalName(), o.attribute))
-	return terra.ReferenceAsString(ref)
+func (o Output) Ref() string {
+	return fmt.Sprintf("module.%s.%s", o.module.LocalName(), o.attribute)
 }
 
 // String returns the string representation
 func (o Output) String() string {
-	return string(o.Ref())
+	return o.Ref()
 }
 
 // ModuleCall is a helper to generate module block HCL
