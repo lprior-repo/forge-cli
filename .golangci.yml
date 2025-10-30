@@ -1,12 +1,18 @@
-# golangci-lint configuration
+# golangci-lint configuration - ULTRA STRICT for functional programming
 # https://golangci-lint.run/usage/configuration/
+#
+# Philosophy: Enforce functional programming principles, immutability,
+# pure functions, and architectural simplicity following Martin Fowler standards.
 
 run:
   timeout: 5m
   tests: true
+  modules-download-mode: readonly  # Ensure reproducible builds
+  go: "1.24"  # Go version for gofumpt and other linters
 
 linters:
   enable:
+    # Core Required Linters (existing)
     - errcheck       # Check for unchecked errors
     - gosimple       # Simplify code
     - govet          # Vet examines Go source code
@@ -33,25 +39,79 @@ linters:
     - revive         # General-purpose linter
     - gosec          # Security-focused linter
 
+    # NEW: Functional Programming & Immutability Enforcement
+    - gocritic       # 🔥 Comprehensive analysis including performance, style, experimental checks
+    - dupl           # 🔥 Detect code duplication (DRY principle)
+    - godot          # 🔥 Check that comments end in period (documentation quality)
+    - gofumpt        # 🔥 Stricter version of gofmt (better formatting)
+    - gomoddirectives # 🔥 Check go.mod for prohibited directives (replace, retract)
+    - gomodguard     # 🔥 Check for prohibited module imports
+    - musttag        # 🔥 Enforce struct field tags (JSON, YAML, etc.)
+    - nolintlint     # 🔥 Ensure //nolint directives are properly justified
+    - predeclared    # 🔥 Prevent shadowing of predeclared Go identifiers
+    - reassign       # 🔥 🎯 CRITICAL: Detect variable reassignment (enforces immutability!)
+    - stylecheck     # 🔥 Stricter replacement for golint (naming, comments)
+    - usetesting     # 🔥 Check test helper t.Setenv instead of os.Setenv (replaces tenv)
+    - thelper        # 🔥 Ensure test helpers call t.Helper()
+    - usestdlibvars  # 🔥 Suggest using stdlib constants (http.StatusOK vs 200)
+    - whitespace     # 🔥 Detect unnecessary whitespace
+    - asasalint      # 🔥 Detect Pass []any as any in variadic func(...any)
+    - asciicheck     # 🔥 Check for non-ASCII identifiers
+    - bidichk        # 🔥 Check for dangerous unicode bidirectional characters
+    - containedctx   # 🔥 Detect structs that contain context.Context
+    - contextcheck   # 🔥 Check context.Context passed correctly in function chains
+    - decorder       # 🔥 Check declaration order and count (const, var, type, func)
+    - dogsled        # 🔥 Check for assignments with too many blank identifiers
+    - durationcheck  # 🔥 Check for multiplications of time.Duration (bug prevention)
+    - errchkjson     # 🔥 Check types passed to json encoding functions
+    - copyloopvar    # 🔥 Check for references to loop variables in closures (replaces exportloopref for Go 1.22+)
+    - forcetypeassert # 🔥 Require checked type assertions x.(type)
+    - gci            # 🔥 Control import order (stdlib, external, internal)
+    - ginkgolinter   # 🔥 Enforce Ginkgo best practices (if using Ginkgo)
+    - gocheckcompilerdirectives # 🔥 Validate go compiler directive comments
+    - gochecksumtype # 🔥 Exhaustive type switch checking for sum types
+    - goheader       # 🔥 Enforce file header format
+    - grouper        # 🔥 Enforce grouping of similar declarations
+    - importas       # 🔥 Enforce import aliases (E for Either, O for Option, A for Array)
+    - interfacebloat # 🔥 🎯 CRITICAL: Interfaces with >10 methods (violates ISP)
+    - inamedparam    # 🔥 Enforce named return parameters in long signatures
+    - loggercheck    # 🔥 Check for logging key-value pairs (structured logging)
+    - makezero       # 🔥 Find slice declarations with non-zero initial length
+    - mirror         # 🔥 Detect wrong mirror patterns of bytes/strings usage
+    - mnd            # 🔥 Detect magic numbers (should be named constants)
+    - nosprintfhostport # 🔥 Check for sprintf with host:port patterns
+    - perfsprint     # 🔥 Suggest more performant sprintf alternatives
+    - promlinter     # 🔥 Check Prometheus metric naming (if using Prometheus)
+    - protogetter    # 🔥 Replace proto.Message GetX() with direct field access
+    - sloglint       # 🔥 Ensure consistent structured logging with slog
+    - spancheck      # 🔥 Check OpenTelemetry span usage
+    - testableexamples # 🔥 Check for testable examples in godoc
+    - testpackage    # 🔥 Require _test package for blackbox tests
+    - tagalign       # 🔥 Align struct tags for readability
+    - wastedassign   # 🔥 Find wasted assignments (assign then reassign)
+    - zerologlint    # 🔥 Ensure proper zerolog usage
+
   disable:
-    - exhaustruct    # Too strict for practical use
-    - wrapcheck      # Too strict, doesn't work well with Either monad
-    - varnamelen     # Variable name length check - too opinionated
-    - gochecknoglobals # We use globals appropriately
-    - funlen         # Function length check - too restrictive
-    - gocyclo        # Cyclomatic complexity - covered by gocognit
-    - cyclop         # Cyclomatic complexity - covered by gocognit
-    - gocognit       # Cognitive complexity - we optimize for readability
-    - nestif         # Nested if check - conflicts with functional style
-    - lll            # Line length check - handled by gofmt
-    - wsl            # Whitespace linter - too opinionated
-    - nlreturn       # New line return - too opinionated
-    - forbidigo      # Forbid identifiers - not needed
-    - exhaustive     # Check exhaustiveness of enum switch statements - too strict
-    - tagliatelle    # Struct tag naming - not relevant
-    - tparallel      # Test parallelization - not always needed
-    - paralleltest   # Test parallelization - not always needed
+    # Intentionally Disabled (existing + new explanations)
+    - exhaustruct    # Too strict - every struct field initialization checked
+    - wrapcheck      # Doesn't work well with Either monad - error wrapping handled differently
+    - varnamelen     # Variable name length - too opinionated for FP (e.g., 'E', 'O', 'A')
+    - gochecknoglobals # We use globals appropriately (registries, constants)
+    - funlen         # Function length - not always a sign of complexity in FP
+    - gocyclo        # Cyclomatic complexity - covered by cognitive complexity
+    - cyclop         # Cyclomatic complexity - alternate metric
+    - gocognit       # Cognitive complexity - FP code can be simple but not "cognitively simple"
+    - nestif         # Nested if depth - conflicts with functional style (fold, match)
+    - lll            # Line length - handled by gofmt/gofumpt
+    - wsl            # Whitespace linter - too opinionated, conflicts with gofumpt
+    - nlreturn       # New line before return - too opinionated
+    - forbidigo      # Forbid identifiers - not needed in this project
+    - exhaustive     # Exhaustive enum switch - too strict for our use case
+    - tagliatelle    # Struct tag naming convention - not relevant
+    - tparallel      # Test parallelization - not always beneficial
+    - paralleltest   # Test parallelization - not always beneficial
     - maintidx       # Maintainability index - covered by other linters
+    - depguard       # Dependency guard - using gomodguard instead
 
 linters-settings:
   errcheck:
@@ -63,12 +123,116 @@ linters-settings:
   govet:
     enable-all: true
     disable:
-      - shadow      # Variable shadowing is sometimes intentional
-      - fieldalignment # Struct field alignment - micro-optimization
+      - shadow         # Variable shadowing - sometimes intentional in FP
+      - fieldalignment # Struct field alignment - readability > micro-optimization
 
   staticcheck:
     checks: ["all"]
 
+  # 🔥 NEW: Gocritic settings - ULTRA STRICT
+  gocritic:
+    enabled-tags:
+      - diagnostic    # Diagnostics about code correctness
+      - experimental  # Experimental checks (bleeding edge!)
+      - opinionated   # Opinionated checks (enforce best practices)
+      - performance   # Performance optimizations
+      - style         # Code style checks
+    disabled-checks:
+      - hugeParam     # Large parameters - acceptable for immutable structs
+      - rangeValCopy  # Range value copy - acceptable for immutability
+      - unnamedResult # Unnamed results - we prefer explicit return values
+
+  # 🔥 NEW: Dupl settings - Detect code duplication
+  dupl:
+    threshold: 100  # Token threshold (lower = stricter, catches smaller duplication)
+
+  # 🔥 NEW: GCI settings - Import ordering
+  gci:
+    sections:
+      - standard                         # Stdlib imports first
+      - default                          # External packages
+      - prefix(github.com/lewis/forge)  # Internal packages last
+    custom-order: true
+
+  # 🔥 NEW: Importas settings - Enforce FP aliases
+  importas:
+    no-unaliased: true  # Require aliases for specified packages
+    alias:
+      - pkg: github.com/IBM/fp-go/either
+        alias: E
+      - pkg: github.com/IBM/fp-go/option
+        alias: O
+      - pkg: github.com/IBM/fp-go/array
+        alias: A
+      - pkg: github.com/IBM/fp-go/context
+        alias: C
+      - pkg: github.com/IBM/fp-go/tuple
+        alias: T
+      - pkg: github.com/IBM/fp-go/function
+        alias: F
+
+  # 🔥 NEW: Interfacebloat settings - Interfaces should be small (ISP)
+  interfacebloat:
+    max: 6  # Maximum 6 methods per interface (stricter than default 10)
+
+  # 🔥 NEW: MND (Magic Number Detector) settings
+  mnd:
+    checks:
+      - argument   # Function arguments
+      - case       # Case values
+      - condition  # Conditional expressions
+      - operation  # Operations
+      - return     # Return values
+      - assign     # Assignments
+    ignored-functions:
+      - '^os\.(Chmod|WriteFile|OpenFile)$'  # File permissions are ok
+      - '^time\.(Sleep|After|NewTimer|NewTicker)$'  # Time durations are ok
+    ignored-numbers:
+      - '0'   # Zero is always ok
+      - '1'   # One is always ok
+      - '2'   # Two is usually ok
+      - '100' # 100 is common (percentages)
+
+  # 🔥 NEW: Nolintlint settings - Require justification for nolint
+  nolintlint:
+    allow-unused: false
+    allow-no-explanation: []  # ALL nolint directives MUST have explanation
+    require-explanation: true
+    require-specific: true   # Must specify which linter (e.g., //nolint:errcheck)
+
+  # 🔥 NEW: Reassign settings - CRITICAL for immutability
+  reassign:
+    patterns:
+      - '.*'  # Check ALL reassignments (enforce immutability!)
+
+  # 🔥 NEW: Stylecheck settings
+  stylecheck:
+    checks: ["all", "-ST1000", "-ST1003"]  # All except package comments and underscores
+    initialisms: ["ACL", "API", "ASCII", "AWS", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "IAM", "S3", "EC2", "VPC", "SQS", "SNS", "DynamoDB"]
+
+  # 🔥 NEW: Tagalign settings - Struct tag alignment
+  tagalign:
+    align: true
+    sort: true
+    order:
+      - json
+      - yaml
+      - yml
+      - toml
+      - mapstructure
+      - binding
+      - validate
+
+  # 🔥 NEW: Testpackage settings - Require blackbox tests
+  testpackage:
+    skip-regexp: '(export|internal)_test\.go'  # Allow whitebox tests for internal APIs
+
+  # 🔥 NEW: Whitespace settings
+  whitespace:
+    multi-if: true    # Require blank line after multi-line if statement
+    multi-func: true  # Require blank line after multi-line function signature
+
+  # Existing settings (enhanced)
   revive:
     rules:
       - name: var-naming
@@ -111,6 +275,43 @@ linters-settings:
         disabled: false
       - name: unreachable-code
         disabled: false
+      # 🔥 NEW: Additional revive rules
+      - name: bool-literal-in-expr
+        disabled: false  # if x == true → if x
+      - name: constant-logical-expr
+        disabled: false  # if true { ... } detection
+      - name: deep-exit
+        disabled: false  # Prevent os.Exit in library code
+      - name: defer
+        disabled: false  # Check defer usage patterns
+      - name: duplicated-imports
+        disabled: false  # Duplicate imports
+      - name: early-return
+        disabled: false  # Encourage early returns
+      - name: empty-block
+        disabled: false  # Empty blocks
+      - name: import-shadowing
+        disabled: false  # Import name shadows package
+      - name: modifies-parameter
+        disabled: false  # 🎯 CRITICAL: Detects parameter mutation!
+      - name: modifies-value-receiver
+        disabled: false  # 🎯 CRITICAL: Detects receiver mutation!
+      - name: range-val-in-closure
+        disabled: false  # Range variable captured in closure
+      - name: redefines-builtin-id
+        disabled: false  # Redefining builtin identifiers
+      - name: string-of-int
+        disabled: false  # string(123) → "123" confusion
+      - name: struct-tag
+        disabled: false  # Malformed struct tags
+      - name: superfluous-else
+        disabled: false  # Unnecessary else after return
+      - name: unused-parameter
+        disabled: false  # Unused function parameters
+      - name: unused-receiver
+        disabled: false  # Unused method receiver
+      - name: waitgroup-by-value
+        disabled: false  # WaitGroup passed by value
 
   gosec:
     excludes:
@@ -120,15 +321,23 @@ linters-settings:
 
   misspell:
     locale: US
+    ignore-words:
+      - terraform
+      - terragrunt
+      - lingon
 
   gofmt:
     simplify: true
+
+  # 🔥 NEW: Gofumpt settings (stricter gofmt)
+  gofumpt:
+    extra-rules: true  # Enable all extra formatting rules
 
   goimports:
     local-prefixes: github.com/lewis/forge
 
   nakedret:
-    max-func-lines: 30
+    max-func-lines: 30  # Maximum function lines for naked returns (prefer explicit)
 
   prealloc:
     simple: true
@@ -138,12 +347,54 @@ linters-settings:
   testifylint:
     enable-all: true
 
+  # 🔥 NEW: Gomodguard settings - Control dependencies
+  gomodguard:
+    blocked:
+      modules:
+        - github.com/pkg/errors:
+            recommendations:
+              - errors
+              - fmt
+            reason: "Use stdlib errors and Either monad instead"
+        - github.com/sirupsen/logrus:
+            recommendations:
+              - log/slog
+            reason: "Use stdlib slog for structured logging"
+
+  # 🔥 NEW: Decorder settings - Declaration ordering
+  decorder:
+    dec-order:
+      - const
+      - var
+      - type
+      - func
+    disable-dec-order-check: false
+
+  # 🔥 NEW: Grouper settings - Group similar declarations
+  grouper:
+    const-require-single-const: false
+    const-require-grouping: true
+    import-require-single-import: false
+    import-require-grouping: true
+    type-require-single-type: false
+    type-require-grouping: true
+    var-require-single-var: false
+    var-require-grouping: true
+
+  # 🔥 NEW: Inamedparam settings - Named return parameters
+  inamedparam:
+    skip-single-param: true  # Single params don't need names
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
   uniq-by-line: true
+
   exclude-dirs:
     - internal/lingon/aws  # Generated AWS resources (2,671 files, 1M+ LOC)
+    - .forge               # Build artifacts directory
+    - vendor
+
   exclude-files:
     - ".*\\.pb\\.go$"
     - ".*_gen\\.go$"
@@ -152,28 +403,34 @@ issues:
     # Exclude test files from certain checks
     - path: _test\.go
       linters:
-        - errcheck
-        - gosec
-        - unparam
-        - goconst
-        - govet # Allow unusedwrite in test setup
+        - errcheck       # Tests can skip error checks for setup
+        - gosec          # Tests may have less strict security
+        - unparam        # Test helpers may have unused params
+        - goconst        # Test data can have repeated strings
+        - govet          # Allow unusedwrite in test setup
+        - dupl           # Tests can have similar patterns
+        - mnd            # Magic numbers ok in tests
+        - forcetypeassert # Type assertions ok in tests (test data is controlled)
+        - testpackage    # Allow whitebox tests for internal helpers
 
     # Exclude generated files
     - path: .*_gen\.go
       linters:
         - all
 
-    # Allow dot imports in tests for readability (E.Either, O.Option)
+    # Allow dot imports in tests for FP readability (E.Either, O.Option, A.Array)
     - path: _test\.go
       text: "dot-imports"
       linters:
         - revive
+        - stylecheck
 
     # Allow BuildFunc and BuildAll naming (not stuttering in this domain context)
     - path: internal/build/functional\.go
       text: "(BuildFunc|BuildAll)"
       linters:
         - revive
+        - stylecheck
 
     # Allow intentionally permissive file permissions for Lambda builds
     - path: internal/build/.*_builder\.go
@@ -187,20 +444,37 @@ issues:
       linters:
         - revive
 
-    # Allow aliased imports for FP monads (E for Either, O for Option)
-    - path: internal/(pipeline|cli|build)/
-      text: "File is not properly formatted"
-      linters:
-        - goimports
-        - gofmt
-
     # Allow explicit error discard for user input (non-critical)
     - path: internal/pipeline/
       text: "Error return value of `fmt.Scanln` is not checked"
       linters:
         - errcheck
 
+    # Allow reassignment in specific FP patterns (Either chain, reduce)
+    - path: internal/(pipeline|build)/.*\.go
+      text: "reassign"
+      linters:
+        - reassign
+
+    # 🔥 NEW: Allow certain patterns in CLI commands (I/O boundary)
+    - path: internal/cli/.*\.go
+      text: "(deep-exit|modifies-parameter)"
+      linters:
+        - revive
+        - gocritic
+
+    # 🔥 NEW: Cobra commands can have unchecked errors in flag setup
+    - path: internal/cli/.*\.go
+      text: "Error return value.*MarkFlagRequired"
+      linters:
+        - errcheck
+
   exclude-use-default: false
+
+  # 🔥 NEW: Exclude certain generic messages that conflict with FP patterns
+  exclude:
+    - 'declaration of "(err|ctx)" shadows declaration'  # Common in FP chains
+    - 'G104: Errors unhandled'  # Use errcheck instead (more precise)
 
 output:
   formats:

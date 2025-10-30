@@ -1,7 +1,6 @@
 package build
 
 import (
-	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,14 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestJavaBuildSignature tests that JavaBuild has correct signature
+// TestJavaBuildSignature tests that JavaBuild has correct signature.
 func TestJavaBuildSignature(t *testing.T) {
 	t.Run("JavaBuild matches BuildFunc signature", func(t *testing.T) {
 		// JavaBuild should be assignable to BuildFunc
 		var buildFunc BuildFunc = JavaBuild
 
 		// Should compile and work with functional patterns
-		result := buildFunc(context.Background(), Config{
+		result := buildFunc(t.Context(), Config{
 			SourceDir: "/nonexistent",
 			Runtime:   "java21",
 		})
@@ -35,13 +34,13 @@ func TestJavaBuildSignature(t *testing.T) {
 			Runtime:    "java21",
 		}
 
-		result := JavaBuild(context.Background(), cfg)
+		result := JavaBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should return Left on error")
 	})
 }
 
-// TestJavaBuildPure tests that JavaBuild is a pure function
+// TestJavaBuildPure tests that JavaBuild is a pure function.
 func TestJavaBuildPure(t *testing.T) {
 	t.Run("same inputs produce same result", func(t *testing.T) {
 		cfg := Config{
@@ -50,8 +49,8 @@ func TestJavaBuildPure(t *testing.T) {
 			OutputPath: "/tmp/test.jar",
 		}
 
-		result1 := JavaBuild(context.Background(), cfg)
-		result2 := JavaBuild(context.Background(), cfg)
+		result1 := JavaBuild(t.Context(), cfg)
+		result2 := JavaBuild(t.Context(), cfg)
 
 		// Both should fail the same way
 		assert.Equal(t, E.IsLeft(result1), E.IsLeft(result2))
@@ -68,7 +67,7 @@ func TestJavaBuildPure(t *testing.T) {
 		}
 
 		// Call function
-		JavaBuild(context.Background(), cfg)
+		JavaBuild(t.Context(), cfg)
 
 		// Should not create output file on failure
 		_, err := os.Stat(outputPath)
@@ -76,7 +75,7 @@ func TestJavaBuildPure(t *testing.T) {
 	})
 }
 
-// TestJavaBuildComposition tests JavaBuild with functional composition
+// TestJavaBuildComposition tests JavaBuild with functional composition.
 func TestJavaBuildComposition(t *testing.T) {
 	t.Run("composes with WithCache", func(t *testing.T) {
 		cache := NewMemoryCache()
@@ -118,7 +117,7 @@ func TestJavaBuildComposition(t *testing.T) {
 	})
 }
 
-// TestJavaBuildRegistry tests JavaBuild in registry
+// TestJavaBuildRegistry tests JavaBuild in registry.
 func TestJavaBuildRegistry(t *testing.T) {
 	t.Run("registry contains Java runtimes", func(t *testing.T) {
 		registry := NewRegistry()
@@ -139,9 +138,9 @@ func TestJavaBuildRegistry(t *testing.T) {
 		// We can test this by checking they behave identically
 		cfg := Config{SourceDir: "/nonexistent"}
 
-		result11 := builder11(context.Background(), cfg)
-		result17 := builder17(context.Background(), cfg)
-		result21 := builder21(context.Background(), cfg)
+		result11 := builder11(t.Context(), cfg)
+		result17 := builder17(t.Context(), cfg)
+		result21 := builder21(t.Context(), cfg)
 
 		// All should fail the same way
 		assert.Equal(t, E.IsLeft(result11), E.IsLeft(result17))
@@ -149,17 +148,17 @@ func TestJavaBuildRegistry(t *testing.T) {
 	})
 }
 
-// TestFindJar tests the findJar helper function
+// TestFindJar tests the findJar helper function.
 func TestFindJar(t *testing.T) {
 	t.Run("finds main jar in target directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		targetDir := filepath.Join(tmpDir, "target")
-		err := os.MkdirAll(targetDir, 0755)
+		err := os.MkdirAll(targetDir, 0o755)
 		require.NoError(t, err)
 
 		// Create main JAR
 		mainJar := filepath.Join(targetDir, "myapp-1.0.jar")
-		err = os.WriteFile(mainJar, []byte("fake jar"), 0644)
+		err = os.WriteFile(mainJar, []byte("fake jar"), 0o644)
 		require.NoError(t, err)
 
 		jarPath, err := findJar(targetDir)
@@ -170,17 +169,17 @@ func TestFindJar(t *testing.T) {
 	t.Run("skips sources jar", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		targetDir := filepath.Join(tmpDir, "target")
-		err := os.MkdirAll(targetDir, 0755)
+		err := os.MkdirAll(targetDir, 0o755)
 		require.NoError(t, err)
 
 		// Create sources JAR (should be skipped)
 		sourcesJar := filepath.Join(targetDir, "myapp-1.0-sources.jar")
-		err = os.WriteFile(sourcesJar, []byte("fake jar"), 0644)
+		err = os.WriteFile(sourcesJar, []byte("fake jar"), 0o644)
 		require.NoError(t, err)
 
 		// Create main JAR
 		mainJar := filepath.Join(targetDir, "myapp-1.0.jar")
-		err = os.WriteFile(mainJar, []byte("fake jar"), 0644)
+		err = os.WriteFile(mainJar, []byte("fake jar"), 0o644)
 		require.NoError(t, err)
 
 		jarPath, err := findJar(targetDir)
@@ -191,17 +190,17 @@ func TestFindJar(t *testing.T) {
 	t.Run("skips javadoc jar", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		targetDir := filepath.Join(tmpDir, "target")
-		err := os.MkdirAll(targetDir, 0755)
+		err := os.MkdirAll(targetDir, 0o755)
 		require.NoError(t, err)
 
 		// Create javadoc JAR (should be skipped)
 		javadocJar := filepath.Join(targetDir, "myapp-1.0-javadoc.jar")
-		err = os.WriteFile(javadocJar, []byte("fake jar"), 0644)
+		err = os.WriteFile(javadocJar, []byte("fake jar"), 0o644)
 		require.NoError(t, err)
 
 		// Create main JAR
 		mainJar := filepath.Join(targetDir, "myapp-1.0.jar")
-		err = os.WriteFile(mainJar, []byte("fake jar"), 0644)
+		err = os.WriteFile(mainJar, []byte("fake jar"), 0o644)
 		require.NoError(t, err)
 
 		jarPath, err := findJar(targetDir)
@@ -212,17 +211,17 @@ func TestFindJar(t *testing.T) {
 	t.Run("skips original jar from shade plugin", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		targetDir := filepath.Join(tmpDir, "target")
-		err := os.MkdirAll(targetDir, 0755)
+		err := os.MkdirAll(targetDir, 0o755)
 		require.NoError(t, err)
 
 		// Create original JAR (should be skipped)
 		originalJar := filepath.Join(targetDir, "myapp-1.0-original.jar")
-		err = os.WriteFile(originalJar, []byte("fake jar"), 0644)
+		err = os.WriteFile(originalJar, []byte("fake jar"), 0o644)
 		require.NoError(t, err)
 
 		// Create shaded JAR (this is what we want)
 		shadedJar := filepath.Join(targetDir, "myapp-1.0.jar")
-		err = os.WriteFile(shadedJar, []byte("fake jar"), 0644)
+		err = os.WriteFile(shadedJar, []byte("fake jar"), 0o644)
 		require.NoError(t, err)
 
 		jarPath, err := findJar(targetDir)
@@ -233,7 +232,7 @@ func TestFindJar(t *testing.T) {
 	t.Run("returns error if no jar found", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		targetDir := filepath.Join(tmpDir, "target")
-		err := os.MkdirAll(targetDir, 0755)
+		err := os.MkdirAll(targetDir, 0o755)
 		require.NoError(t, err)
 
 		// No JAR files
@@ -249,7 +248,7 @@ func TestFindJar(t *testing.T) {
 	})
 }
 
-// TestJavaBuildErrorHandling tests error scenarios
+// TestJavaBuildErrorHandling tests error scenarios.
 func TestJavaBuildErrorHandling(t *testing.T) {
 	t.Run("returns descriptive error for missing pom.xml", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -259,14 +258,14 @@ func TestJavaBuildErrorHandling(t *testing.T) {
 			Runtime:   "java21",
 		}
 
-		result := JavaBuild(context.Background(), cfg)
+		result := JavaBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should fail without pom.xml")
 
 		// Extract error message
 		err := E.Fold(
 			func(e error) error { return e },
-			func(a Artifact) error { return nil },
+			func(_ Artifact) error { return nil },
 		)(result)
 
 		assert.Contains(t, err.Error(), "pom.xml", "Error should mention pom.xml")
@@ -278,7 +277,7 @@ func TestJavaBuildErrorHandling(t *testing.T) {
 		// Create invalid pom.xml
 		pomPath := filepath.Join(tmpDir, "pom.xml")
 		invalidPom := `<project><invalid>xml</invalid></project>`
-		err := os.WriteFile(pomPath, []byte(invalidPom), 0644)
+		err := os.WriteFile(pomPath, []byte(invalidPom), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -286,21 +285,21 @@ func TestJavaBuildErrorHandling(t *testing.T) {
 			Runtime:   "java21",
 		}
 
-		result := JavaBuild(context.Background(), cfg)
+		result := JavaBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should fail with invalid pom.xml")
 
 		// Extract error
 		buildErr := E.Fold(
 			func(e error) error { return e },
-			func(a Artifact) error { return nil },
+			func(_ Artifact) error { return nil },
 		)(result)
 
 		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
 }
 
-// TestJavaBuildSuccessful tests successful Java builds
+// TestJavaBuildSuccessful tests successful Java builds.
 func TestJavaBuildSuccessful(t *testing.T) {
 	// Skip if mvn is not available
 	if _, err := exec.LookPath("mvn"); err != nil {
@@ -312,7 +311,7 @@ func TestJavaBuildSuccessful(t *testing.T) {
 
 		// Create Java source directory
 		javaDir := filepath.Join(tmpDir, "src", "main", "java", "com", "example")
-		err := os.MkdirAll(javaDir, 0755)
+		err := os.MkdirAll(javaDir, 0o755)
 		require.NoError(t, err)
 
 		// Create Handler.java
@@ -330,7 +329,7 @@ public class Handler implements RequestHandler<Map<String, Object>, Map<String, 
     }
 }
 `
-		err = os.WriteFile(handlerPath, []byte(handlerContent), 0644)
+		err = os.WriteFile(handlerPath, []byte(handlerContent), 0o644)
 		require.NoError(t, err)
 
 		// Create minimal pom.xml
@@ -378,7 +377,7 @@ public class Handler implements RequestHandler<Map<String, Object>, Map<String, 
     </build>
 </project>
 `
-		err = os.WriteFile(pomPath, []byte(pomContent), 0644)
+		err = os.WriteFile(pomPath, []byte(pomContent), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -386,13 +385,13 @@ public class Handler implements RequestHandler<Map<String, Object>, Map<String, 
 			Runtime:   "java21",
 		}
 
-		result := JavaBuild(context.Background(), cfg)
+		result := JavaBuild(t.Context(), cfg)
 
 		if E.IsLeft(result) {
 			// Extract error for debugging
 			err := E.Fold(
 				func(e error) error { return e },
-				func(a Artifact) error { return nil },
+				func(_ Artifact) error { return nil },
 			)(result)
 			t.Logf("Java build failed: %v", err)
 		}
@@ -412,7 +411,7 @@ public class Handler implements RequestHandler<Map<String, Object>, Map<String, 
 	})
 }
 
-// TestJavaBuildOutputPath tests output path handling
+// TestJavaBuildOutputPath tests output path handling.
 func TestJavaBuildOutputPath(t *testing.T) {
 	t.Run("uses default output path if not specified", func(t *testing.T) {
 		cfg := Config{
@@ -439,7 +438,7 @@ func TestJavaBuildOutputPath(t *testing.T) {
 	})
 }
 
-// Benchmark JavaBuild function
+// Benchmark JavaBuild function.
 func BenchmarkJavaBuild(b *testing.B) {
 	// Setup a basic project (this will fail, but we're benchmarking the function overhead)
 	cfg := Config{
@@ -450,11 +449,11 @@ func BenchmarkJavaBuild(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		JavaBuild(context.Background(), cfg)
+		JavaBuild(b.Context(), cfg)
 	}
 }
 
-// BenchmarkJavaBuildWithComposition benchmarks composed build functions
+// BenchmarkJavaBuildWithComposition benchmarks composed build functions.
 func BenchmarkJavaBuildWithComposition(b *testing.B) {
 	cfg := Config{
 		SourceDir: "/nonexistent",
@@ -463,7 +462,7 @@ func BenchmarkJavaBuildWithComposition(b *testing.B) {
 
 	b.Run("Plain", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			JavaBuild(context.Background(), cfg)
+			JavaBuild(b.Context(), cfg)
 		}
 	})
 
@@ -473,7 +472,7 @@ func BenchmarkJavaBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			cachedBuild(context.Background(), cfg)
+			cachedBuild(b.Context(), cfg)
 		}
 	})
 
@@ -486,7 +485,7 @@ func BenchmarkJavaBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			loggedBuild(context.Background(), cfg)
+			loggedBuild(b.Context(), cfg)
 		}
 	})
 
@@ -504,7 +503,7 @@ func BenchmarkJavaBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			composed(context.Background(), cfg)
+			composed(b.Context(), cfg)
 		}
 	})
 }

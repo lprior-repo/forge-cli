@@ -61,6 +61,38 @@ func TestCreateStubZip(t *testing.T) {
 		require.NoError(t, err)
 		defer reader.Close()
 	})
+
+	t.Run("fails when directory creation fails", func(t *testing.T) {
+		// Use a path that cannot be created (parent is a file, not a directory)
+		tmpDir := t.TempDir()
+		filePath := filepath.Join(tmpDir, "file.txt")
+		require.NoError(t, os.WriteFile(filePath, []byte("content"), 0644))
+
+		// Try to create a zip inside the file (should fail)
+		outputPath := filepath.Join(filePath, "test.zip")
+		err := CreateStubZip(outputPath)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create directory")
+	})
+
+	t.Run("fails when file creation fails on read-only parent", func(t *testing.T) {
+		if os.Getuid() == 0 {
+			t.Skip("Skipping test when running as root (permissions don't apply)")
+		}
+
+		tmpDir := t.TempDir()
+		parentDir := filepath.Join(tmpDir, "readonly")
+		require.NoError(t, os.Mkdir(parentDir, 0755))
+
+		// Make directory read-only
+		require.NoError(t, os.Chmod(parentDir, 0444))
+		defer os.Chmod(parentDir, 0755) // Cleanup
+
+		outputPath := filepath.Join(parentDir, "test.zip")
+		err := CreateStubZip(outputPath)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create stub zip")
+	})
 }
 
 func TestCreateStubZips(t *testing.T) {
@@ -141,5 +173,25 @@ func TestCreateStubZips(t *testing.T) {
 		count, err := CreateStubZips([]Function{}, buildDir)
 		require.NoError(t, err)
 		assert.Equal(t, 0, count)
+	})
+
+	t.Run("fails when build directory creation fails", func(t *testing.T) {
+		if os.Getuid() == 0 {
+			t.Skip("Skipping test when running as root (permissions don't apply)")
+		}
+
+		tmpDir := t.TempDir()
+		// Create a file where we need a directory
+		buildDirPath := filepath.Join(tmpDir, "build")
+		require.NoError(t, os.WriteFile(buildDirPath, []byte("not a dir"), 0644))
+
+		functions := []Function{
+			{Name: "api", Runtime: "provided.al2023"},
+		}
+
+		count, err := CreateStubZips(functions, buildDirPath)
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "failed to create build directory")
 	})
 }

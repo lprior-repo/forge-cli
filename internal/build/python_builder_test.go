@@ -1,7 +1,6 @@
 package build
 
 import (
-	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,14 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestPythonBuildSignature tests that PythonBuild has correct signature
+// TestPythonBuildSignature tests that PythonBuild has correct signature.
 func TestPythonBuildSignature(t *testing.T) {
 	t.Run("PythonBuild matches BuildFunc signature", func(t *testing.T) {
 		// PythonBuild should be assignable to BuildFunc
 		var buildFunc BuildFunc = PythonBuild
 
 		// Should compile and work with functional patterns
-		result := buildFunc(context.Background(), Config{
+		result := buildFunc(t.Context(), Config{
 			SourceDir: "/nonexistent",
 			Runtime:   "python3.13",
 		})
@@ -36,13 +35,13 @@ func TestPythonBuildSignature(t *testing.T) {
 			Runtime:    "python3.11",
 		}
 
-		result := PythonBuild(context.Background(), cfg)
+		result := PythonBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should return Left on error")
 	})
 }
 
-// TestPythonBuildPure tests that PythonBuild is a pure function
+// TestPythonBuildPure tests that PythonBuild is a pure function.
 func TestPythonBuildPure(t *testing.T) {
 	t.Run("same inputs produce same result", func(t *testing.T) {
 		cfg := Config{
@@ -51,8 +50,8 @@ func TestPythonBuildPure(t *testing.T) {
 			OutputPath: "/tmp/test.zip",
 		}
 
-		result1 := PythonBuild(context.Background(), cfg)
-		result2 := PythonBuild(context.Background(), cfg)
+		result1 := PythonBuild(t.Context(), cfg)
+		result2 := PythonBuild(t.Context(), cfg)
 
 		// Both should fail the same way
 		assert.Equal(t, E.IsLeft(result1), E.IsLeft(result2))
@@ -65,8 +64,8 @@ func TestPythonBuildPure(t *testing.T) {
 		}
 
 		// Multiple calls should produce consistent error results
-		result1 := PythonBuild(context.Background(), cfg)
-		result2 := PythonBuild(context.Background(), cfg)
+		result1 := PythonBuild(t.Context(), cfg)
+		result2 := PythonBuild(t.Context(), cfg)
 
 		// Both should return Left (error)
 		assert.True(t, E.IsLeft(result1))
@@ -74,7 +73,7 @@ func TestPythonBuildPure(t *testing.T) {
 	})
 }
 
-// TestPythonBuildComposition tests PythonBuild with functional composition
+// TestPythonBuildComposition tests PythonBuild with functional composition.
 func TestPythonBuildComposition(t *testing.T) {
 	t.Run("composes with WithCache", func(t *testing.T) {
 		cache := NewMemoryCache()
@@ -116,7 +115,7 @@ func TestPythonBuildComposition(t *testing.T) {
 	})
 }
 
-// TestPythonBuildRegistry tests PythonBuild in registry
+// TestPythonBuildRegistry tests PythonBuild in registry.
 func TestPythonBuildRegistry(t *testing.T) {
 	t.Run("registry contains Python runtimes", func(t *testing.T) {
 		registry := NewRegistry()
@@ -139,9 +138,9 @@ func TestPythonBuildRegistry(t *testing.T) {
 		// We can test this by checking they behave identically
 		cfg := Config{SourceDir: "/nonexistent"}
 
-		result39 := builder39(context.Background(), cfg)
-		result310 := builder310(context.Background(), cfg)
-		result313 := builder313(context.Background(), cfg)
+		result39 := builder39(t.Context(), cfg)
+		result310 := builder310(t.Context(), cfg)
+		result313 := builder313(t.Context(), cfg)
 
 		// All should fail the same way
 		assert.Equal(t, E.IsLeft(result39), E.IsLeft(result310))
@@ -149,7 +148,57 @@ func TestPythonBuildRegistry(t *testing.T) {
 	})
 }
 
-// TestPythonBuildBasic tests basic Python build without dependencies
+// TestGeneratePythonBuildSpec tests the pure spec generation function.
+func TestGeneratePythonBuildSpec(t *testing.T) {
+	t.Run("generates spec with default output path", func(t *testing.T) {
+		cfg := Config{
+			SourceDir:  "/tmp/test",
+			OutputPath: "",
+			Runtime:    "python3.11",
+		}
+
+		spec := GeneratePythonBuildSpec(cfg, false, false)
+
+		assert.Equal(t, filepath.Join("/tmp/test", "lambda.zip"), spec.OutputPath)
+		assert.Equal(t, "/tmp/test", spec.SourceDir)
+		assert.False(t, spec.HasRequirements)
+		assert.False(t, spec.UsesUV)
+		assert.Empty(t, spec.DependencyCmd)
+	})
+
+	t.Run("generates spec with pip when uv is unavailable", func(t *testing.T) {
+		cfg := Config{
+			SourceDir:  "/tmp/test",
+			OutputPath: "/tmp/output.zip",
+			Runtime:    "python3.11",
+		}
+
+		spec := GeneratePythonBuildSpec(cfg, false, true)
+
+		assert.True(t, spec.HasRequirements)
+		assert.False(t, spec.UsesUV)
+		assert.Contains(t, spec.DependencyCmd, "pip")
+		assert.Contains(t, spec.DependencyCmd, "install")
+	})
+
+	t.Run("generates spec with uv when available", func(t *testing.T) {
+		cfg := Config{
+			SourceDir:  "/tmp/test",
+			OutputPath: "/tmp/output.zip",
+			Runtime:    "python3.11",
+		}
+
+		spec := GeneratePythonBuildSpec(cfg, true, true)
+
+		assert.True(t, spec.HasRequirements)
+		assert.True(t, spec.UsesUV)
+		assert.Contains(t, spec.DependencyCmd, "uv")
+		assert.Contains(t, spec.DependencyCmd, "pip")
+		assert.Contains(t, spec.DependencyCmd, "install")
+	})
+}
+
+// TestPythonBuildBasic tests basic Python build without dependencies.
 func TestPythonBuildBasic(t *testing.T) {
 	t.Run("builds simple Python function without requirements.txt", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -159,7 +208,7 @@ func TestPythonBuildBasic(t *testing.T) {
 		handlerContent := `def handler(event, context):
     return {"statusCode": 200, "body": "Hello"}
 `
-		err := os.WriteFile(handlerPath, []byte(handlerContent), 0644)
+		err := os.WriteFile(handlerPath, []byte(handlerContent), 0o644)
 		require.NoError(t, err)
 
 		outputPath := filepath.Join(tmpDir, "lambda.zip")
@@ -169,7 +218,7 @@ func TestPythonBuildBasic(t *testing.T) {
 			Runtime:    "python3.11",
 		}
 
-		result := PythonBuild(context.Background(), cfg)
+		result := PythonBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsRight(result), "Should succeed for simple Python function")
 
@@ -207,14 +256,14 @@ func TestPythonBuildWithRequirements(t *testing.T) {
 		handlerContent := `def handler(event, context):
     return {"statusCode": 200}
 `
-		err := os.WriteFile(handlerPath, []byte(handlerContent), 0644)
+		err := os.WriteFile(handlerPath, []byte(handlerContent), 0o644)
 		require.NoError(t, err)
 
 		// Create requirements.txt with very lightweight package to avoid disk quota issues
 		// 'six' is a small, stable package with minimal dependencies
 		reqPath := filepath.Join(tmpDir, "requirements.txt")
 		reqContent := "six==1.16.0\n"
-		err = os.WriteFile(reqPath, []byte(reqContent), 0644)
+		err = os.WriteFile(reqPath, []byte(reqContent), 0o644)
 		require.NoError(t, err)
 
 		outputPath := filepath.Join(tmpDir, "lambda.zip")
@@ -224,13 +273,13 @@ func TestPythonBuildWithRequirements(t *testing.T) {
 			Runtime:    "python3.11",
 		}
 
-		result := PythonBuild(context.Background(), cfg)
+		result := PythonBuild(t.Context(), cfg)
 
 		if E.IsLeft(result) {
 			// Extract error for debugging
 			err := E.Fold(
 				func(e error) error { return e },
-				func(a Artifact) error { return nil },
+				func(_ Artifact) error { return nil },
 			)(result)
 			t.Logf("Build failed: %v", err)
 		}
@@ -249,7 +298,7 @@ func TestPythonBuildWithRequirements(t *testing.T) {
 	})
 }
 
-// TestPythonBuildUvDetection tests uv vs pip detection
+// TestPythonBuildUvDetection tests uv vs pip detection.
 func TestPythonBuildUvDetection(t *testing.T) {
 	t.Run("uses uv if available", func(t *testing.T) {
 		// Check if uv is available
@@ -262,12 +311,12 @@ func TestPythonBuildUvDetection(t *testing.T) {
 
 		// Create simple handler
 		handlerPath := filepath.Join(tmpDir, "handler.py")
-		err = os.WriteFile(handlerPath, []byte("def handler(e, c): pass"), 0644)
+		err = os.WriteFile(handlerPath, []byte("def handler(e, c): pass"), 0o644)
 		require.NoError(t, err)
 
 		// Create empty requirements.txt to trigger dependency install
 		reqPath := filepath.Join(tmpDir, "requirements.txt")
-		err = os.WriteFile(reqPath, []byte(""), 0644)
+		err = os.WriteFile(reqPath, []byte(""), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -276,14 +325,14 @@ func TestPythonBuildUvDetection(t *testing.T) {
 			OutputPath: filepath.Join(tmpDir, "output.zip"),
 		}
 
-		result := PythonBuild(context.Background(), cfg)
+		result := PythonBuild(t.Context(), cfg)
 
 		// Should succeed (uv handles empty requirements.txt gracefully)
 		assert.True(t, E.IsRight(result), "Should succeed with uv")
 	})
 }
 
-// TestShouldSkipFile tests the file skipping logic
+// TestShouldSkipFile tests the file skipping logic.
 func TestShouldSkipFile(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -299,6 +348,9 @@ func TestShouldSkipFile(t *testing.T) {
 		{"keep .py", "handler.py", false},
 		{"keep .txt", "requirements.txt", false},
 		{"keep .json", "config.json", false},
+		{"keep empty string", "", false},
+		{"keep .md", "README.md", false},
+		{"keep .yaml", "config.yaml", false},
 	}
 
 	for _, tt := range tests {
@@ -309,7 +361,7 @@ func TestShouldSkipFile(t *testing.T) {
 	}
 }
 
-// TestPythonBuildErrorHandling tests error scenarios
+// TestPythonBuildErrorHandling tests error scenarios.
 func TestPythonBuildErrorHandling(t *testing.T) {
 	t.Run("returns error for invalid requirements.txt", func(t *testing.T) {
 		// Skip if neither pip nor uv is available
@@ -323,13 +375,13 @@ func TestPythonBuildErrorHandling(t *testing.T) {
 
 		// Create handler
 		handlerPath := filepath.Join(tmpDir, "handler.py")
-		err := os.WriteFile(handlerPath, []byte("def handler(e, c): pass"), 0644)
+		err := os.WriteFile(handlerPath, []byte("def handler(e, c): pass"), 0o644)
 		require.NoError(t, err)
 
 		// Create invalid requirements.txt
 		reqPath := filepath.Join(tmpDir, "requirements.txt")
 		invalidReq := "nonexistent-package-xyz-123456789==99.99.99\n"
-		err = os.WriteFile(reqPath, []byte(invalidReq), 0644)
+		err = os.WriteFile(reqPath, []byte(invalidReq), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -337,14 +389,14 @@ func TestPythonBuildErrorHandling(t *testing.T) {
 			Runtime:   "python3.13",
 		}
 
-		result := PythonBuild(context.Background(), cfg)
+		result := PythonBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should fail with invalid requirements.txt")
 
 		// Extract error
 		buildErr := E.Fold(
 			func(e error) error { return e },
-			func(a Artifact) error { return nil },
+			func(_ Artifact) error { return nil },
 		)(result)
 
 		assert.NotNil(t, buildErr)
@@ -358,9 +410,29 @@ func TestPythonBuildErrorHandling(t *testing.T) {
 			"Error should mention command/pip/uv install failure. Got: %s", errMsg,
 		)
 	})
+
+	t.Run("returns error for invalid output path", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create handler
+		handlerPath := filepath.Join(tmpDir, "handler.py")
+		err := os.WriteFile(handlerPath, []byte("def handler(e, c): pass"), 0o644)
+		require.NoError(t, err)
+
+		// Use an invalid output path (directory without permissions or non-existent parent)
+		cfg := Config{
+			SourceDir:  tmpDir,
+			OutputPath: "/nonexistent/dir/output.zip",
+			Runtime:    "python3.11",
+		}
+
+		result := PythonBuild(t.Context(), cfg)
+
+		assert.True(t, E.IsLeft(result), "Should fail with invalid output path")
+	})
 }
 
-// TestPythonBuildOutputPath tests output path handling
+// TestPythonBuildOutputPath tests output path handling.
 func TestPythonBuildOutputPath(t *testing.T) {
 	t.Run("uses default output path if not specified", func(t *testing.T) {
 		cfg := Config{
@@ -387,10 +459,15 @@ func TestPythonBuildOutputPath(t *testing.T) {
 	})
 }
 
-// TestEnvSlice tests environment variable conversion
+// TestEnvSlice tests environment variable conversion.
 func TestEnvSlice(t *testing.T) {
 	t.Run("converts empty map", func(t *testing.T) {
 		env := envSlice(map[string]string{})
+		assert.Empty(t, env)
+	})
+
+	t.Run("converts nil map", func(t *testing.T) {
+		env := envSlice(nil)
 		assert.Empty(t, env)
 	})
 
@@ -404,9 +481,18 @@ func TestEnvSlice(t *testing.T) {
 		assert.Contains(t, env, "FOO=bar")
 		assert.Contains(t, env, "BAZ=qux")
 	})
+
+	t.Run("converts map with single value", func(t *testing.T) {
+		env := envSlice(map[string]string{
+			"KEY": "value",
+		})
+
+		assert.Len(t, env, 1)
+		assert.Contains(t, env, "KEY=value")
+	})
 }
 
-// Benchmark PythonBuild function
+// Benchmark PythonBuild function.
 func BenchmarkPythonBuild(b *testing.B) {
 	// Setup a basic project (this will fail, but we're benchmarking the function overhead)
 	cfg := Config{
@@ -417,11 +503,11 @@ func BenchmarkPythonBuild(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		PythonBuild(context.Background(), cfg)
+		PythonBuild(b.Context(), cfg)
 	}
 }
 
-// BenchmarkPythonBuildWithComposition benchmarks composed build functions
+// BenchmarkPythonBuildWithComposition benchmarks composed build functions.
 func BenchmarkPythonBuildWithComposition(b *testing.B) {
 	cfg := Config{
 		SourceDir: "/nonexistent",
@@ -430,7 +516,7 @@ func BenchmarkPythonBuildWithComposition(b *testing.B) {
 
 	b.Run("Plain", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			PythonBuild(context.Background(), cfg)
+			PythonBuild(b.Context(), cfg)
 		}
 	})
 
@@ -440,7 +526,7 @@ func BenchmarkPythonBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			cachedBuild(context.Background(), cfg)
+			cachedBuild(b.Context(), cfg)
 		}
 	})
 
@@ -453,7 +539,7 @@ func BenchmarkPythonBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			loggedBuild(context.Background(), cfg)
+			loggedBuild(b.Context(), cfg)
 		}
 	})
 
@@ -471,7 +557,7 @@ func BenchmarkPythonBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			composed(context.Background(), cfg)
+			composed(b.Context(), cfg)
 		}
 	})
 }

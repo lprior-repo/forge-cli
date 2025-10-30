@@ -151,4 +151,122 @@ func TestDestroyOptions(t *testing.T) {
 		assert.True(t, cfg.AutoApprove)
 		assert.Equal(t, "cleanup.tfvars", cfg.VarFile)
 	})
+
+	t.Run("applyDestroyOptions with no options returns defaults", func(t *testing.T) {
+		cfg := applyDestroyOptions()
+
+		assert.False(t, cfg.AutoApprove, "AutoApprove should default to false")
+		assert.Equal(t, "", cfg.VarFile, "VarFile should default to empty string")
+	})
+}
+
+// TestOptionEdgeCases tests edge cases for all option types
+func TestOptionEdgeCases(t *testing.T) {
+	t.Run("InitOptions with empty BackendConfig", func(t *testing.T) {
+		cfg := applyInitOptions(BackendConfig(""))
+		assert.Contains(t, cfg.BackendConfig, "")
+		assert.Len(t, cfg.BackendConfig, 1)
+	})
+
+	t.Run("InitOptions with multiple BackendConfig values", func(t *testing.T) {
+		cfg := applyInitOptions(
+			BackendConfig("key1=value1"),
+			BackendConfig("key2=value2"),
+			BackendConfig("key3=value3"),
+		)
+		assert.Len(t, cfg.BackendConfig, 3)
+		assert.Equal(t, "key1=value1", cfg.BackendConfig[0])
+		assert.Equal(t, "key2=value2", cfg.BackendConfig[1])
+		assert.Equal(t, "key3=value3", cfg.BackendConfig[2])
+	})
+
+	t.Run("PlanOptions with empty VarFile", func(t *testing.T) {
+		cfg := applyPlanOptions(PlanVarFile(""))
+		assert.Equal(t, "", cfg.VarFile)
+	})
+
+	t.Run("PlanOptions with multiple Var calls", func(t *testing.T) {
+		cfg := applyPlanOptions(
+			PlanVar("key1", "value1"),
+			PlanVar("key2", "value2"),
+			PlanVar("key1", "updated"), // Override
+		)
+		assert.Len(t, cfg.Vars, 2)
+		assert.Equal(t, "updated", cfg.Vars["key1"])
+		assert.Equal(t, "value2", cfg.Vars["key2"])
+	})
+
+	t.Run("ApplyOptions with multiple Var calls", func(t *testing.T) {
+		cfg := applyApplyOptions(
+			ApplyVar("key1", "value1"),
+			ApplyVar("key2", "value2"),
+			ApplyVar("key1", "updated"), // Override
+		)
+		assert.Len(t, cfg.Vars, 2)
+		assert.Equal(t, "updated", cfg.Vars["key1"])
+		assert.Equal(t, "value2", cfg.Vars["key2"])
+	})
+
+	t.Run("ApplyOptions with empty VarFile", func(t *testing.T) {
+		cfg := applyApplyOptions(ApplyVarFile(""))
+		assert.Equal(t, "", cfg.VarFile)
+	})
+
+	t.Run("ApplyOptions with empty PlanFile", func(t *testing.T) {
+		cfg := applyApplyOptions(ApplyPlanFile(""))
+		assert.Equal(t, "", cfg.PlanFile)
+	})
+
+	t.Run("DestroyOptions with empty VarFile", func(t *testing.T) {
+		cfg := applyDestroyOptions(DestroyVarFile(""))
+		assert.Equal(t, "", cfg.VarFile)
+	})
+
+	t.Run("Options can be composed in any order", func(t *testing.T) {
+		cfg1 := applyInitOptions(Upgrade(true), Backend(false))
+		cfg2 := applyInitOptions(Backend(false), Upgrade(true))
+
+		assert.Equal(t, cfg1.Upgrade, cfg2.Upgrade)
+		assert.Equal(t, cfg1.Backend, cfg2.Backend)
+	})
+
+	t.Run("PlanVar initializes empty map", func(t *testing.T) {
+		cfg := &PlanConfig{Vars: nil}
+		PlanVar("key", "value")(cfg)
+		assert.NotNil(t, cfg.Vars)
+		assert.Equal(t, "value", cfg.Vars["key"])
+	})
+
+	t.Run("ApplyVar initializes empty map", func(t *testing.T) {
+		cfg := &ApplyConfig{Vars: nil}
+		ApplyVar("key", "value")(cfg)
+		assert.NotNil(t, cfg.Vars)
+		assert.Equal(t, "value", cfg.Vars["key"])
+	})
+
+	t.Run("Options with false values", func(t *testing.T) {
+		cfg := applyInitOptions(
+			Upgrade(false),
+			Backend(true), // Explicitly set to true (overrides default)
+			Reconfigure(false),
+		)
+		assert.False(t, cfg.Upgrade)
+		assert.True(t, cfg.Backend)
+		assert.False(t, cfg.Reconfigure)
+	})
+
+	t.Run("PlanDestroy with false", func(t *testing.T) {
+		cfg := applyPlanOptions(PlanDestroy(false))
+		assert.False(t, cfg.Destroy)
+	})
+
+	t.Run("AutoApprove with false", func(t *testing.T) {
+		cfg := applyApplyOptions(AutoApprove(false))
+		assert.False(t, cfg.AutoApprove)
+	})
+
+	t.Run("DestroyAutoApprove with false", func(t *testing.T) {
+		cfg := applyDestroyOptions(DestroyAutoApprove(false))
+		assert.False(t, cfg.AutoApprove)
+	})
 }

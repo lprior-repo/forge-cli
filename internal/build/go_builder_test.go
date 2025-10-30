@@ -1,7 +1,6 @@
 package build
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,14 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestGoBuildSignature tests that GoBuild has correct signature
+// TestGoBuildSignature tests that GoBuild has correct signature.
 func TestGoBuildSignature(t *testing.T) {
 	t.Run("GoBuild matches BuildFunc signature", func(t *testing.T) {
 		// GoBuild should be assignable to BuildFunc
 		var buildFunc BuildFunc = GoBuild
 
 		// Should compile and work with functional patterns
-		result := buildFunc(context.Background(), Config{
+		result := buildFunc(t.Context(), Config{
 			SourceDir: "/nonexistent",
 			Runtime:   "provided.al2023",
 			Handler:   "main.go",
@@ -36,13 +35,13 @@ func TestGoBuildSignature(t *testing.T) {
 			Handler:    "main.go",
 		}
 
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should return Left on error")
 	})
 }
 
-// TestGoBuildPure tests that GoBuild is a pure function
+// TestGoBuildPure tests that GoBuild is a pure function.
 func TestGoBuildPure(t *testing.T) {
 	t.Run("same inputs produce same result", func(t *testing.T) {
 		cfg := Config{
@@ -52,8 +51,8 @@ func TestGoBuildPure(t *testing.T) {
 			Handler:    "main.go",
 		}
 
-		result1 := GoBuild(context.Background(), cfg)
-		result2 := GoBuild(context.Background(), cfg)
+		result1 := GoBuild(t.Context(), cfg)
+		result2 := GoBuild(t.Context(), cfg)
 
 		// Both should fail the same way
 		assert.Equal(t, E.IsLeft(result1), E.IsLeft(result2))
@@ -67,8 +66,8 @@ func TestGoBuildPure(t *testing.T) {
 		}
 
 		// Multiple calls should produce consistent error results
-		result1 := GoBuild(context.Background(), cfg)
-		result2 := GoBuild(context.Background(), cfg)
+		result1 := GoBuild(t.Context(), cfg)
+		result2 := GoBuild(t.Context(), cfg)
 
 		// Both should return Left (error)
 		assert.True(t, E.IsLeft(result1))
@@ -76,7 +75,7 @@ func TestGoBuildPure(t *testing.T) {
 	})
 }
 
-// TestGoBuildComposition tests GoBuild with functional composition
+// TestGoBuildComposition tests GoBuild with functional composition.
 func TestGoBuildComposition(t *testing.T) {
 	t.Run("composes with WithCache", func(t *testing.T) {
 		cache := NewMemoryCache()
@@ -118,7 +117,7 @@ func TestGoBuildComposition(t *testing.T) {
 	})
 }
 
-// TestGoBuildRegistry tests GoBuild in registry
+// TestGoBuildRegistry tests GoBuild in registry.
 func TestGoBuildRegistry(t *testing.T) {
 	t.Run("registry contains Go runtimes", func(t *testing.T) {
 		registry := NewRegistry()
@@ -139,9 +138,9 @@ func TestGoBuildRegistry(t *testing.T) {
 		// We can test this by checking they behave identically
 		cfg := Config{SourceDir: "/nonexistent", Handler: "main.go"}
 
-		result1x := builderGo1x(context.Background(), cfg)
-		resultAl2 := builderAl2(context.Background(), cfg)
-		resultAl2023 := builderAl2023(context.Background(), cfg)
+		result1x := builderGo1x(t.Context(), cfg)
+		resultAl2 := builderAl2(t.Context(), cfg)
+		resultAl2023 := builderAl2023(t.Context(), cfg)
 
 		// All should fail the same way
 		assert.Equal(t, E.IsLeft(result1x), E.IsLeft(resultAl2))
@@ -149,7 +148,7 @@ func TestGoBuildRegistry(t *testing.T) {
 	})
 }
 
-// TestGoBuildBasic tests basic Go build
+// TestGoBuildBasic tests basic Go build.
 func TestGoBuildBasic(t *testing.T) {
 	t.Run("builds simple Go Lambda function", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -168,7 +167,7 @@ func Handler(ctx context.Context, event interface{}) (interface{}, error) {
 	return map[string]string{"message": "Hello"}, nil
 }
 `
-		err := os.WriteFile(mainPath, []byte(mainContent), 0644)
+		err := os.WriteFile(mainPath, []byte(mainContent), 0o644)
 		require.NoError(t, err)
 
 		// Create go.mod
@@ -177,7 +176,7 @@ func Handler(ctx context.Context, event interface{}) (interface{}, error) {
 
 go 1.21
 `
-		err = os.WriteFile(modPath, []byte(modContent), 0644)
+		err = os.WriteFile(modPath, []byte(modContent), 0o644)
 		require.NoError(t, err)
 
 		outputPath := filepath.Join(tmpDir, "bootstrap")
@@ -188,7 +187,7 @@ go 1.21
 			Handler:    ".",
 		}
 
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsRight(result), "Should succeed for simple Go function")
 
@@ -209,7 +208,7 @@ go 1.21
 	})
 }
 
-// TestGoBuildErrorHandling tests error scenarios
+// TestGoBuildErrorHandling tests error scenarios.
 func TestGoBuildErrorHandling(t *testing.T) {
 	t.Run("returns error for invalid Go code", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -220,7 +219,7 @@ func TestGoBuildErrorHandling(t *testing.T) {
 
 this is not valid Go code
 `
-		err := os.WriteFile(mainPath, []byte(invalidCode), 0644)
+		err := os.WriteFile(mainPath, []byte(invalidCode), 0o644)
 		require.NoError(t, err)
 
 		// Create go.mod
@@ -229,7 +228,7 @@ this is not valid Go code
 
 go 1.21
 `
-		err = os.WriteFile(modPath, []byte(modContent), 0644)
+		err = os.WriteFile(modPath, []byte(modContent), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -238,14 +237,14 @@ go 1.21
 			Handler:   ".",
 		}
 
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should fail with invalid Go code")
 
 		// Extract error
 		buildErr := E.Fold(
 			func(e error) error { return e },
-			func(a Artifact) error { return nil },
+			func(_ Artifact) error { return nil },
 		)(result)
 
 		assert.NotNil(t, buildErr)
@@ -259,13 +258,13 @@ go 1.21
 			Handler:   ".",
 		}
 
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should fail with missing source directory")
 	})
 }
 
-// TestGoBuildOutputPath tests output path handling
+// TestGoBuildOutputPath tests output path handling.
 func TestGoBuildOutputPath(t *testing.T) {
 	t.Run("uses default output path if not specified", func(t *testing.T) {
 		cfg := Config{
@@ -293,7 +292,7 @@ func TestGoBuildOutputPath(t *testing.T) {
 	})
 }
 
-// TestGoBuildEnvironment tests environment variable handling
+// TestGoBuildEnvironment tests environment variable handling.
 func TestGoBuildEnvironment(t *testing.T) {
 	t.Run("sets required Lambda environment variables", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -304,7 +303,7 @@ func TestGoBuildEnvironment(t *testing.T) {
 
 func main() {}
 `
-		err := os.WriteFile(mainPath, []byte(mainContent), 0644)
+		err := os.WriteFile(mainPath, []byte(mainContent), 0o644)
 		require.NoError(t, err)
 
 		// Create go.mod
@@ -313,7 +312,7 @@ func main() {}
 
 go 1.21
 `
-		err = os.WriteFile(modPath, []byte(modContent), 0644)
+		err = os.WriteFile(modPath, []byte(modContent), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -326,7 +325,7 @@ go 1.21
 		}
 
 		// This will attempt to build with custom env vars
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		// Should succeed or fail consistently
 		_ = result // Environment is set internally, hard to test directly without mocking
@@ -341,7 +340,7 @@ go 1.21
 
 func main() {}
 `
-		err := os.WriteFile(mainPath, []byte(mainContent), 0644)
+		err := os.WriteFile(mainPath, []byte(mainContent), 0o644)
 		require.NoError(t, err)
 
 		// Create go.mod
@@ -350,7 +349,7 @@ func main() {}
 
 go 1.21
 `
-		err = os.WriteFile(modPath, []byte(modContent), 0644)
+		err = os.WriteFile(modPath, []byte(modContent), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -365,7 +364,7 @@ go 1.21
 		}
 
 		// Build should process all environment variables
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		// Should succeed (all env vars should be set)
 		assert.True(t, E.IsRight(result), "Should handle multiple env vars")
@@ -380,7 +379,7 @@ go 1.21
 
 func main() {}
 `
-		err := os.WriteFile(mainPath, []byte(mainContent), 0644)
+		err := os.WriteFile(mainPath, []byte(mainContent), 0o644)
 		require.NoError(t, err)
 
 		// Create go.mod
@@ -389,7 +388,7 @@ func main() {}
 
 go 1.21
 `
-		err = os.WriteFile(modPath, []byte(modContent), 0644)
+		err = os.WriteFile(modPath, []byte(modContent), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -400,14 +399,14 @@ go 1.21
 		}
 
 		// Build should succeed with no custom env vars
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		// Should succeed
 		assert.True(t, E.IsRight(result), "Should handle empty env map")
 	})
 }
 
-// Benchmark GoBuild function
+// Benchmark GoBuild function.
 func BenchmarkGoBuild(b *testing.B) {
 	// Setup a basic project (this will fail, but we're benchmarking the function overhead)
 	cfg := Config{
@@ -419,11 +418,11 @@ func BenchmarkGoBuild(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		GoBuild(context.Background(), cfg)
+		GoBuild(b.Context(), cfg)
 	}
 }
 
-// BenchmarkGoBuildWithComposition benchmarks composed build functions
+// BenchmarkGoBuildWithComposition benchmarks composed build functions.
 func BenchmarkGoBuildWithComposition(b *testing.B) {
 	cfg := Config{
 		SourceDir: "/nonexistent",
@@ -433,7 +432,7 @@ func BenchmarkGoBuildWithComposition(b *testing.B) {
 
 	b.Run("Plain", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			GoBuild(context.Background(), cfg)
+			GoBuild(b.Context(), cfg)
 		}
 	})
 
@@ -443,7 +442,7 @@ func BenchmarkGoBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			cachedBuild(context.Background(), cfg)
+			cachedBuild(b.Context(), cfg)
 		}
 	})
 
@@ -456,7 +455,7 @@ func BenchmarkGoBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			loggedBuild(context.Background(), cfg)
+			loggedBuild(b.Context(), cfg)
 		}
 	})
 
@@ -474,7 +473,7 @@ func BenchmarkGoBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			composed(context.Background(), cfg)
+			composed(b.Context(), cfg)
 		}
 	})
 }

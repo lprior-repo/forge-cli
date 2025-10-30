@@ -272,7 +272,7 @@ func TestModule_Configuration(t *testing.T) {
 		config, err := module.Configuration()
 
 		// Current implementation is a placeholder
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, config)
 	})
 }

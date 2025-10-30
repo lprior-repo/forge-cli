@@ -252,10 +252,10 @@ func NewModule(name string) *Module {
 		CreateTable: &create,
 
 		// Sensible defaults
-		BillingMode:                    &billingMode,
-		PointInTimeRecoveryEnabled:     &pitrEnabled,
-		ServerSideEncryptionEnabled:    &pitrEnabled,
-		DeletionProtectionEnabled:      &pitrEnabled,
+		BillingMode:                 &billingMode,
+		PointInTimeRecoveryEnabled:  &pitrEnabled,
+		ServerSideEncryptionEnabled: &pitrEnabled,
+		DeletionProtectionEnabled:   &pitrEnabled,
 		Timeouts: map[string]string{
 			"create": "10m",
 			"update": "60m",

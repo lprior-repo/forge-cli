@@ -247,7 +247,7 @@ func TestWithValidation(t *testing.T) {
 
 		err := WithValidation(module)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("returns nil when validation succeeds", func(t *testing.T) {
@@ -258,7 +258,7 @@ func TestWithValidation(t *testing.T) {
 
 		err := WithValidation(validator)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -374,7 +374,7 @@ func TestStack_ToHCL(t *testing.T) {
 
 		hcl, err := stack.ToHCL()
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, hcl)
 	})
 
@@ -443,7 +443,7 @@ func TestStack_Validate(t *testing.T) {
 
 		err := stack.Validate()
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("validates stack with non-validator modules", func(t *testing.T) {
@@ -454,7 +454,7 @@ func TestStack_Validate(t *testing.T) {
 
 		err := stack.Validate()
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("validates stack with valid validator modules", func(t *testing.T) {
@@ -468,7 +468,7 @@ func TestStack_Validate(t *testing.T) {
 
 		err := stack.Validate()
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("returns error when validation fails", func(t *testing.T) {
@@ -519,7 +519,7 @@ func TestStack_Validate(t *testing.T) {
 
 		err := stack.Validate()
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -542,11 +542,11 @@ func TestStack_CompleteWorkflow(t *testing.T) {
 
 		// Validate
 		err := stack.Validate()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Generate HCL
 		hcl, err := stack.ToHCL()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, hcl, "# SQS config")
 		assert.Contains(t, hcl, "# DynamoDB config")
 		assert.Contains(t, hcl, "# SNS config")
@@ -570,7 +570,7 @@ func TestModule_Interface(t *testing.T) {
 
 		// Configuration method exists
 		config, err := module.Configuration()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "config", config)
 	})
 }
@@ -585,7 +585,7 @@ func TestValidator_Interface(t *testing.T) {
 
 		err := WithValidation(validator)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 

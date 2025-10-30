@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
-// createAWSSession creates an AWS session for testing
+// createAWSSession creates an AWS session for testing.
 func createAWSSession(t *testing.T, region string) *session.Session {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
@@ -20,7 +20,7 @@ func createAWSSession(t *testing.T, region string) *session.Session {
 	return sess
 }
 
-// getAWSRegion returns the AWS region from environment or default
+// getAWSRegion returns the AWS region from environment or default.
 func getAWSRegion() string {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
@@ -29,7 +29,7 @@ func getAWSRegion() string {
 	return region
 }
 
-// getProjectRoot finds the project root directory
+// getProjectRoot finds the project root directory.
 func getProjectRoot(t *testing.T) string {
 	// Start from current directory and walk up until we find go.mod
 	dir, err := os.Getwd()

@@ -9,20 +9,20 @@ data "archive_file" "lambda" {
 resource "aws_lambda_function" "main" {
   filename         = data.archive_file.lambda.output_path
   function_name    = "${var.service_name}-${var.environment}"
-  role            = aws_iam_role.lambda.arn
-  handler         = "service.handlers.handle_request.lambda_handler"
+  role             = aws_iam_role.lambda.arn
+  handler          = "service.handlers.handle_request.lambda_handler"
   source_code_hash = data.archive_file.lambda.output_base64sha256
-  runtime         = var.lambda_runtime
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory_size
+  runtime          = var.lambda_runtime
+  timeout          = var.lambda_timeout
+  memory_size      = var.lambda_memory_size
 
   environment {
     variables = {
-      POWERTOOLS_SERVICE_NAME      = var.service_name
-      LOG_LEVEL                    = "INFO"
-      ENVIRONMENT                  = var.environment
-      TABLE_NAME                   = aws_dynamodb_table.main.name
-      IDEMPOTENCY_TABLE_NAME       = aws_dynamodb_table.main.name
+      POWERTOOLS_SERVICE_NAME = var.service_name
+      LOG_LEVEL               = "INFO"
+      ENVIRONMENT             = var.environment
+      TABLE_NAME              = aws_dynamodb_table.main.name
+      IDEMPOTENCY_TABLE_NAME  = aws_dynamodb_table.main.name
     }
   }
 

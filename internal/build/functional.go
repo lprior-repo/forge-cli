@@ -10,13 +10,31 @@ import (
 	"github.com/samber/lo"
 )
 
-// BuildFunc is the core abstraction - a pure function that builds an artifact
-type BuildFunc func(context.Context, Config) E.Either[error, Artifact]
+// BuildFunc is the core abstraction - a pure function that builds an artifact.
+type (
+	// BuildFunc defines the signature for a builder function.
+	BuildFunc func(context.Context, Config) E.Either[error, Artifact]
 
-// Registry is a map of runtime to build function
-type Registry map[string]BuildFunc
+	// Registry maps runtime names to their builder functions.
+	Registry map[string]BuildFunc
+)
 
-// NewRegistry creates a functional builder registry with latest Lambda runtimes
+// Cache interface for caching build artifacts.
+type (
+	// Cache provides build artifact caching capabilities.
+	Cache interface {
+		Get(cfg Config) (Artifact, bool)
+		Set(cfg Config, artifact Artifact)
+	}
+
+	// Logger provides structured logging capabilities.
+	Logger interface {
+		Info(msg string, args ...interface{})
+		Error(msg string, args ...interface{})
+	}
+)
+
+// NewRegistry creates a functional builder registry with latest Lambda runtimes.
 func NewRegistry() Registry {
 	return Registry{
 		// Go runtimes (use provided.al2023 for latest)
@@ -43,8 +61,8 @@ func NewRegistry() Registry {
 	}
 }
 
-// GetBuilder retrieves a builder for the given runtime (returns Option type)
-// Pure function - no methods, takes Registry as parameter
+// GetBuilder retrieves a builder for the given runtime (returns Option type).
+// Pure function - no methods, takes Registry as parameter.
 func GetBuilder(r Registry, runtime string) O.Option[BuildFunc] {
 	if builder, ok := r[runtime]; ok {
 		return O.Some(builder)
@@ -52,9 +70,9 @@ func GetBuilder(r Registry, runtime string) O.Option[BuildFunc] {
 	return O.None[BuildFunc]()
 }
 
-// BuildAll builds multiple configs using functional sequence pattern
-// Uses Array.Reduce to convert []Either[error, Artifact] to Either[error, []Artifact]
-// Automatically short-circuits on first error (railway-oriented programming)
+// BuildAll builds multiple configs using functional sequence pattern.
+// Uses Array.Reduce to convert []Either[error, Artifact] to Either[error, []Artifact].
+// Automatically short-circuits on first error (railway-oriented programming).
 func BuildAll(ctx context.Context, configs []Config, registry Registry) E.Either[error, []Artifact] {
 	// Map configs to build results ([]Either[error, Artifact])
 	buildResults := A.Map(func(cfg Config) E.Either[error, Artifact] {
@@ -77,9 +95,9 @@ func BuildAll(ctx context.Context, configs []Config, registry Registry) E.Either
 	return sequenceEithers(buildResults)
 }
 
-// sequenceEithers converts []Either[E, A] to Either[E, []A]
-// Short-circuits on first Left (error), otherwise collects all Right values
-// PURE: Calculation - deterministic transformation
+// sequenceEithers converts []Either[E, A] to Either[E, []A].
+// Short-circuits on first Left (error), otherwise collects all Right values.
+// PURE: Calculation - deterministic transformation.
 func sequenceEithers(eithers []E.Either[error, Artifact]) E.Either[error, []Artifact] {
 	return A.Reduce(
 		func(acc E.Either[error, []Artifact], item E.Either[error, Artifact]) E.Either[error, []Artifact] {
@@ -97,7 +115,7 @@ func sequenceEithers(eithers []E.Either[error, Artifact]) E.Either[error, []Arti
 	)(eithers)
 }
 
-// WithCache is a higher-order function that adds caching to a builder
+// WithCache is a higher-order function that adds caching to a builder.
 func WithCache(cache Cache) func(BuildFunc) BuildFunc {
 	return func(build BuildFunc) BuildFunc {
 		return func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
@@ -110,6 +128,7 @@ func WithCache(cache Cache) func(BuildFunc) BuildFunc {
 			result := build(ctx, cfg)
 
 			// Store in cache if successful (use Fold to handle both cases)
+			//nolint:errcheck // Fold return value is used for side effect only (caching)
 			E.Fold(
 				func(err error) error {
 					// Left case (error) - do nothing
@@ -127,7 +146,7 @@ func WithCache(cache Cache) func(BuildFunc) BuildFunc {
 	}
 }
 
-// WithLogging is a higher-order function that adds logging to a builder
+// WithLogging is a higher-order function that adds logging to a builder.
 func WithLogging(log Logger) func(BuildFunc) BuildFunc {
 	return func(build BuildFunc) BuildFunc {
 		return func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
@@ -136,12 +155,13 @@ func WithLogging(log Logger) func(BuildFunc) BuildFunc {
 			result := build(ctx, cfg)
 
 			// Log based on result using Fold
+			//nolint:errcheck // Fold return value is used for side effect only (logging)
 			E.Fold(
 				func(err error) error {
 					log.Error("Build failed", "error", "build error")
 					return err
 				},
-				func(artifact Artifact) error {
+				func(_ Artifact) error {
 					log.Info("Build succeeded")
 					return nil
 				},
@@ -152,7 +172,7 @@ func WithLogging(log Logger) func(BuildFunc) BuildFunc {
 	}
 }
 
-// Compose multiple decorators functionally
+// Compose multiple decorators functionally.
 func Compose(decorators ...func(BuildFunc) BuildFunc) func(BuildFunc) BuildFunc {
 	return func(build BuildFunc) BuildFunc {
 		// Reverse decorators for right-to-left composition (like mathematical composition)
@@ -166,16 +186,4 @@ func Compose(decorators ...func(BuildFunc) BuildFunc) func(BuildFunc) BuildFunc 
 			return decorator(acc)
 		}, build)
 	}
-}
-
-// Cache interface for caching build artifacts
-type Cache interface {
-	Get(Config) (Artifact, bool)
-	Set(Config, Artifact)
-}
-
-// Logger interface for logging
-type Logger interface {
-	Info(msg string, args ...interface{})
-	Error(msg string, args ...interface{})
 }

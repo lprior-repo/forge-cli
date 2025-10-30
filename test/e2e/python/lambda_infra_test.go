@@ -1,5 +1,5 @@
 //go:build e2e
-// +build e2e
+// +build e2e.
 
 package python
 
@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestPythonLambdaInfrastructure tests the generated Python Lambda infrastructure
-// This is an E2E test that:
+// TestPythonLambdaInfrastructure tests the generated Python Lambda infrastructure.
+// This is an E2E test that:.
 // 1. Assumes the Python Lambda has been generated and built
 // 2. Deploys the infrastructure to AWS
 // 3. Verifies all resources are created correctly

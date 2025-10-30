@@ -4,7 +4,42 @@ package eventbridge
 
 // Module represents the terraform-aws-modules/eventbridge/aws module.
 // All fields use pointers to distinguish between "not set" (nil) and "set to zero value".
-type Module struct {
+//
+// Rule represents an EventBridge rule.
+//
+// Target represents an EventBridge target.
+//
+// InputTransformer represents input transformation configuration.
+//
+// RetryPolicy represents retry policy configuration.
+//
+// ECSTarget represents ECS task configuration for EventBridge target.
+//
+// NetworkConfiguration represents network configuration for ECS tasks.
+//
+// AWSVPCConfiguration represents VPC configuration.
+//
+// Archive represents an EventBridge archive.
+//
+// Permission represents an EventBridge permission.
+//
+// PermissionCondition represents a permission condition.
+//
+// Connection represents an EventBridge connection.
+//
+// APIDestination represents an EventBridge API destination.
+//
+// ScheduleGroup represents an EventBridge schedule group.
+//
+// Schedule represents an EventBridge schedule.
+//
+// FlexibleTimeWindow represents flexible time window configuration.
+//
+// ScheduleTarget represents a schedule target.
+//
+// Pipe represents an EventBridge pipe.
+type (
+	Module struct {
 	// Source is the Terraform module source
 	Source string `json:"source" hcl:"source,attr"`
 
@@ -130,10 +165,9 @@ type Module struct {
 
 	// CreateSchemasDiscoverer controls whether default schemas discoverer should be created
 	CreateSchemasDiscoverer *bool `json:"create_schemas_discoverer,omitempty" hcl:"create_schemas_discoverer,attr"`
-}
+	}
 
-// Rule represents an EventBridge rule
-type Rule struct {
+	Rule struct {
 	// Name is the rule name (optional, auto-generated if not set)
 	Name *string `json:"name,omitempty" hcl:"name,attr"`
 
@@ -154,10 +188,9 @@ type Rule struct {
 
 	// RoleARN is the IAM role ARN for the rule
 	RoleARN *string `json:"role_arn,omitempty" hcl:"role_arn,attr"`
-}
+	}
 
-// Target represents an EventBridge target
-type Target struct {
+	Target struct {
 	// Name is the target name
 	Name *string `json:"name,omitempty" hcl:"name,attr"`
 
@@ -181,6 +214,9 @@ type Target struct {
 
 	// RetryPolicy configures retry behavior
 	RetryPolicy *RetryPolicy `json:"retry_policy,omitempty" hcl:"retry_policy,attr"`
+
+	// ECSTarget configures ECS task parameters
+	ECSTarget *ECSTarget `json:"ecs_target,omitempty" hcl:"ecs_target,attr"`
 }
 
 // InputTransformer represents input transformation configuration
@@ -199,6 +235,42 @@ type RetryPolicy struct {
 
 	// MaximumRetryAttempts is the maximum number of retries (0-185)
 	MaximumRetryAttempts *int `json:"maximum_retry_attempts,omitempty" hcl:"maximum_retry_attempts,attr"`
+}
+
+// ECSTarget represents ECS task configuration for EventBridge target
+type ECSTarget struct {
+	// TaskDefinitionARN is the ECS task definition ARN
+	TaskDefinitionARN string `json:"task_definition_arn" hcl:"task_definition_arn,attr"`
+
+	// TaskCount is the number of tasks to create (default 1)
+	TaskCount *int `json:"task_count,omitempty" hcl:"task_count,attr"`
+
+	// LaunchType is the launch type (EC2 or FARGATE)
+	LaunchType *string `json:"launch_type,omitempty" hcl:"launch_type,attr"`
+
+	// PlatformVersion is the Fargate platform version
+	PlatformVersion *string `json:"platform_version,omitempty" hcl:"platform_version,attr"`
+
+	// NetworkConfiguration for Fargate tasks
+	NetworkConfiguration *NetworkConfiguration `json:"network_configuration,omitempty" hcl:"network_configuration,attr"`
+}
+
+// NetworkConfiguration represents network configuration for ECS tasks
+type NetworkConfiguration struct {
+	// AWSVPCConfiguration for VPC settings
+	AWSVPCConfiguration *AWSVPCConfiguration `json:"awsvpc_configuration,omitempty" hcl:"awsvpc_configuration,attr"`
+}
+
+// AWSVPCConfiguration represents VPC configuration
+type AWSVPCConfiguration struct {
+	// Subnets is the list of subnet IDs
+	Subnets []string `json:"subnets" hcl:"subnets,attr"`
+
+	// SecurityGroups is the list of security group IDs
+	SecurityGroups []string `json:"security_groups,omitempty" hcl:"security_groups,attr"`
+
+	// AssignPublicIP controls public IP assignment (ENABLED or DISABLED)
+	AssignPublicIP *string `json:"assign_public_ip,omitempty" hcl:"assign_public_ip,attr"`
 }
 
 // Archive represents an EventBridge archive
@@ -436,6 +508,94 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 		m.Tags[k] = v
 	}
 	return m
+}
+
+// ================================
+// Integration Helper Methods
+// ================================
+
+// WithLambdaTarget adds a Lambda function as a target for a rule
+func (m *Module) WithLambdaTarget(ruleKey, lambdaARN string) *Module {
+	target := Target{
+		ARN: lambdaARN,
+	}
+	return m.WithTarget(ruleKey, target)
+}
+
+// WithSQSTarget adds an SQS queue as a target for a rule
+func (m *Module) WithSQSTarget(ruleKey, queueARN string) *Module {
+	target := Target{
+		ARN: queueARN,
+	}
+	return m.WithTarget(ruleKey, target)
+}
+
+// WithSNSTarget adds an SNS topic as a target for a rule
+func (m *Module) WithSNSTarget(ruleKey, topicARN string) *Module {
+	target := Target{
+		ARN: topicARN,
+	}
+	return m.WithTarget(ruleKey, target)
+}
+
+// WithStepFunctionsTarget adds a Step Functions state machine as a target for a rule
+func (m *Module) WithStepFunctionsTarget(ruleKey, stateMachineARN string) *Module {
+	target := Target{
+		ARN: stateMachineARN,
+	}
+	return m.WithTarget(ruleKey, target)
+}
+
+// WithKinesisTarget adds a Kinesis stream as a target for a rule
+func (m *Module) WithKinesisTarget(ruleKey, streamARN string) *Module {
+	target := Target{
+		ARN: streamARN,
+	}
+	return m.WithTarget(ruleKey, target)
+}
+
+// WithECSTarget adds an ECS task as a target for a rule
+func (m *Module) WithECSTarget(ruleKey, clusterARN, taskDefinitionARN string, subnets []string) *Module {
+	target := Target{
+		ARN: clusterARN,
+		ECSTarget: &ECSTarget{
+			TaskDefinitionARN: taskDefinitionARN,
+			NetworkConfiguration: &NetworkConfiguration{
+				AWSVPCConfiguration: &AWSVPCConfiguration{
+					Subnets: subnets,
+				},
+			},
+		},
+	}
+	return m.WithTarget(ruleKey, target)
+}
+
+// WithEventPattern creates a rule with an event pattern
+func (m *Module) WithEventPatternRule(key, description, eventPattern string, enabled bool) *Module {
+	rule := Rule{
+		Description:  &description,
+		EventPattern: &eventPattern,
+		Enabled:      &enabled,
+	}
+	return m.WithRule(key, rule)
+}
+
+// WithScheduleRule creates a rule with a schedule expression
+func (m *Module) WithScheduleRule(key, description, scheduleExpression string, enabled bool) *Module {
+	rule := Rule{
+		Description:        &description,
+		ScheduleExpression: &scheduleExpression,
+		Enabled:            &enabled,
+	}
+	return m.WithRule(key, rule)
+}
+
+// WithAPIDestinationTarget adds an API destination as a target for a rule
+func (m *Module) WithAPIDestinationTarget(ruleKey, destinationARN string) *Module {
+	target := Target{
+		ARN: destinationARN,
+	}
+	return m.WithTarget(ruleKey, target)
 }
 
 // LocalName returns the local identifier for this module instance

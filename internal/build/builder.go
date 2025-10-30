@@ -6,36 +6,42 @@ package build
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 )
 
-// Config holds build configuration (immutable)
-type Config struct {
-	SourceDir  string            // Source code directory
-	OutputPath string            // Output file path
-	Handler    string            // Handler path/name
-	Runtime    string            // Runtime (go1.x, python3.11, etc.)
-	Env        map[string]string // Environment variables for build
-}
+// Config holds build configuration (immutable).
+type (
+	// Config struct stores all build parameters.
+	Config struct {
+		SourceDir  string            // Source code directory
+		OutputPath string            // Output file path
+		Handler    string            // Handler path/name
+		Runtime    string            // Runtime (go1.x, python3.11, etc.)
+		Env        map[string]string // Environment variables for build
+	}
 
-// Artifact represents a built artifact (immutable)
-type Artifact struct {
-	Path     string
-	Checksum string
-	Size     int64
-}
+	// Artifact represents a built artifact with metadata.
+	Artifact struct {
+		Path     string
+		Checksum string
+		Size     int64
+	}
+)
 
-// calculateChecksum computes SHA256 checksum of a file
+// calculateChecksum computes SHA256 checksum of a file.
 func calculateChecksum(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
 	defer func() {
-		_ = f.Close() // Error is not relevant after successful read
+		//nolint:errcheck // Defer close errors are not critical after successful read
+		_ = f.Close()
 	}()
 
 	h := sha256.New()
@@ -43,10 +49,10 @@ func calculateChecksum(path string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// getFileSize returns the size of a file
+// getFileSize returns the size of a file.
 func getFileSize(path string) (int64, error) {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -55,11 +61,11 @@ func getFileSize(path string) (int64, error) {
 	return info.Size(), nil
 }
 
-// executeCommand executes a command with given environment and working directory
-// ACTION: Performs I/O (process execution)
-func executeCommand(ctx context.Context, command []string, env []string, workDir string) error {
+// executeCommand executes a command with given environment and working directory.
+// ACTION: Performs I/O (process execution).
+func executeCommand(ctx context.Context, command, env []string, workDir string) error {
 	if len(command) == 0 {
-		return fmt.Errorf("empty command")
+		return errors.New("empty command")
 	}
 
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)

@@ -239,8 +239,8 @@ func TestFindTerraformPathFunction(t *testing.T) {
 	})
 }
 
-// TestNewCommandFlags tests NewNewCmd flag handling
-func TestNewCommandFlags(t *testing.T) {
+// TestNewCommandFlagsIntegration tests NewNewCmd flag handling in integration tests
+func TestNewCommandFlagsIntegration(t *testing.T) {
 	t.Run("stack flag is optional", func(t *testing.T) {
 		cmd := NewNewCmd()
 

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestIntegrationGoBuild tests building a real Go Lambda function
+// TestIntegrationGoBuild tests building a real Go Lambda function.
 func TestIntegrationGoBuild(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -42,7 +42,7 @@ func main() {
 	lambda.Start(handler)
 }
 `
-	err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(goCode), 0644)
+	err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(goCode), 0o644)
 	require.NoError(t, err)
 
 	// Create go.mod
@@ -52,7 +52,7 @@ go 1.22
 
 require github.com/aws/aws-lambda-go v1.47.0
 `
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0o644)
 	require.NoError(t, err)
 
 	// Run go mod download to populate go.sum
@@ -68,13 +68,13 @@ func main() {
 	println("Hello World")
 }
 `
-		err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(simpleGoCode), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(simpleGoCode), 0o644)
 		require.NoError(t, err)
 
 		simpleGoMod := `module test-lambda
 go 1.22
 `
-		err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(simpleGoMod), 0644)
+		err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(simpleGoMod), 0o644)
 		require.NoError(t, err)
 		cfg := Config{
 			SourceDir:  tmpDir,
@@ -82,12 +82,12 @@ go 1.22
 			Runtime:    "go1.x",
 		}
 
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		if E.IsLeft(result) {
 			err := E.Fold(
 				func(e error) error { return e },
-				func(a Artifact) error { return nil },
+				func(_ Artifact) error { return nil },
 			)(result)
 			t.Logf("Build failed with error: %v", err)
 		}
@@ -97,7 +97,7 @@ go 1.22
 		// Extract artifact
 		artifact := E.Fold(
 			func(e error) Artifact { return Artifact{} },
-			func(a Artifact) Artifact { return a },
+			func(_ Artifact) Artifact { return a },
 		)(result)
 
 		assert.FileExists(t, artifact.Path)
@@ -118,13 +118,13 @@ go 1.22
 			Runtime:    "go1.x",
 		}
 
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		require.True(t, E.IsRight(result), "Build with custom path should succeed")
 
 		artifact := E.Fold(
 			func(e error) Artifact { return Artifact{} },
-			func(a Artifact) Artifact { return a },
+			func(_ Artifact) Artifact { return a },
 		)(result)
 
 		assert.Equal(t, customPath, artifact.Path)
@@ -132,7 +132,7 @@ go 1.22
 	})
 }
 
-// TestIntegrationGoBuildFailure tests Go build failures
+// TestIntegrationGoBuildFailure tests Go build failures.
 func TestIntegrationGoBuildFailure(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -144,14 +144,14 @@ func main() {
 	lambda.Start(handler)
 }
 `
-	err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(invalidGoCode), 0644)
+	err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(invalidGoCode), 0o644)
 	require.NoError(t, err)
 
 	// Create go.mod
 	goMod := `module test-lambda
 go 1.22
 `
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0o644)
 	require.NoError(t, err)
 
 	t.Run("fails with invalid Go code", func(t *testing.T) {
@@ -161,13 +161,13 @@ go 1.22
 			Runtime:    "go1.x",
 		}
 
-		result := GoBuild(context.Background(), cfg)
+		result := GoBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Build should fail with invalid code")
 	})
 }
 
-// TestIntegrationPythonBuild tests building Python Lambda function
+// TestIntegrationPythonBuild tests building Python Lambda function.
 func TestIntegrationPythonBuild(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -181,7 +181,7 @@ def handler(event, context):
         'body': json.dumps({'message': f'Hello {name}'})
     }
 `
-	err := os.WriteFile(filepath.Join(tmpDir, "lambda_function.py"), []byte(pythonCode), 0644)
+	err := os.WriteFile(filepath.Join(tmpDir, "lambda_function.py"), []byte(pythonCode), 0o644)
 	require.NoError(t, err)
 
 	t.Run("builds Python Lambda function", func(t *testing.T) {
@@ -192,13 +192,13 @@ def handler(event, context):
 			Handler:    "lambda_function.handler",
 		}
 
-		result := PythonBuild(context.Background(), cfg)
+		result := PythonBuild(t.Context(), cfg)
 
 		require.True(t, E.IsRight(result), "Python build should succeed")
 
 		artifact := E.Fold(
 			func(e error) Artifact { return Artifact{} },
-			func(a Artifact) Artifact { return a },
+			func(_ Artifact) Artifact { return a },
 		)(result)
 
 		assert.FileExists(t, artifact.Path)
@@ -228,7 +228,7 @@ func TestIntegrationNodeBuild(t *testing.T) {
     };
 };
 `
-	err := os.WriteFile(filepath.Join(tmpDir, "index.js"), []byte(nodeCode), 0644)
+	err := os.WriteFile(filepath.Join(tmpDir, "index.js"), []byte(nodeCode), 0o644)
 	require.NoError(t, err)
 
 	t.Run("builds Node.js Lambda function", func(t *testing.T) {
@@ -239,13 +239,13 @@ func TestIntegrationNodeBuild(t *testing.T) {
 			Handler:    "index.handler",
 		}
 
-		result := NodeBuild(context.Background(), cfg)
+		result := NodeBuild(t.Context(), cfg)
 
 		require.True(t, E.IsRight(result), "Node build should succeed")
 
 		artifact := E.Fold(
 			func(e error) Artifact { return Artifact{} },
-			func(a Artifact) Artifact { return a },
+			func(_ Artifact) Artifact { return a },
 		)(result)
 
 		assert.FileExists(t, artifact.Path)
@@ -259,13 +259,13 @@ func TestIntegrationNodeBuild(t *testing.T) {
 	})
 }
 
-// TestIntegrationBuildAll tests building multiple configs
+// TestIntegrationBuildAll tests building multiple configs.
 func TestIntegrationBuildAll(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create Go function (simplified, no external deps)
 	goDir := filepath.Join(tmpDir, "go-function")
-	err := os.MkdirAll(goDir, 0755)
+	err := os.MkdirAll(goDir, 0o755)
 	require.NoError(t, err)
 
 	goCode := `package main
@@ -273,24 +273,24 @@ func main() {
 	println("Hello from Go")
 }
 `
-	err = os.WriteFile(filepath.Join(goDir, "main.go"), []byte(goCode), 0644)
+	err = os.WriteFile(filepath.Join(goDir, "main.go"), []byte(goCode), 0o644)
 	require.NoError(t, err)
 
 	goMod := `module test
 go 1.22
 `
-	err = os.WriteFile(filepath.Join(goDir, "go.mod"), []byte(goMod), 0644)
+	err = os.WriteFile(filepath.Join(goDir, "go.mod"), []byte(goMod), 0o644)
 	require.NoError(t, err)
 
 	// Create Python function
 	pyDir := filepath.Join(tmpDir, "py-function")
-	err = os.MkdirAll(pyDir, 0755)
+	err = os.MkdirAll(pyDir, 0o755)
 	require.NoError(t, err)
 
 	pyCode := `def handler(event, context):
     return {'message': 'Hello from Python'}
 `
-	err = os.WriteFile(filepath.Join(pyDir, "lambda_function.py"), []byte(pyCode), 0644)
+	err = os.WriteFile(filepath.Join(pyDir, "lambda_function.py"), []byte(pyCode), 0o644)
 	require.NoError(t, err)
 
 	t.Run("builds multiple functions in parallel", func(t *testing.T) {
@@ -309,7 +309,7 @@ go 1.22
 		}
 
 		registry := NewRegistry()
-		result := BuildAll(context.Background(), configs, registry)
+		result := BuildAll(t.Context(), configs, registry)
 
 		require.True(t, E.IsRight(result), "BuildAll should succeed")
 
@@ -324,7 +324,7 @@ go 1.22
 	})
 }
 
-// TestIntegrationWithCache tests caching functionality
+// TestIntegrationWithCache tests caching functionality.
 func TestIntegrationWithCache(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -333,13 +333,13 @@ func main() {
 	println("Hello")
 }
 `
-	err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(goCode), 0644)
+	err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(goCode), 0o644)
 	require.NoError(t, err)
 
 	goMod := `module test
 go 1.22
 `
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0o644)
 	require.NoError(t, err)
 
 	t.Run("cache speeds up second build", func(t *testing.T) {
@@ -353,29 +353,29 @@ go 1.22
 		cachedBuild := WithCache(cache)(GoBuild)
 
 		// First build - should execute
-		result1 := cachedBuild(context.Background(), cfg)
+		result1 := cachedBuild(t.Context(), cfg)
 		require.True(t, E.IsRight(result1))
 
 		// Second build - should use cache (much faster)
-		result2 := cachedBuild(context.Background(), cfg)
+		result2 := cachedBuild(t.Context(), cfg)
 		require.True(t, E.IsRight(result2))
 
 		// Both should return same artifact
 		artifact1 := E.Fold(
 			func(e error) Artifact { return Artifact{} },
-			func(a Artifact) Artifact { return a },
+			func(_ Artifact) Artifact { return a },
 		)(result1)
 
 		artifact2 := E.Fold(
 			func(e error) Artifact { return Artifact{} },
-			func(a Artifact) Artifact { return a },
+			func(_ Artifact) Artifact { return a },
 		)(result2)
 
 		assert.Equal(t, artifact1.Checksum, artifact2.Checksum)
 	})
 }
 
-// Simple cache implementation for testing
+// Simple cache implementation for testing.
 type memoryCache struct {
 	cache map[string]Artifact
 }

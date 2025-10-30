@@ -85,6 +85,16 @@ func TestScanner_ScanFunctions(t *testing.T) {
 			setupFiles:  map[string]string{},
 			expectError: true,
 		},
+		{
+			name: "skips files in functions directory",
+			setupFiles: map[string]string{
+				"src/functions/api/main.go": "package main",
+				"src/functions/README.md":   "not a function directory",
+			},
+			expectedFuncs: []Function{
+				{Name: "api", Runtime: "provided.al2023", EntryPoint: "main.go"},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -162,6 +172,12 @@ func TestScanner_detectRuntime(t *testing.T) {
 			expectedEntry: "index.mjs",
 		},
 		{
+			name:          "Node.js with handler.js",
+			files:         []string{"handler.js"},
+			expectedRT:    "nodejs20.x",
+			expectedEntry: "handler.js",
+		},
+		{
 			name:          "Python with app.py",
 			files:         []string{"app.py"},
 			expectedRT:    "python3.13",
@@ -174,8 +190,19 @@ func TestScanner_detectRuntime(t *testing.T) {
 			expectedEntry: "lambda_function.py",
 		},
 		{
+			name:          "Python with handler.py",
+			files:         []string{"handler.py"},
+			expectedRT:    "python3.13",
+			expectedEntry: "handler.py",
+		},
+		{
 			name:        "no recognized entry point",
 			files:       []string{"README.md"},
+			expectError: true,
+		},
+		{
+			name:        "empty directory",
+			files:       []string{},
 			expectError: true,
 		},
 	}
@@ -280,6 +307,74 @@ func TestFunction_ToBuildConfig(t *testing.T) {
 			assert.Equal(t, tt.expected["Runtime"], cfg.Runtime)
 			assert.Equal(t, tt.expected["Handler"], cfg.Handler)
 			assert.NotNil(t, cfg.Env)
+		})
+	}
+}
+
+func TestFunction_ToBuildConfig_ValidationErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		function    Function
+		buildDir    string
+		expectedErr string
+	}{
+		{
+			name: "empty function name",
+			function: Function{
+				Name:    "",
+				Path:    "/project/src/functions/api",
+				Runtime: "provided.al2023",
+			},
+			buildDir:    "/project/.forge/build",
+			expectedErr: "function name cannot be empty",
+		},
+		{
+			name: "empty runtime",
+			function: Function{
+				Name:    "api",
+				Path:    "/project/src/functions/api",
+				Runtime: "",
+			},
+			buildDir:    "/project/.forge/build",
+			expectedErr: "function runtime cannot be empty",
+		},
+		{
+			name: "empty path",
+			function: Function{
+				Name:    "api",
+				Path:    "",
+				Runtime: "provided.al2023",
+			},
+			buildDir:    "/project/.forge/build",
+			expectedErr: "function path cannot be empty",
+		},
+		{
+			name: "empty build directory",
+			function: Function{
+				Name:    "api",
+				Path:    "/project/src/functions/api",
+				Runtime: "provided.al2023",
+			},
+			buildDir:    "",
+			expectedErr: "build directory cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ToBuildConfig(tt.function, tt.buildDir)
+
+			// Verify Either is Left (error)
+			assert.True(t, E.IsLeft(result), "ToBuildConfig should return Left for invalid input")
+
+			// Extract error from Either
+			err := E.Fold(
+				func(e error) error { return e },
+				func(c build.Config) error { return nil },
+			)(result)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.expectedErr)
 		})
 	}
 }

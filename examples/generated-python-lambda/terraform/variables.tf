@@ -20,9 +20,9 @@ variable "tags" {
   description = "Resource tags"
   type        = map(string)
   default = {
-    Service     = "orders-service"
-    ManagedBy   = "Terraform"
-    Generator   = "Forge"
+    Service   = "orders-service"
+    ManagedBy = "Terraform"
+    Generator = "Forge"
   }
 }
 

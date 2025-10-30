@@ -1,7 +1,6 @@
 package build
 
 import (
-	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,14 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestNodeBuildSignature tests that NodeBuild has correct signature
+// TestNodeBuildSignature tests that NodeBuild has correct signature.
 func TestNodeBuildSignature(t *testing.T) {
 	t.Run("NodeBuild matches BuildFunc signature", func(t *testing.T) {
 		// NodeBuild should be assignable to BuildFunc
 		var buildFunc BuildFunc = NodeBuild
 
 		// Should compile and work with functional patterns
-		result := buildFunc(context.Background(), Config{
+		result := buildFunc(t.Context(), Config{
 			SourceDir: "/nonexistent",
 			Runtime:   "nodejs22.x",
 		})
@@ -35,13 +34,13 @@ func TestNodeBuildSignature(t *testing.T) {
 			Runtime:    "nodejs22.x",
 		}
 
-		result := NodeBuild(context.Background(), cfg)
+		result := NodeBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should return Left on error")
 	})
 }
 
-// TestNodeBuildPure tests that NodeBuild is a pure function
+// TestNodeBuildPure tests that NodeBuild is a pure function.
 func TestNodeBuildPure(t *testing.T) {
 	t.Run("same inputs produce same result", func(t *testing.T) {
 		cfg := Config{
@@ -50,8 +49,8 @@ func TestNodeBuildPure(t *testing.T) {
 			OutputPath: "/tmp/test.zip",
 		}
 
-		result1 := NodeBuild(context.Background(), cfg)
-		result2 := NodeBuild(context.Background(), cfg)
+		result1 := NodeBuild(t.Context(), cfg)
+		result2 := NodeBuild(t.Context(), cfg)
 
 		// Both should fail the same way
 		assert.Equal(t, E.IsLeft(result1), E.IsLeft(result2))
@@ -64,8 +63,8 @@ func TestNodeBuildPure(t *testing.T) {
 		}
 
 		// Multiple calls should produce consistent error results
-		result1 := NodeBuild(context.Background(), cfg)
-		result2 := NodeBuild(context.Background(), cfg)
+		result1 := NodeBuild(t.Context(), cfg)
+		result2 := NodeBuild(t.Context(), cfg)
 
 		// Both should return Left (error)
 		assert.True(t, E.IsLeft(result1))
@@ -73,7 +72,7 @@ func TestNodeBuildPure(t *testing.T) {
 	})
 }
 
-// TestNodeBuildComposition tests NodeBuild with functional composition
+// TestNodeBuildComposition tests NodeBuild with functional composition.
 func TestNodeBuildComposition(t *testing.T) {
 	t.Run("composes with WithCache", func(t *testing.T) {
 		cache := NewMemoryCache()
@@ -115,7 +114,7 @@ func TestNodeBuildComposition(t *testing.T) {
 	})
 }
 
-// TestNodeBuildRegistry tests NodeBuild in registry
+// TestNodeBuildRegistry tests NodeBuild in registry.
 func TestNodeBuildRegistry(t *testing.T) {
 	t.Run("registry contains Node.js runtimes", func(t *testing.T) {
 		registry := NewRegistry()
@@ -136,13 +135,66 @@ func TestNodeBuildRegistry(t *testing.T) {
 		// We can test this by checking they behave identically
 		cfg := Config{SourceDir: "/nonexistent"}
 
-		result18 := builder18(context.Background(), cfg)
-		result20 := builder20(context.Background(), cfg)
-		result22 := builder22(context.Background(), cfg)
+		result18 := builder18(t.Context(), cfg)
+		result20 := builder20(t.Context(), cfg)
+		result22 := builder22(t.Context(), cfg)
 
 		// All should fail the same way
 		assert.Equal(t, E.IsLeft(result18), E.IsLeft(result20))
 		assert.Equal(t, E.IsLeft(result20), E.IsLeft(result22))
+	})
+}
+
+// TestGenerateNodeBuildSpec tests the pure spec generation function.
+func TestGenerateNodeBuildSpec(t *testing.T) {
+	t.Run("generates spec without package.json or TypeScript", func(t *testing.T) {
+		cfg := Config{
+			SourceDir:  "/tmp/test",
+			OutputPath: "",
+			Runtime:    "nodejs22.x",
+		}
+
+		spec := GenerateNodeBuildSpec(cfg, false, false)
+
+		assert.Equal(t, filepath.Join("/tmp/test", "lambda.zip"), spec.OutputPath)
+		assert.Equal(t, "/tmp/test", spec.SourceDir)
+		assert.False(t, spec.HasPackageJSON)
+		assert.False(t, spec.HasTypeScript)
+		assert.Empty(t, spec.InstallCmd)
+		assert.Empty(t, spec.BuildCmd)
+	})
+
+	t.Run("generates spec with package.json but no TypeScript", func(t *testing.T) {
+		cfg := Config{
+			SourceDir:  "/tmp/test",
+			OutputPath: "/tmp/output.zip",
+			Runtime:    "nodejs22.x",
+		}
+
+		spec := GenerateNodeBuildSpec(cfg, true, false)
+
+		assert.True(t, spec.HasPackageJSON)
+		assert.False(t, spec.HasTypeScript)
+		assert.Contains(t, spec.InstallCmd, "npm")
+		assert.Contains(t, spec.InstallCmd, "install")
+		assert.Empty(t, spec.BuildCmd, "Should not have build cmd without TypeScript")
+	})
+
+	t.Run("generates spec with package.json and TypeScript", func(t *testing.T) {
+		cfg := Config{
+			SourceDir:  "/tmp/test",
+			OutputPath: "/tmp/output.zip",
+			Runtime:    "nodejs22.x",
+		}
+
+		spec := GenerateNodeBuildSpec(cfg, true, true)
+
+		assert.True(t, spec.HasPackageJSON)
+		assert.True(t, spec.HasTypeScript)
+		assert.Contains(t, spec.InstallCmd, "npm")
+		assert.Contains(t, spec.BuildCmd, "npm")
+		assert.Contains(t, spec.BuildCmd, "run")
+		assert.Contains(t, spec.BuildCmd, "build")
 	})
 }
 
@@ -160,7 +212,7 @@ func TestNodeBuildBasic(t *testing.T) {
     };
 };
 `
-		err := os.WriteFile(handlerPath, []byte(handlerContent), 0644)
+		err := os.WriteFile(handlerPath, []byte(handlerContent), 0o644)
 		require.NoError(t, err)
 
 		outputPath := filepath.Join(tmpDir, "lambda.zip")
@@ -170,7 +222,7 @@ func TestNodeBuildBasic(t *testing.T) {
 			Runtime:    "nodejs22.x",
 		}
 
-		result := NodeBuild(context.Background(), cfg)
+		result := NodeBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsRight(result), "Should succeed for simple Node.js function")
 
@@ -207,7 +259,7 @@ func TestNodeBuildWithPackageJson(t *testing.T) {
     return { statusCode: 200 };
 };
 `
-		err := os.WriteFile(handlerPath, []byte(handlerContent), 0644)
+		err := os.WriteFile(handlerPath, []byte(handlerContent), 0o644)
 		require.NoError(t, err)
 
 		// Create package.json with a simple dependency
@@ -220,7 +272,7 @@ func TestNodeBuildWithPackageJson(t *testing.T) {
   }
 }
 `
-		err = os.WriteFile(pkgPath, []byte(pkgContent), 0644)
+		err = os.WriteFile(pkgPath, []byte(pkgContent), 0o644)
 		require.NoError(t, err)
 
 		outputPath := filepath.Join(tmpDir, "lambda.zip")
@@ -230,13 +282,13 @@ func TestNodeBuildWithPackageJson(t *testing.T) {
 			Runtime:    "nodejs22.x",
 		}
 
-		result := NodeBuild(context.Background(), cfg)
+		result := NodeBuild(t.Context(), cfg)
 
 		if E.IsLeft(result) {
 			// Extract error for debugging
 			err := E.Fold(
 				func(e error) error { return e },
-				func(a Artifact) error { return nil },
+				func(_ Artifact) error { return nil },
 			)(result)
 			t.Logf("Build failed: %v", err)
 		}
@@ -255,7 +307,7 @@ func TestNodeBuildWithPackageJson(t *testing.T) {
 	})
 }
 
-// TestNodeBuildTypeScript tests TypeScript compilation
+// TestNodeBuildTypeScript tests TypeScript compilation.
 func TestNodeBuildTypeScript(t *testing.T) {
 	// Skip if npm is not available
 	if _, err := exec.LookPath("npm"); err != nil {
@@ -274,7 +326,7 @@ func TestNodeBuildTypeScript(t *testing.T) {
     };
 };
 `
-		err := os.WriteFile(handlerPath, []byte(handlerContent), 0644)
+		err := os.WriteFile(handlerPath, []byte(handlerContent), 0o644)
 		require.NoError(t, err)
 
 		// Create tsconfig.json
@@ -290,7 +342,7 @@ func TestNodeBuildTypeScript(t *testing.T) {
   }
 }
 `
-		err = os.WriteFile(tsconfigPath, []byte(tsconfigContent), 0644)
+		err = os.WriteFile(tsconfigPath, []byte(tsconfigContent), 0o644)
 		require.NoError(t, err)
 
 		// Create package.json with build script and typescript dependency
@@ -307,7 +359,7 @@ func TestNodeBuildTypeScript(t *testing.T) {
   }
 }
 `
-		err = os.WriteFile(pkgPath, []byte(pkgContent), 0644)
+		err = os.WriteFile(pkgPath, []byte(pkgContent), 0o644)
 		require.NoError(t, err)
 
 		outputPath := filepath.Join(tmpDir, "lambda.zip")
@@ -317,13 +369,13 @@ func TestNodeBuildTypeScript(t *testing.T) {
 			Runtime:    "nodejs22.x",
 		}
 
-		result := NodeBuild(context.Background(), cfg)
+		result := NodeBuild(t.Context(), cfg)
 
 		if E.IsLeft(result) {
 			// Extract error for debugging
 			err := E.Fold(
 				func(e error) error { return e },
-				func(a Artifact) error { return nil },
+				func(_ Artifact) error { return nil },
 			)(result)
 			t.Logf("TypeScript build failed: %v", err)
 		}
@@ -338,20 +390,20 @@ func TestNodeBuildTypeScript(t *testing.T) {
 	})
 }
 
-// TestNodeBuildTypeScriptDetection tests TypeScript detection logic
+// TestNodeBuildTypeScriptDetection tests TypeScript detection logic.
 func TestNodeBuildTypeScriptDetection(t *testing.T) {
 	t.Run("skips build if no tsconfig.json", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		// Create handler (JavaScript, not TypeScript)
 		handlerPath := filepath.Join(tmpDir, "index.js")
-		err := os.WriteFile(handlerPath, []byte("exports.handler = async () => ({});"), 0644)
+		err := os.WriteFile(handlerPath, []byte("exports.handler = async () => ({});"), 0o644)
 		require.NoError(t, err)
 
 		// Create package.json WITHOUT tsconfig.json
 		pkgPath := filepath.Join(tmpDir, "package.json")
 		pkgContent := `{"name": "test", "version": "1.0.0"}`
-		err = os.WriteFile(pkgPath, []byte(pkgContent), 0644)
+		err = os.WriteFile(pkgPath, []byte(pkgContent), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -362,13 +414,13 @@ func TestNodeBuildTypeScriptDetection(t *testing.T) {
 
 		// This should succeed without trying to run npm run build
 		// since there's no tsconfig.json
-		result := NodeBuild(context.Background(), cfg)
+		result := NodeBuild(t.Context(), cfg)
 
 		// May fail due to npm install, but should not fail due to missing build script
 		if E.IsLeft(result) {
 			err := E.Fold(
 				func(e error) error { return e },
-				func(a Artifact) error { return nil },
+				func(_ Artifact) error { return nil },
 			)(result)
 			// Should not mention "npm run build" since tsconfig.json doesn't exist
 			if err != nil {
@@ -379,7 +431,7 @@ func TestNodeBuildTypeScriptDetection(t *testing.T) {
 	})
 }
 
-// TestNodeBuildErrorHandling tests error scenarios
+// TestNodeBuildErrorHandling tests error scenarios.
 func TestNodeBuildErrorHandling(t *testing.T) {
 	t.Run("returns error for invalid package.json", func(t *testing.T) {
 		// Skip if npm is not available
@@ -391,13 +443,13 @@ func TestNodeBuildErrorHandling(t *testing.T) {
 
 		// Create handler
 		handlerPath := filepath.Join(tmpDir, "index.js")
-		err := os.WriteFile(handlerPath, []byte("exports.handler = async () => ({});"), 0644)
+		err := os.WriteFile(handlerPath, []byte("exports.handler = async () => ({});"), 0o644)
 		require.NoError(t, err)
 
 		// Create invalid package.json
 		pkgPath := filepath.Join(tmpDir, "package.json")
 		invalidPkg := `{"name": "test", "dependencies": {"nonexistent-package-xyz-123": "99.99.99"}}`
-		err = os.WriteFile(pkgPath, []byte(invalidPkg), 0644)
+		err = os.WriteFile(pkgPath, []byte(invalidPkg), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -405,14 +457,14 @@ func TestNodeBuildErrorHandling(t *testing.T) {
 			Runtime:   "nodejs22.x",
 		}
 
-		result := NodeBuild(context.Background(), cfg)
+		result := NodeBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should fail with invalid package.json")
 
 		// Extract error
 		buildErr := E.Fold(
 			func(e error) error { return e },
-			func(a Artifact) error { return nil },
+			func(_ Artifact) error { return nil },
 		)(result)
 
 		assert.NotNil(t, buildErr)
@@ -429,18 +481,18 @@ func TestNodeBuildErrorHandling(t *testing.T) {
 
 		// Create TypeScript handler
 		handlerPath := filepath.Join(tmpDir, "index.ts")
-		err := os.WriteFile(handlerPath, []byte("export const handler = async () => ({});"), 0644)
+		err := os.WriteFile(handlerPath, []byte("export const handler = async () => ({});"), 0o644)
 		require.NoError(t, err)
 
 		// Create tsconfig.json (indicates TypeScript project)
 		tsconfigPath := filepath.Join(tmpDir, "tsconfig.json")
-		err = os.WriteFile(tsconfigPath, []byte(`{"compilerOptions": {}}`), 0644)
+		err = os.WriteFile(tsconfigPath, []byte(`{"compilerOptions": {}}`), 0o644)
 		require.NoError(t, err)
 
 		// Create package.json WITHOUT build script
 		pkgPath := filepath.Join(tmpDir, "package.json")
 		pkgContent := `{"name": "test", "version": "1.0.0"}`
-		err = os.WriteFile(pkgPath, []byte(pkgContent), 0644)
+		err = os.WriteFile(pkgPath, []byte(pkgContent), 0o644)
 		require.NoError(t, err)
 
 		cfg := Config{
@@ -448,22 +500,42 @@ func TestNodeBuildErrorHandling(t *testing.T) {
 			Runtime:   "nodejs22.x",
 		}
 
-		result := NodeBuild(context.Background(), cfg)
+		result := NodeBuild(t.Context(), cfg)
 
 		assert.True(t, E.IsLeft(result), "Should fail with missing build script")
 
 		// Extract error
 		buildErr := E.Fold(
 			func(e error) error { return e },
-			func(a Artifact) error { return nil },
+			func(_ Artifact) error { return nil },
 		)(result)
 
 		assert.NotNil(t, buildErr)
 		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
+
+	t.Run("returns error for invalid output path", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create handler
+		handlerPath := filepath.Join(tmpDir, "index.js")
+		err := os.WriteFile(handlerPath, []byte("exports.handler = async () => ({});"), 0o644)
+		require.NoError(t, err)
+
+		// Use an invalid output path
+		cfg := Config{
+			SourceDir:  tmpDir,
+			OutputPath: "/nonexistent/dir/output.zip",
+			Runtime:    "nodejs22.x",
+		}
+
+		result := NodeBuild(t.Context(), cfg)
+
+		assert.True(t, E.IsLeft(result), "Should fail with invalid output path")
+	})
 }
 
-// TestNodeBuildOutputPath tests output path handling
+// TestNodeBuildOutputPath tests output path handling.
 func TestNodeBuildOutputPath(t *testing.T) {
 	t.Run("uses default output path if not specified", func(t *testing.T) {
 		cfg := Config{
@@ -490,7 +562,7 @@ func TestNodeBuildOutputPath(t *testing.T) {
 	})
 }
 
-// Benchmark NodeBuild function
+// Benchmark NodeBuild function.
 func BenchmarkNodeBuild(b *testing.B) {
 	// Setup a basic project (this will fail, but we're benchmarking the function overhead)
 	cfg := Config{
@@ -501,11 +573,11 @@ func BenchmarkNodeBuild(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		NodeBuild(context.Background(), cfg)
+		NodeBuild(b.Context(), cfg)
 	}
 }
 
-// BenchmarkNodeBuildWithComposition benchmarks composed build functions
+// BenchmarkNodeBuildWithComposition benchmarks composed build functions.
 func BenchmarkNodeBuildWithComposition(b *testing.B) {
 	cfg := Config{
 		SourceDir: "/nonexistent",
@@ -514,7 +586,7 @@ func BenchmarkNodeBuildWithComposition(b *testing.B) {
 
 	b.Run("Plain", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			NodeBuild(context.Background(), cfg)
+			NodeBuild(b.Context(), cfg)
 		}
 	})
 
@@ -524,7 +596,7 @@ func BenchmarkNodeBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			cachedBuild(context.Background(), cfg)
+			cachedBuild(b.Context(), cfg)
 		}
 	})
 
@@ -537,7 +609,7 @@ func BenchmarkNodeBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			loggedBuild(context.Background(), cfg)
+			loggedBuild(b.Context(), cfg)
 		}
 	})
 
@@ -555,7 +627,7 @@ func BenchmarkNodeBuildWithComposition(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			composed(context.Background(), cfg)
+			composed(b.Context(), cfg)
 		}
 	})
 }

@@ -2,6 +2,7 @@ package build
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -11,28 +12,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBuildFuncSignature tests that BuildFunc has correct type
+// TestBuildFuncSignature tests that BuildFunc has correct type.
 func TestBuildFuncSignature(t *testing.T) {
 	t.Run("BuildFunc accepts context and config", func(t *testing.T) {
-		var buildFunc BuildFunc = func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+		var buildFunc BuildFunc = func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 			return E.Right[error](Artifact{Path: "/tmp/test"})
 		}
 
-		result := buildFunc(context.Background(), Config{SourceDir: "/tmp"})
+		result := buildFunc(t.Context(), Config{SourceDir: "/tmp"})
 		assert.True(t, E.IsRight(result), "Should return Right")
 	})
 
 	t.Run("BuildFunc can return error via Left", func(t *testing.T) {
-		var buildFunc BuildFunc = func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
-			return E.Left[Artifact](fmt.Errorf("build failed"))
+		var buildFunc BuildFunc = func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+			return E.Left[Artifact](errors.New("build failed"))
 		}
 
-		result := buildFunc(context.Background(), Config{})
+		result := buildFunc(t.Context(), Config{})
 		assert.True(t, E.IsLeft(result), "Should return Left on error")
 	})
 }
 
-// TestRegistry tests the build function registry
+// TestRegistry tests the build function registry.
 func TestRegistry(t *testing.T) {
 	t.Run("NewRegistry creates registry with default builders", func(t *testing.T) {
 		registry := NewRegistry()
@@ -60,7 +61,7 @@ func TestRegistry(t *testing.T) {
 	t.Run("can add custom builder to registry", func(t *testing.T) {
 		registry := NewRegistry()
 
-		customBuilder := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+		customBuilder := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 			return E.Right[error](Artifact{Path: "/custom"})
 		}
 
@@ -71,11 +72,11 @@ func TestRegistry(t *testing.T) {
 	})
 }
 
-// TestWithCache tests the caching higher-order function
+// TestWithCache tests the caching higher-order function.
 func TestWithCache(t *testing.T) {
 	t.Run("caches successful builds", func(t *testing.T) {
 		callCount := 0
-		mockBuild := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 			callCount++
 			return E.Right[error](Artifact{Path: fmt.Sprintf("/build-%d", callCount)})
 		}
@@ -86,21 +87,21 @@ func TestWithCache(t *testing.T) {
 		cfg := Config{SourceDir: "/test"}
 
 		// First call - should execute
-		result1 := cachedBuild(context.Background(), cfg)
+		result1 := cachedBuild(t.Context(), cfg)
 		assert.True(t, E.IsRight(result1))
 		assert.Equal(t, 1, callCount, "Should call build once")
 
 		// Second call - should use cache
-		result2 := cachedBuild(context.Background(), cfg)
+		result2 := cachedBuild(t.Context(), cfg)
 		assert.True(t, E.IsRight(result2))
 		assert.Equal(t, 1, callCount, "Should not call build again (cached)")
 	})
 
 	t.Run("does not cache failures", func(t *testing.T) {
 		callCount := 0
-		mockBuild := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 			callCount++
-			return E.Left[Artifact](fmt.Errorf("build failed"))
+			return E.Left[Artifact](errors.New("build failed"))
 		}
 
 		cache := NewMemoryCache()
@@ -109,19 +110,19 @@ func TestWithCache(t *testing.T) {
 		cfg := Config{SourceDir: "/test"}
 
 		// First call - should fail
-		result1 := cachedBuild(context.Background(), cfg)
+		result1 := cachedBuild(t.Context(), cfg)
 		assert.True(t, E.IsLeft(result1))
 		assert.Equal(t, 1, callCount)
 
 		// Second call - should try again (not cached)
-		result2 := cachedBuild(context.Background(), cfg)
+		result2 := cachedBuild(t.Context(), cfg)
 		assert.True(t, E.IsLeft(result2))
 		assert.Equal(t, 2, callCount, "Should retry on failure")
 	})
 
 	t.Run("different configs have separate cache entries", func(t *testing.T) {
 		callCount := 0
-		mockBuild := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 			callCount++
 			return E.Right[error](Artifact{Path: cfg.SourceDir})
 		}
@@ -133,37 +134,37 @@ func TestWithCache(t *testing.T) {
 		cfg2 := Config{SourceDir: "/test2"}
 
 		// Build both configs
-		cachedBuild(context.Background(), cfg1)
-		cachedBuild(context.Background(), cfg2)
+		cachedBuild(t.Context(), cfg1)
+		cachedBuild(t.Context(), cfg2)
 
 		assert.Equal(t, 2, callCount, "Should build both configs")
 
 		// Rebuild first config - should use cache
-		cachedBuild(context.Background(), cfg1)
+		cachedBuild(t.Context(), cfg1)
 		assert.Equal(t, 2, callCount, "Should use cache for cfg1")
 	})
 }
 
-// TestWithLogging tests the logging higher-order function
+// TestWithLogging tests the logging higher-order function.
 func TestWithLogging(t *testing.T) {
 	t.Run("logs successful builds", func(t *testing.T) {
 		var infoLogs, errorLogs []string
 
 		logger := &mockLogger{
-			infoFn: func(msg string, args ...interface{}) {
+			infoFn: func(msg string, _ ...interface{}) {
 				infoLogs = append(infoLogs, msg)
 			},
-			errorFn: func(msg string, args ...interface{}) {
+			errorFn: func(msg string, _ ...interface{}) {
 				errorLogs = append(errorLogs, msg)
 			},
 		}
 
-		mockBuild := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 			return E.Right[error](Artifact{Path: "/test"})
 		}
 
 		loggedBuild := WithLogging(logger)(mockBuild)
-		loggedBuild(context.Background(), Config{Runtime: "go1.x"})
+		loggedBuild(t.Context(), Config{Runtime: "go1.x"})
 
 		assert.Contains(t, infoLogs, "Building", "Should log build start")
 		assert.Contains(t, infoLogs, "Build succeeded", "Should log success")
@@ -174,40 +175,40 @@ func TestWithLogging(t *testing.T) {
 		var errorLogs []string
 
 		logger := &mockLogger{
-			infoFn: func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {
+			infoFn: func(_ string, _ ...interface{}) {},
+			errorFn: func(msg string, _ ...interface{}) {
 				errorLogs = append(errorLogs, msg)
 			},
 		}
 
-		mockBuild := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
-			return E.Left[Artifact](fmt.Errorf("build failed"))
+		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+			return E.Left[Artifact](errors.New("build failed"))
 		}
 
 		loggedBuild := WithLogging(logger)(mockBuild)
-		loggedBuild(context.Background(), Config{})
+		loggedBuild(t.Context(), Config{})
 
 		assert.Contains(t, errorLogs, "Build failed", "Should log failure")
 	})
 }
 
-// TestCompose tests composing multiple decorators
+// TestCompose tests composing multiple decorators.
 func TestCompose(t *testing.T) {
 	t.Run("composes cache and logging", func(t *testing.T) {
 		callCount := 0
 		var logs []string
 
-		mockBuild := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 			callCount++
 			return E.Right[error](Artifact{Path: "/test"})
 		}
 
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn: func(msg string, args ...interface{}) {
+			infoFn: func(msg string, _ ...interface{}) {
 				logs = append(logs, msg)
 			},
-			errorFn: func(msg string, args ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		// Compose both decorators
@@ -219,13 +220,13 @@ func TestCompose(t *testing.T) {
 		cfg := Config{SourceDir: "/test"}
 
 		// First call
-		decorated(context.Background(), cfg)
+		decorated(t.Context(), cfg)
 		assert.Equal(t, 1, callCount)
 		assert.Contains(t, logs, "Building")
 
 		// Second call - should use cache
 		logs = nil // Clear logs
-		decorated(context.Background(), cfg)
+		decorated(t.Context(), cfg)
 		assert.Equal(t, 1, callCount, "Should use cache")
 		// Logging happens before cache check, so we still see logs
 	})
@@ -235,22 +236,22 @@ func TestCompose(t *testing.T) {
 		// When logging wraps cache: Logging → Cache → Build
 
 		callCount := 0
-		mockBuild := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 			callCount++
 			return E.Right[error](Artifact{Path: "/test"})
 		}
 
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		// Order 1: Cache first, then logging
 		build1 := WithLogging(logger)(WithCache(cache)(mockBuild))
 		cfg := Config{SourceDir: "/test1"}
-		build1(context.Background(), cfg)
-		build1(context.Background(), cfg)
+		build1(t.Context(), cfg)
+		build1(t.Context(), cfg)
 		count1 := callCount
 
 		callCount = 0
@@ -258,8 +259,8 @@ func TestCompose(t *testing.T) {
 		// Order 2: Logging first, then cache
 		build2 := WithCache(cache)(WithLogging(logger)(mockBuild))
 		cfg2 := Config{SourceDir: "/test2"}
-		build2(context.Background(), cfg2)
-		build2(context.Background(), cfg2)
+		build2(t.Context(), cfg2)
+		build2(t.Context(), cfg2)
 		count2 := callCount
 
 		// Both should cache effectively
@@ -267,14 +268,14 @@ func TestCompose(t *testing.T) {
 	})
 }
 
-// TestBuildAll tests building multiple configs in parallel
+// TestBuildAll tests building multiple configs in parallel.
 func TestBuildAll(t *testing.T) {
 	t.Run("builds all configs successfully", func(t *testing.T) {
 		registry := Registry{
-			"go1.x": func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+			"go1.x": func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 				return E.Right[error](Artifact{Path: cfg.SourceDir + "/bootstrap"})
 			},
-			"python3.11": func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+			"python3.11": func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 				return E.Right[error](Artifact{Path: cfg.SourceDir + "/lambda.zip"})
 			},
 		}
@@ -284,7 +285,7 @@ func TestBuildAll(t *testing.T) {
 			{SourceDir: "/worker", Runtime: "python3.11"},
 		}
 
-		result := BuildAll(context.Background(), configs, registry)
+		result := BuildAll(t.Context(), configs, registry)
 
 		require.True(t, E.IsRight(result), "Should succeed")
 
@@ -299,8 +300,8 @@ func TestBuildAll(t *testing.T) {
 
 	t.Run("fails if any build fails", func(t *testing.T) {
 		registry := Registry{
-			"go1.x": func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
-				return E.Left[Artifact](fmt.Errorf("go build failed"))
+			"go1.x": func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+				return E.Left[Artifact](errors.New("go build failed"))
 			},
 		}
 
@@ -308,7 +309,7 @@ func TestBuildAll(t *testing.T) {
 			{SourceDir: "/api", Runtime: "go1.x"},
 		}
 
-		result := BuildAll(context.Background(), configs, registry)
+		result := BuildAll(t.Context(), configs, registry)
 
 		assert.True(t, E.IsLeft(result), "Should fail if any build fails")
 	})
@@ -320,32 +321,32 @@ func TestBuildAll(t *testing.T) {
 			{SourceDir: "/api", Runtime: "rust"}, // Unsupported
 		}
 
-		result := BuildAll(context.Background(), configs, registry)
+		result := BuildAll(t.Context(), configs, registry)
 
 		assert.True(t, E.IsLeft(result), "Should fail for unsupported runtime")
 	})
 }
 
-// Mock implementations for testing
+// Mock implementations for testing.
 
 type mockLogger struct {
-	infoFn  func(msg string, args ...interface{})
-	errorFn func(msg string, args ...interface{})
+	infoFn  func(_ string, _ ...interface{})
+	errorFn func(_ string, _ ...interface{})
 }
 
-func (m *mockLogger) Info(msg string, args ...interface{}) {
+func (m *mockLogger) Info(msg string, _args ...interface{}) {
 	if m.infoFn != nil {
-		m.infoFn(msg, args...)
+		m.infoFn(msg, _args...)
 	}
 }
 
-func (m *mockLogger) Error(msg string, args ...interface{}) {
+func (m *mockLogger) Error(msg string, _args ...interface{}) {
 	if m.errorFn != nil {
-		m.errorFn(msg, args...)
+		m.errorFn(msg, _args...)
 	}
 }
 
-// MemoryCache is a simple in-memory cache for testing
+// MemoryCache is a simple in-memory cache for testing.
 type MemoryCache struct {
 	cache map[string]Artifact
 }
@@ -367,15 +368,15 @@ func (c *MemoryCache) Set(cfg Config, artifact Artifact) {
 	c.cache[key] = artifact
 }
 
-// BenchmarkBuildFunctions benchmarks different build patterns
+// BenchmarkBuildFunctions benchmarks different build patterns.
 func BenchmarkBuildFunctions(b *testing.B) {
-	mockBuild := func(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+	mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
 		return E.Right[error](Artifact{Path: "/test"})
 	}
 
 	b.Run("Plain", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			mockBuild(context.Background(), Config{})
+			mockBuild(b.Context(), Config{})
 		}
 	})
 
@@ -386,28 +387,28 @@ func BenchmarkBuildFunctions(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			cached(context.Background(), cfg)
+			cached(b.Context(), cfg)
 		}
 	})
 
 	b.Run("WithLogging", func(b *testing.B) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 		logged := WithLogging(logger)(mockBuild)
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			logged(context.Background(), Config{})
+			logged(b.Context(), Config{})
 		}
 	})
 
 	b.Run("Composed", func(b *testing.B) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(
@@ -419,7 +420,7 @@ func BenchmarkBuildFunctions(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			composed(context.Background(), cfg)
+			composed(b.Context(), cfg)
 		}
 	})
 }

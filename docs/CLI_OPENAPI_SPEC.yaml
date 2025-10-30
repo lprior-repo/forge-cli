@@ -1,0 +1,947 @@
+openapi: 3.1.0
+info:
+  title: Forge CLI Command Specification
+  description: |
+    Complete specification of the Forge CLI tool - a convention-over-configuration
+    Lambda deployment CLI that combines Terraform with streamlined Lambda deployment workflows.
+
+    This specification documents all commands, flags, arguments, and behaviors in an
+    OpenAPI-style format for comprehensive understanding and tooling integration.
+  version: 0.1.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  contact:
+    name: Forge Repository
+    url: https://github.com/forge/forge
+
+servers:
+  - url: cli://forge
+    description: Command-line interface
+
+# Extensions for CLI-specific metadata
+x-cli-metadata:
+  binary-name: forge
+  framework: cobra
+  language: go
+  architecture: functional-programming
+  error-handling: either-monad
+  global-flags:
+    - name: verbose
+      short: v
+      type: boolean
+      default: false
+      description: Enable verbose output for all commands
+      persistent: true
+    - name: region
+      short: r
+      type: string
+      default: ""
+      description: AWS region (overrides forge.hcl)
+      persistent: true
+
+components:
+  schemas:
+    Runtime:
+      type: string
+      enum:
+        - go1.x
+        - python3.11
+        - nodejs20.x
+        - python
+        - go
+        - nodejs
+      description: Supported Lambda runtime environments
+
+    ResourceType:
+      type: string
+      enum:
+        - sqs
+        - dynamodb
+        - sns
+        - s3
+      description: Supported AWS resource types for code generation
+
+    HttpMethod:
+      type: string
+      enum:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+      description: HTTP methods for API Gateway
+
+    CommandResponse:
+      type: object
+      properties:
+        exitCode:
+          type: integer
+          description: Exit code (0 for success, non-zero for errors)
+        stdout:
+          type: string
+          description: Standard output
+        stderr:
+          type: string
+          description: Standard error output
+        error:
+          type: string
+          nullable: true
+          description: Error message if command failed
+
+    BuildArtifact:
+      type: object
+      properties:
+        functionName:
+          type: string
+        runtime:
+          $ref: '#/components/schemas/Runtime'
+        outputPath:
+          type: string
+        checksum:
+          type: string
+        size:
+          type: integer
+
+paths:
+  /forge:
+    get:
+      summary: Forge root command
+      description: |
+        Entry point for the Forge CLI. Shows help when invoked without subcommands.
+      operationId: rootCommand
+      responses:
+        '0':
+          description: Success - displays help text
+          content:
+            text/plain:
+              schema:
+                type: string
+      x-cli:
+        usage: forge [command]
+        persistent-flags:
+          - verbose
+          - region
+
+  /forge/version:
+    get:
+      summary: Display version information
+      description: |
+        Show version information, license, and repository URL.
+      operationId: version
+      responses:
+        '0':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "0.1.0"
+                  license:
+                    type: string
+                    example: "MIT"
+                  repository:
+                    type: string
+                    example: "https://github.com/forge/forge"
+      x-cli:
+        usage: forge version
+        examples:
+          - forge version
+
+  /forge/build:
+    post:
+      summary: Build Lambda functions
+      description: |
+        Build Lambda functions with convention-based discovery.
+
+        **Convention-Based Discovery:**
+        - Scans `src/functions/*` for Lambda functions
+        - Auto-detects runtime from entry files:
+          - `main.go` or `*.go` → Go (provided.al2023)
+          - `index.js`, `handler.js` → Node.js (nodejs20.x)
+          - `app.py`, `lambda_function.py`, `handler.py` → Python (python3.13)
+        - Output: `.forge/build/{name}.zip`
+
+        **Build Process:**
+        1. Discovers all functions in `src/functions/`
+        2. Detects runtime for each function
+        3. Resolves dependencies (go.mod, requirements.txt, package.json)
+        4. Compiles/packages code
+        5. Creates deployment ZIP artifacts
+        6. Generates SHA256 checksums for caching
+      operationId: build
+      parameters:
+        - name: stub-only
+          in: query
+          description: Create stub zips without building (for terraform init)
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '0':
+          description: Build succeeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  artifacts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BuildArtifact'
+        '1':
+          description: Build failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+      x-cli:
+        usage: forge build [flags]
+        examples:
+          - forge build
+          - forge build --stub-only
+          - forge -v build
+        flags:
+          - name: stub-only
+            type: boolean
+            default: false
+            description: Create stub zips without building
+
+  /forge/deploy:
+    post:
+      summary: Build and deploy Lambda functions with Terraform
+      description: |
+        Build and deploy Lambda functions with Terraform.
+
+        **Process:**
+        1. Scans `src/functions/*` for Lambda functions
+        2. Auto-detects runtimes
+        3. Builds deployment packages (runs `forge build`)
+        4. Runs `terraform init` in `infra/`
+        5. Runs `terraform plan`
+        6. Runs `terraform apply` (with approval)
+        7. Outputs deployed URLs and resources
+
+        **Namespace Support:**
+        - Sets `TF_VAR_namespace={namespace}`
+        - All resources prefixed: `my-app-{namespace}-*`
+        - Perfect for PR preview deployments
+
+        **Example CI/CD Usage:**
+        ```yaml
+        # .github/workflows/pr-preview.yml
+        on: pull_request
+        jobs:
+          deploy:
+            runs-on: ubuntu-latest
+            steps:
+              - run: forge deploy --namespace=pr-${{ github.event.number }} --auto-approve
+        ```
+      operationId: deploy
+      parameters:
+        - name: auto-approve
+          in: query
+          description: Skip interactive approval
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: namespace
+          in: query
+          description: Namespace for ephemeral environments (e.g., pr-123)
+          required: false
+          schema:
+            type: string
+            default: ""
+      responses:
+        '0':
+          description: Deployment succeeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        name:
+                          type: string
+                        url:
+                          type: string
+                          nullable: true
+        '1':
+          description: Deployment failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+      x-cli:
+        usage: forge deploy [flags]
+        examples:
+          - forge deploy
+          - forge deploy --namespace=pr-123
+          - forge deploy --auto-approve
+          - forge deploy --region=us-west-2 --auto-approve
+          - forge deploy --namespace=staging --auto-approve
+        flags:
+          - name: auto-approve
+            type: boolean
+            default: false
+            description: Skip interactive approval
+          - name: namespace
+            type: string
+            default: ""
+            description: Namespace for ephemeral environments
+
+  /forge/destroy:
+    delete:
+      summary: Safely tear down all AWS resources
+      description: |
+        Safely tear down all AWS resources managed by Terraform.
+
+        **Safety Features:**
+        - Interactive confirmation required by default
+        - Shows resource plan before destruction
+        - Requires `--auto-approve` to skip confirmation
+
+        **Use Cases:**
+        - Cleanup PR preview environments
+        - Tear down staging/development environments
+        - Emergency rollback
+
+        **Example CI/CD Usage:**
+        ```yaml
+        # .github/workflows/pr-cleanup.yml
+        on:
+          pull_request:
+            types: [closed]
+        jobs:
+          cleanup:
+            runs-on: ubuntu-latest
+            steps:
+              - run: forge destroy --namespace=pr-${{ github.event.number }} --auto-approve
+        ```
+      operationId: destroy
+      parameters:
+        - name: auto-approve
+          in: query
+          description: Skip interactive approval (dangerous!)
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '0':
+          description: Destruction succeeded
+        '1':
+          description: Destruction failed or cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+      x-cli:
+        usage: forge destroy [flags]
+        examples:
+          - forge destroy
+          - forge destroy --auto-approve
+          - forge destroy --namespace=pr-123 --auto-approve
+        flags:
+          - name: auto-approve
+            type: boolean
+            default: false
+            description: Skip interactive approval
+
+  /forge/new:
+    post:
+      summary: Create a new Forge project or stack
+      description: |
+        Create a new Forge project with zero configuration, or add a new stack
+        to an existing project.
+
+        **Project Structure Created:**
+        ```
+        my-app/
+        ├── infra/              # Terraform infrastructure
+        │   ├── main.tf
+        │   ├── variables.tf
+        │   └── outputs.tf
+        └── src/                # Application code
+            └── functions/      # Lambda functions
+                └── api/
+                    └── main.go  # Or index.js, app.py
+        ```
+
+        **Auto-State Feature:**
+        When `--auto-state` is enabled:
+        1. Detects AWS credentials
+        2. Creates S3 bucket: `{project-name}-terraform-state`
+        3. Enables versioning and encryption
+        4. Creates DynamoDB table: `{project-name}-state-lock`
+        5. Generates `infra/backend.tf` with dynamic state keys
+      operationId: newProject
+      parameters:
+        - name: project-name
+          in: query
+          description: Name of the project to create
+          required: false
+          schema:
+            type: string
+        - name: stack
+          in: query
+          description: Create a new stack in existing project
+          required: false
+          schema:
+            type: string
+            default: ""
+        - name: runtime
+          in: query
+          description: Runtime for the stack
+          required: false
+          schema:
+            $ref: '#/components/schemas/Runtime'
+            default: go1.x
+        - name: description
+          in: query
+          description: Stack description
+          required: false
+          schema:
+            type: string
+            default: ""
+        - name: auto-state
+          in: query
+          description: Auto-provision S3 bucket and DynamoDB table for Terraform state
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '0':
+          description: Project created successfully
+        '1':
+          description: Project creation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+      x-cli:
+        usage: forge new [project-name] [flags]
+        examples:
+          - forge new my-app
+          - forge new my-app --auto-state
+          - forge new --stack=my-stack --runtime=python3.11
+          - forge new my-app --runtime=nodejs20.x
+        flags:
+          - name: stack
+            type: string
+            default: ""
+            description: Create a new stack in existing project
+          - name: runtime
+            type: string
+            default: go1.x
+            description: Runtime for the stack
+          - name: description
+            type: string
+            default: ""
+            description: Stack description
+          - name: auto-state
+            type: boolean
+            default: false
+            description: Auto-provision Terraform state backend
+
+  /forge/new/lambda:
+    post:
+      summary: Create production-ready Lambda project
+      description: |
+        Create production-ready Lambda project with infrastructure (Python/Go/Node.js).
+
+        **Generated Structure:**
+        ```
+        my-service/
+        ├── src/
+        │   └── {function-name}/     # Lambda function
+        │       ├── main.py          # Python
+        │       ├── requirements.txt
+        │       └── tests/
+        └── terraform/
+            ├── main.tf              # Lambda + API Gateway + DynamoDB
+            ├── apigateway.tf
+            ├── lambda.tf
+            ├── dynamodb.tf          # Optional
+            ├── variables.tf
+            └── outputs.tf
+        ```
+
+        **Features:**
+        - AWS Lambda Powertools integration (optional)
+        - Idempotency support (optional)
+        - DynamoDB table with GSI (optional)
+        - API Gateway HTTP API with CORS
+        - CloudWatch Log Groups
+        - IAM roles and policies
+        - Complete Terraform configuration
+      operationId: newLambda
+      parameters:
+        - name: project-name
+          in: query
+          description: Name of the Lambda project
+          required: true
+          schema:
+            type: string
+        - name: runtime
+          in: query
+          description: Runtime
+          required: false
+          schema:
+            type: string
+            enum:
+              - python
+              - go
+              - nodejs
+            default: python
+        - name: service
+          in: query
+          description: Service name (defaults to project name)
+          required: false
+          schema:
+            type: string
+            default: ""
+        - name: function
+          in: query
+          description: Function name
+          required: false
+          schema:
+            type: string
+            default: handler
+        - name: description
+          in: query
+          description: Project description
+          required: false
+          schema:
+            type: string
+            default: ""
+        - name: powertools
+          in: query
+          description: Use AWS Lambda Powertools
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: idempotency
+          in: query
+          description: Enable idempotency support
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: dynamodb
+          in: query
+          description: Include DynamoDB table
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: table
+          in: query
+          description: DynamoDB table name (defaults to service-table)
+          required: false
+          schema:
+            type: string
+            default: ""
+        - name: api-path
+          in: query
+          description: API Gateway path
+          required: false
+          schema:
+            type: string
+            default: /api/orders
+        - name: method
+          in: query
+          description: HTTP method
+          required: false
+          schema:
+            $ref: '#/components/schemas/HttpMethod'
+            default: POST
+      responses:
+        '0':
+          description: Lambda project created successfully
+        '1':
+          description: Lambda project creation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+      x-cli:
+        usage: forge new lambda [project-name] [flags]
+        examples:
+          - forge new lambda my-service
+          - forge new lambda my-service --dynamodb=false
+          - forge new lambda my-service --runtime=go
+          - forge new lambda my-service --api-path=/api/users --method=GET
+          - forge new lambda order-processor --runtime=python --powertools=true --idempotency=true
+        flags:
+          - name: runtime
+            type: string
+            default: python
+            description: Runtime (python, go, nodejs)
+          - name: service
+            type: string
+            default: ""
+            description: Service name (defaults to project name)
+          - name: function
+            type: string
+            default: handler
+            description: Function name
+          - name: description
+            type: string
+            default: ""
+            description: Project description
+          - name: powertools
+            type: boolean
+            default: true
+            description: Use AWS Lambda Powertools
+          - name: idempotency
+            type: boolean
+            default: true
+            description: Enable idempotency support
+          - name: dynamodb
+            type: boolean
+            default: true
+            description: Include DynamoDB table
+          - name: table
+            type: string
+            default: ""
+            description: DynamoDB table name
+          - name: api-path
+            type: string
+            default: /api/orders
+            description: API Gateway path
+          - name: method
+            type: string
+            default: POST
+            description: HTTP method (GET, POST, PUT, DELETE)
+
+  /forge/add:
+    post:
+      summary: Add AWS resources with generated Terraform code
+      description: |
+        Add AWS resources with generated Terraform code.
+
+        **Supported Resources:**
+        - **sqs**: SQS queue with DLQ, encryption, monitoring
+        - **dynamodb**: DynamoDB table with streams and backup
+        - **sns**: SNS topic with subscriptions
+        - **s3**: S3 bucket with versioning and encryption
+
+        **Module vs Raw:**
+        - Default: Uses type-safe Forge modules (recommended)
+        - `--raw`: Generates raw Terraform resources
+
+        **Lambda Integration:**
+        When `--to=function-name` is specified:
+        - Adds IAM permissions to Lambda execution role
+        - Adds environment variables with resource ARN/URL
+        - Configures event source mappings (for SQS)
+
+        **Generated File Location:**
+        - `infra/{resource-type}-{name}.tf`
+
+        **Example Generated Code (SQS):**
+        ```hcl
+        module "orders_queue" {
+          source = "./modules/sqs"
+
+          queue_name       = "orders-queue"
+          namespace        = var.namespace
+          visibility_timeout = 300
+          message_retention = 1209600
+          enable_dlq       = true
+        }
+        ```
+      operationId: addResource
+      parameters:
+        - name: resource-type
+          in: query
+          description: Type of resource to add
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceType'
+        - name: name
+          in: query
+          description: Name of the resource
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          description: Target Lambda function for integration
+          required: false
+          schema:
+            type: string
+            default: ""
+        - name: raw
+          in: query
+          description: Generate raw Terraform resources instead of modules
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: no-module
+          in: query
+          description: Alias for --raw
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '0':
+          description: Resource added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  filePath:
+                    type: string
+                    description: Path to generated Terraform file
+                  resourceName:
+                    type: string
+                  resourceType:
+                    type: string
+        '1':
+          description: Resource addition failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+      x-cli:
+        usage: forge add <resource-type> <name> [flags]
+        examples:
+          - forge add sqs orders-queue
+          - forge add sqs orders-queue --to=processor
+          - forge add dynamodb users-table
+          - forge add sns notifications --raw
+          - forge add s3 uploads-bucket
+          - forge add sqs dead-letter-queue --no-module
+        flags:
+          - name: to
+            type: string
+            default: ""
+            description: Target Lambda function for integration
+          - name: raw
+            type: boolean
+            default: false
+            description: Generate raw Terraform resources
+          - name: no-module
+            type: boolean
+            default: false
+            description: Alias for --raw
+
+x-cli-workflows:
+  new-project-basic:
+    description: Create and deploy a new project
+    steps:
+      - command: forge new my-app
+        description: Create project structure
+      - command: cd my-app
+        description: Navigate to project
+      - command: forge build
+        description: Build Lambda functions
+      - command: forge deploy
+        description: Deploy to AWS
+
+  new-project-with-state:
+    description: Create project with auto-provisioned Terraform state
+    steps:
+      - command: forge new my-app --auto-state
+        description: Create project with S3 backend
+      - command: cd my-app
+        description: Navigate to project
+      - command: forge deploy
+        description: Deploy to AWS
+
+  pr-preview-workflow:
+    description: Deploy ephemeral PR environment
+    steps:
+      - command: forge deploy --namespace=pr-123 --auto-approve
+        description: Deploy PR preview
+      - command: "# PR is reviewed and tested"
+        description: Manual step
+      - command: forge destroy --namespace=pr-123 --auto-approve
+        description: Cleanup after PR close
+
+  add-resources-workflow:
+    description: Add AWS resources to existing project
+    steps:
+      - command: forge add sqs orders-queue
+        description: Add SQS queue
+      - command: forge add dynamodb orders-table
+        description: Add DynamoDB table
+      - command: forge add sqs orders-queue --to=processor
+        description: Integrate queue with Lambda
+      - command: forge deploy
+        description: Deploy changes
+
+  lambda-project-workflow:
+    description: Create production Lambda with all features
+    steps:
+      - command: forge new lambda order-service --runtime=python
+        description: Create Lambda project
+      - command: cd order-service
+        description: Navigate to project
+      - command: "# Edit src/handler/main.py"
+        description: Implement business logic
+      - command: forge build
+        description: Build function
+      - command: forge deploy
+        description: Deploy to AWS
+
+x-cli-error-codes:
+  0:
+    description: Success
+  1:
+    description: |
+      General error. Possible causes:
+      - Invalid arguments or flags
+      - AWS credentials not found
+      - Terraform not installed
+      - Build failure
+      - Deployment failure
+      - Resource not found
+      - Permission denied
+
+x-cli-environment-variables:
+  AWS_REGION:
+    description: Default AWS region (overridden by --region flag)
+    type: string
+    example: us-east-1
+  AWS_PROFILE:
+    description: AWS CLI profile to use
+    type: string
+    example: default
+  TF_VAR_namespace:
+    description: Namespace for ephemeral environments (set automatically by --namespace flag)
+    type: string
+    example: pr-123
+  FORGE_VERBOSE:
+    description: Enable verbose output (alternative to --verbose flag)
+    type: boolean
+    example: "true"
+
+x-cli-conventions:
+  function-discovery:
+    description: |
+      Forge scans `src/functions/*` for Lambda functions:
+      - Directory name = Function name
+      - Runtime detected from entry file:
+        - `main.go` or `*.go` → Go (provided.al2023)
+        - `index.js`, `index.mjs`, `handler.js` → Node.js (nodejs20.x)
+        - `app.py`, `lambda_function.py`, `handler.py` → Python (python3.13)
+
+  project-structure:
+    description: |
+      Required project structure:
+      ```
+      my-app/
+      ├── infra/              # REQUIRED: Terraform infrastructure
+      │   ├── main.tf
+      │   ├── variables.tf
+      │   └── outputs.tf
+      └── src/                # OPTIONAL: Application code
+          └── functions/      # Convention: Lambda functions here
+              ├── api/
+              │   └── main.go
+              └── worker/
+                  └── index.js
+      ```
+
+  namespace-pattern:
+    description: |
+      Namespace support for ephemeral environments:
+      - Pass `--namespace=pr-123` to any command
+      - Sets `TF_VAR_namespace=pr-123`
+      - All resources prefixed: `my-app-pr-123-*`
+      - Perfect for PR preview deployments
+      - State isolation: `forge/pr-123-terraform.tfstate`
+
+x-cli-dependencies:
+  required:
+    - name: terraform
+      version: ">= 1.0.0"
+      purpose: Infrastructure provisioning
+      install: https://developer.hashicorp.com/terraform/install
+    - name: aws-cli
+      version: ">= 2.0.0"
+      purpose: AWS authentication
+      install: https://aws.amazon.com/cli/
+
+  optional:
+    - name: go
+      version: ">= 1.21"
+      purpose: Building Go Lambda functions
+      install: https://go.dev/doc/install
+    - name: python
+      version: ">= 3.11"
+      purpose: Building Python Lambda functions
+      install: https://www.python.org/downloads/
+    - name: node
+      version: ">= 20"
+      purpose: Building Node.js Lambda functions
+      install: https://nodejs.org/
+
+x-cli-testing:
+  unit-tests:
+    command: task test:unit
+    coverage: 85%
+    count: 189
+
+  integration-tests:
+    command: task test:integration
+    coverage: 90%
+    count: 37
+
+  e2e-tests:
+    command: task test:e2e
+    coverage: 95%
+    count: 15
+
+  mutation-testing:
+    command: task mutation
+    score: 80%
+
+x-cli-architecture:
+  framework: cobra
+  language: go
+  paradigm: functional-programming
+  error-handling: either-monad
+  patterns:
+    - repository-pattern
+    - strategy-pattern
+    - decorator-pattern
+    - pipeline-pattern
+    - registry-pattern
+
+  package-structure:
+    - name: internal/build
+      purpose: Build system with runtime-specific builders
+    - name: internal/cli
+      purpose: Cobra commands (I/O boundary)
+    - name: internal/config
+      purpose: HCL configuration loading
+    - name: internal/lingon
+      purpose: Type-safe Terraform generation
+    - name: internal/pipeline
+      purpose: Pipeline orchestration
+    - name: internal/scaffold
+      purpose: Project scaffolding
+    - name: internal/stack
+      purpose: Stack detection and dependencies
+    - name: internal/terraform
+      purpose: Terraform executor wrapper

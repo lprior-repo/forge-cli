@@ -1,0 +1,30 @@
+type Mutation {
+  putPost(id: ID!, title: String!): Post
+}
+
+type Post {
+  id: ID!
+  title: String!
+}
+
+type User {
+  id: ID!
+  name: String
+}
+
+type Comment {
+  id: ID !
+  comment: String!
+}
+
+type Query {
+  singlePost(id: ID!): Post
+  none(dummyString: String!): String!
+  user(id: ID!): User
+  singleComment(id: ID!): Comment
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}
