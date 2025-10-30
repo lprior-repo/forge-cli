@@ -308,3 +308,521 @@ func TestTemplateRendering(t *testing.T) {
 		})
 	}
 }
+
+// TestGenerateProjectErrorPaths tests error handling in project generation
+func TestGenerateProjectErrorPaths(t *testing.T) {
+	t.Run("fails on invalid project directory path", func(t *testing.T) {
+		// Use a path that will fail to create (e.g., inside a file)
+		tmpDir := t.TempDir()
+		blockingFile := filepath.Join(tmpDir, "blocking")
+		err := os.WriteFile(blockingFile, []byte("test"), 0644)
+		require.NoError(t, err)
+
+		// Try to create a directory where a file exists
+		opts := &ProjectOptions{
+			Name:   "test",
+			Region: "us-east-1",
+		}
+
+		err = GenerateProject(blockingFile, opts)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create project directory")
+	})
+
+	t.Run("fails on read-only directory for forge.hcl", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create the directory but make it read-only after creation
+		err := os.Mkdir(filepath.Join(tmpDir, "readonly"), 0555)
+		require.NoError(t, err)
+
+		opts := &ProjectOptions{
+			Name:   "test",
+			Region: "us-east-1",
+		}
+
+		err = GenerateProject(filepath.Join(tmpDir, "readonly"), opts)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to write")
+	})
+}
+
+// TestGenerateStackErrorPaths tests error handling in stack generation
+func TestGenerateStackErrorPaths(t *testing.T) {
+	t.Run("fails when stack directory cannot be created", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		blockingFile := filepath.Join(tmpDir, "blocking")
+		err := os.WriteFile(blockingFile, []byte("test"), 0644)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "blocking",
+			Runtime: "go1.x",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create stack directory")
+	})
+
+	t.Run("fails when stack.forge.hcl cannot be written - Go", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		err := os.MkdirAll(stackDir, 0555) // Read-only
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "go1.x",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to write")
+	})
+
+	t.Run("fails when main.go cannot be written", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		err := os.MkdirAll(stackDir, 0755)
+		require.NoError(t, err)
+
+		// Write stack.forge.hcl first
+		stackHCL := generateStackHCL(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "go1.x",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		require.NoError(t, err)
+
+		// Make directory read-only to prevent main.go write
+		err = os.Chmod(stackDir, 0555)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "go1.x",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+
+		// Clean up permissions
+		os.Chmod(stackDir, 0755)
+	})
+
+	t.Run("fails when handler.py cannot be written - Python", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		err := os.MkdirAll(stackDir, 0755)
+		require.NoError(t, err)
+
+		// Write stack.forge.hcl first
+		stackHCL := generateStackHCL(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "python3.13",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		require.NoError(t, err)
+
+		// Make directory read-only
+		err = os.Chmod(stackDir, 0555)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "python3.13",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+
+		// Clean up
+		os.Chmod(stackDir, 0755)
+	})
+
+	t.Run("fails when requirements.txt cannot be written - Python", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		err := os.MkdirAll(stackDir, 0755)
+		require.NoError(t, err)
+
+		// Write stack.forge.hcl and handler.py first
+		stackHCL := generateStackHCL(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "python3.13",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		require.NoError(t, err)
+
+		handler := generatePythonHandler(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "python3.13",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "handler.py"), []byte(handler), 0644)
+		require.NoError(t, err)
+
+		// Make directory read-only
+		err = os.Chmod(stackDir, 0555)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "python3.13",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+
+		// Clean up
+		os.Chmod(stackDir, 0755)
+	})
+
+	t.Run("fails when index.js cannot be written - Node", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		err := os.MkdirAll(stackDir, 0755)
+		require.NoError(t, err)
+
+		// Write stack.forge.hcl first
+		stackHCL := generateStackHCL(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "nodejs22.x",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		require.NoError(t, err)
+
+		// Make directory read-only
+		err = os.Chmod(stackDir, 0555)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "nodejs22.x",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+
+		// Clean up
+		os.Chmod(stackDir, 0755)
+	})
+
+	t.Run("fails when package.json cannot be written - Node", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		err := os.MkdirAll(stackDir, 0755)
+		require.NoError(t, err)
+
+		// Write stack.forge.hcl and index.js first
+		stackHCL := generateStackHCL(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "nodejs22.x",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		require.NoError(t, err)
+
+		index := generateNodeIndex(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "nodejs22.x",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "index.js"), []byte(index), 0644)
+		require.NoError(t, err)
+
+		// Make directory read-only
+		err = os.Chmod(stackDir, 0555)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "nodejs22.x",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+
+		// Clean up
+		os.Chmod(stackDir, 0755)
+	})
+
+	t.Run("fails when Java directory structure cannot be created", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		err := os.MkdirAll(stackDir, 0755)
+		require.NoError(t, err)
+
+		// Write stack.forge.hcl first
+		stackHCL := generateStackHCL(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "java21",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		require.NoError(t, err)
+
+		// Make directory read-only to prevent creating src/
+		err = os.Chmod(stackDir, 0555)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "java21",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+
+		// Clean up
+		os.Chmod(stackDir, 0755)
+	})
+
+	t.Run("fails when Handler.java cannot be written", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		javaDir := filepath.Join(stackDir, "src", "main", "java", "com", "example")
+		err := os.MkdirAll(javaDir, 0755)
+		require.NoError(t, err)
+
+		// Write stack.forge.hcl first
+		stackHCL := generateStackHCL(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "java21",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		require.NoError(t, err)
+
+		// Make Java directory read-only
+		err = os.Chmod(javaDir, 0555)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "java21",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+
+		// Clean up
+		os.Chmod(javaDir, 0755)
+	})
+
+	t.Run("fails when pom.xml cannot be written", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		stackDir := filepath.Join(tmpDir, "test-stack")
+		javaDir := filepath.Join(stackDir, "src", "main", "java", "com", "example")
+		err := os.MkdirAll(javaDir, 0755)
+		require.NoError(t, err)
+
+		// Write stack.forge.hcl and Handler.java first
+		stackHCL := generateStackHCL(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "java21",
+		})
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		require.NoError(t, err)
+
+		handler := generateJavaHandler(&StackOptions{
+			Name:    "test-stack",
+			Runtime: "java21",
+		})
+		err = os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte(handler), 0644)
+		require.NoError(t, err)
+
+		// Make stack directory read-only
+		err = os.Chmod(stackDir, 0555)
+		require.NoError(t, err)
+
+		opts := &StackOptions{
+			Name:    "test-stack",
+			Runtime: "java21",
+		}
+
+		err = GenerateStack(tmpDir, opts)
+		assert.Error(t, err)
+
+		// Clean up
+		os.Chmod(stackDir, 0755)
+	})
+}
+
+// TestEdgeCases tests edge cases in scaffold generation
+func TestEdgeCases(t *testing.T) {
+	t.Run("empty description uses default", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		opts := &StackOptions{
+			Name:        "test-stack",
+			Runtime:     "go1.x",
+			Description: "", // Empty description
+		}
+
+		err := GenerateStack(tmpDir, opts)
+		require.NoError(t, err)
+
+		content, err := os.ReadFile(filepath.Join(tmpDir, "test-stack", "stack.forge.hcl"))
+		require.NoError(t, err)
+
+		// Should contain default description: "{name} stack"
+		assert.Contains(t, string(content), "test-stack stack")
+	})
+
+	t.Run("special characters in project name", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		opts := &ProjectOptions{
+			Name:   "my-awesome-project_v2",
+			Region: "eu-west-1",
+		}
+
+		err := GenerateProject(tmpDir, opts)
+		require.NoError(t, err)
+
+		content, err := os.ReadFile(filepath.Join(tmpDir, "forge.hcl"))
+		require.NoError(t, err)
+
+		assert.Contains(t, string(content), "my-awesome-project_v2")
+		assert.Contains(t, string(content), "eu-west-1")
+	})
+
+	t.Run("gitignore contains all expected patterns", func(t *testing.T) {
+		gitignore := generateGitignore()
+
+		expectedPatterns := []string{
+			".terraform/",
+			"*.tfstate",
+			"*.tfstate.backup",
+			".terraform.lock.hcl",
+			"terraform.tfvars",
+			"bin/",
+			"dist/",
+			"*.zip",
+			".DS_Store",
+		}
+
+		for _, pattern := range expectedPatterns {
+			assert.Contains(t, gitignore, pattern, "gitignore should contain %s", pattern)
+		}
+	})
+
+	t.Run("README contains project name and basic instructions", func(t *testing.T) {
+		opts := &ProjectOptions{
+			Name:   "test-readme",
+			Region: "us-east-1",
+		}
+
+		readme := generateReadme(opts)
+
+		assert.Contains(t, readme, "test-readme")
+		assert.Contains(t, readme, "forge deploy")
+		assert.Contains(t, readme, "forge destroy")
+		assert.Contains(t, readme, "forge version")
+	})
+}
+
+// TestGenerateHelperFunctions tests individual generator helper functions
+func TestGenerateHelperFunctions(t *testing.T) {
+	t.Run("generateForgeHCL produces valid HCL", func(t *testing.T) {
+		opts := &ProjectOptions{
+			Name:   "test-project",
+			Region: "us-west-2",
+		}
+
+		hcl := generateForgeHCL(opts)
+
+		assert.Contains(t, hcl, "project {")
+		assert.Contains(t, hcl, "test-project")
+		assert.Contains(t, hcl, "us-west-2")
+	})
+
+	t.Run("generateStackHCL with custom description", func(t *testing.T) {
+		opts := &StackOptions{
+			Name:        "api",
+			Runtime:     "go1.x",
+			Description: "Custom API description",
+		}
+
+		hcl := generateStackHCL(opts)
+
+		assert.Contains(t, hcl, "stack {")
+		assert.Contains(t, hcl, "api")
+		assert.Contains(t, hcl, "go1.x")
+		assert.Contains(t, hcl, "Custom API description")
+	})
+
+	t.Run("generateGoMain contains Lambda handler", func(t *testing.T) {
+		opts := &StackOptions{Name: "test"}
+		code := generateGoMain(opts)
+
+		assert.Contains(t, code, "package main")
+		assert.Contains(t, code, "lambda.Start(handler)")
+		assert.Contains(t, code, "events.APIGatewayProxyRequest")
+	})
+
+	t.Run("generateGoMod contains module name", func(t *testing.T) {
+		opts := &StackOptions{Name: "my-module"}
+		mod := generateGoMod(opts)
+
+		assert.Contains(t, mod, "module my-module")
+		assert.Contains(t, mod, "go 1.21")
+		assert.Contains(t, mod, "github.com/aws/aws-lambda-go")
+	})
+
+	t.Run("generateGoTerraform contains all resources", func(t *testing.T) {
+		opts := &StackOptions{Name: "test", Runtime: "provided.al2023"}
+		tf := generateGoTerraform(opts)
+
+		assert.Contains(t, tf, "resource \"aws_lambda_function\" \"test\"")
+		assert.Contains(t, tf, "resource \"aws_iam_role\" \"lambda\"")
+		assert.Contains(t, tf, "resource \"aws_iam_role_policy_attachment\" \"lambda_basic\"")
+		assert.Contains(t, tf, "output \"function_name\"")
+		assert.Contains(t, tf, "output \"function_arn\"")
+	})
+
+	t.Run("generatePythonHandler contains handler function", func(t *testing.T) {
+		opts := &StackOptions{Name: "test"}
+		code := generatePythonHandler(opts)
+
+		assert.Contains(t, code, "def handler(event, context):")
+		assert.Contains(t, code, "import json")
+		assert.Contains(t, code, "import logging")
+	})
+
+	t.Run("generateNodeIndex contains handler export", func(t *testing.T) {
+		opts := &StackOptions{Name: "test"}
+		code := generateNodeIndex(opts)
+
+		assert.Contains(t, code, "exports.handler = async (event)")
+		assert.Contains(t, code, "console.log")
+	})
+
+	t.Run("generatePackageJson contains correct metadata", func(t *testing.T) {
+		opts := &StackOptions{
+			Name:        "my-function",
+			Description: "Test function",
+		}
+		pkg := generatePackageJson(opts)
+
+		assert.Contains(t, pkg, "\"name\": \"my-function\"")
+		assert.Contains(t, pkg, "\"description\": \"Test function\"")
+		assert.Contains(t, pkg, "\"main\": \"index.js\"")
+	})
+
+	t.Run("generateJavaHandler contains handler class", func(t *testing.T) {
+		opts := &StackOptions{Name: "test"}
+		code := generateJavaHandler(opts)
+
+		assert.Contains(t, code, "package com.example")
+		assert.Contains(t, code, "public class Handler implements RequestHandler")
+		assert.Contains(t, code, "handleRequest")
+	})
+
+	t.Run("generatePomXml contains correct dependencies", func(t *testing.T) {
+		opts := &StackOptions{Name: "my-service"}
+		pom := generatePomXml(opts)
+
+		assert.Contains(t, pom, "<artifactId>my-service</artifactId>")
+		assert.Contains(t, pom, "aws-lambda-java-core")
+		assert.Contains(t, pom, "aws-lambda-java-events")
+		assert.Contains(t, pom, "maven-shade-plugin")
+	})
+}

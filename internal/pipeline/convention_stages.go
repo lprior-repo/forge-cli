@@ -79,22 +79,24 @@ func buildFunction(ctx context.Context, registry build.Registry, buildDir string
 			func() error { return fmt.Errorf("unsupported runtime: %s", fn.Runtime) },
 		)(build.GetBuilder(registry, fn.Runtime))
 
-		// Chain the build operation
+		// Chain the build operation with config validation
 		return E.Chain(func(builder build.BuildFunc) E.Either[error, BuildResult] {
-			cfg := discovery.ToBuildConfig(fn, buildDir)
-			return E.Chain(func(artifact build.Artifact) E.Either[error, BuildResult] {
-				sizeMB := float64(artifact.Size) / 1024 / 1024
-				fmt.Printf("[%s] ✓ Built: %s (%.2f MB)\n", fn.Name, filepath.Base(artifact.Path), sizeMB)
+			// ToBuildConfig now returns Either for validation
+			return E.Chain(func(cfg build.Config) E.Either[error, BuildResult] {
+				return E.Chain(func(artifact build.Artifact) E.Either[error, BuildResult] {
+					sizeMB := float64(artifact.Size) / 1024 / 1024
+					fmt.Printf("[%s] ✓ Built: %s (%.2f MB)\n", fn.Name, filepath.Base(artifact.Path), sizeMB)
 
-				return E.Right[error](BuildResult{
-					name: fn.Name,
-					artifact: Artifact{
-						Path:     artifact.Path,
-						Checksum: artifact.Checksum,
-						Size:     artifact.Size,
-					},
-				})
-			})(builder(ctx, cfg))
+					return E.Right[error](BuildResult{
+						name:     fn.Name,
+						artifact: Artifact{
+							Path:     artifact.Path,
+							Checksum: artifact.Checksum,
+							Size:     artifact.Size,
+						},
+					})
+				})(builder(ctx, cfg))
+			})(discovery.ToBuildConfig(fn, buildDir))
 		})(builderEither)
 	}
 }

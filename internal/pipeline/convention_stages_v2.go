@@ -120,8 +120,23 @@ func ConventionBuildV2() EventStage {
 				func(b build.BuildFunc) build.BuildFunc { return b },
 			)(builderOpt)
 
-			// Convert to build config (pure function - no method)
-			cfg := discovery.ToBuildConfig(fn, buildDir)
+			// Convert to build config with validation (returns Either)
+			cfgResult := discovery.ToBuildConfig(fn, buildDir)
+
+			// Handle config validation error
+			if E.IsLeft(cfgResult) {
+				err := E.Fold(
+					func(e error) error { return e },
+					func(c build.Config) error { return nil },
+				)(cfgResult)
+				return E.Left[StageResult](fmt.Errorf("invalid build config for %s: %w", fn.Name, err))
+			}
+
+			// Extract config
+			cfg := E.Fold(
+				func(error) build.Config { return build.Config{} },
+				func(c build.Config) build.Config { return c },
+			)(cfgResult)
 
 			// Execute build (returns Either)
 			result := builder(ctx, cfg)

@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	E "github.com/IBM/fp-go/either"
+	"github.com/lewis/forge/internal/build"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -262,7 +264,16 @@ func TestFunction_ToBuildConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := ToBuildConfig(tt.function, tt.buildDir)
+			result := ToBuildConfig(tt.function, tt.buildDir)
+
+			// Verify Either is Right (success)
+			assert.True(t, E.IsRight(result), "ToBuildConfig should return Right for valid input")
+
+			// Extract config from Either
+			cfg := E.Fold(
+				func(err error) build.Config { return build.Config{} },
+				func(c build.Config) build.Config { return c },
+			)(result)
 
 			assert.Equal(t, tt.expected["SourceDir"], cfg.SourceDir)
 			assert.Equal(t, tt.expected["OutputPath"], cfg.OutputPath)

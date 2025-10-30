@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	E "github.com/IBM/fp-go/either"
 	"github.com/lewis/forge/internal/build"
 )
 
@@ -130,24 +132,53 @@ func hasGoFiles(dir string) bool {
 	return false
 }
 
-// ToBuildConfig converts a Function to a build.Config
-// Pure function - no methods, takes Function as parameter
-func ToBuildConfig(f Function, buildDir string) build.Config {
-	outputPath := filepath.Join(buildDir, f.Name+".zip")
-
-	// Determine handler based on runtime
-	handler := "bootstrap"
-	if len(f.Runtime) >= 6 && f.Runtime[:6] == "nodejs" {
-		handler = "index.handler"
-	} else if len(f.Runtime) >= 6 && f.Runtime[:6] == "python" {
-		handler = "handler"
+// ToBuildConfig converts a Function to a build.Config with validation
+// Returns Either for error handling - validates inputs before creating config
+// PURE: Calculation with validation
+func ToBuildConfig(f Function, buildDir string) E.Either[error, build.Config] {
+	// Validate function name
+	if f.Name == "" {
+		return E.Left[build.Config](fmt.Errorf("function name cannot be empty"))
 	}
 
-	return build.Config{
+	// Validate runtime
+	if f.Runtime == "" {
+		return E.Left[build.Config](fmt.Errorf("function runtime cannot be empty"))
+	}
+
+	// Validate path
+	if f.Path == "" {
+		return E.Left[build.Config](fmt.Errorf("function path cannot be empty"))
+	}
+
+	// Validate buildDir
+	if buildDir == "" {
+		return E.Left[build.Config](fmt.Errorf("build directory cannot be empty"))
+	}
+
+	outputPath := filepath.Join(buildDir, f.Name+".zip")
+
+	// Determine handler based on runtime (safe with strings.HasPrefix)
+	handler := determineHandler(f.Runtime)
+
+	return E.Right[error](build.Config{
 		SourceDir:  f.Path,
 		OutputPath: outputPath,
 		Runtime:    f.Runtime,
 		Handler:    handler,
 		Env:        make(map[string]string),
+	})
+}
+
+// determineHandler determines the Lambda handler based on runtime
+// PURE: Calculation - safe string matching
+func determineHandler(runtime string) string {
+	switch {
+	case strings.HasPrefix(runtime, "nodejs"):
+		return "index.handler"
+	case strings.HasPrefix(runtime, "python"):
+		return "handler"
+	default:
+		return "bootstrap"
 	}
 }

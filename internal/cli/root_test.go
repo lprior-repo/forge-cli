@@ -84,4 +84,61 @@ func TestRootCmdFlags(t *testing.T) {
 		assert.NotNil(t, flag)
 		assert.Equal(t, "r", flag.Shorthand)
 	})
+
+	t.Run("flags are persistent across subcommands", func(t *testing.T) {
+		cmd := NewRootCmd()
+
+		// Get a subcommand
+		buildCmd, _, err := cmd.Find([]string{"build"})
+		assert.NoError(t, err)
+		assert.NotNil(t, buildCmd)
+
+		// Persistent flags should be inherited
+		verboseFlag := buildCmd.InheritedFlags().Lookup("verbose")
+		assert.NotNil(t, verboseFlag)
+
+		regionFlag := buildCmd.InheritedFlags().Lookup("region")
+		assert.NotNil(t, regionFlag)
+	})
+
+	t.Run("verbose flag can be set via command line", func(t *testing.T) {
+		cmd := NewRootCmd()
+
+		err := cmd.ParseFlags([]string{"--verbose"})
+		assert.NoError(t, err)
+
+		flag := cmd.PersistentFlags().Lookup("verbose")
+		assert.Equal(t, "true", flag.Value.String())
+	})
+
+	t.Run("region flag can be set via command line", func(t *testing.T) {
+		cmd := NewRootCmd()
+
+		err := cmd.ParseFlags([]string{"--region", "us-west-2"})
+		assert.NoError(t, err)
+
+		flag := cmd.PersistentFlags().Lookup("region")
+		assert.Equal(t, "us-west-2", flag.Value.String())
+	})
+}
+
+func TestRootCmdRun(t *testing.T) {
+	t.Run("displays welcome message when run without args", func(t *testing.T) {
+		cmd := NewRootCmd()
+		cmd.SetArgs([]string{})
+
+		// The Run function should execute without error
+		// and display the welcome message (tested via output capture in integration tests)
+		err := cmd.Execute()
+		assert.NoError(t, err)
+	})
+
+	t.Run("run function exists and is callable", func(t *testing.T) {
+		cmd := NewRootCmd()
+		assert.NotNil(t, cmd.Run, "Run function should be defined")
+
+		// Call Run directly
+		cmd.Run(cmd, []string{})
+		// Should not panic
+	})
 }

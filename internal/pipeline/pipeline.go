@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
 	O "github.com/IBM/fp-go/option"
 )
@@ -126,22 +127,28 @@ func Chain(pipelines ...Pipeline) Pipeline {
 	return Pipeline{stages: stages}
 }
 
-// Parallel runs stages in parallel and combines results
-// Uses fp-go's parallel execution patterns
-func Parallel(stages ...Stage) Stage {
+// Sequential runs stages sequentially with state accumulation
+// Each stage receives the state from the previous stage
+// Short-circuits on first error (railway-oriented programming)
+// NOTE: Future enhancement - true parallel execution with goroutines (see Parallel)
+func Sequential(stages ...Stage) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
-		// TODO: Implement true parallel execution using goroutines and channels
-		// For now, run sequentially
-		result := E.Right[error](s)
-		for _, stage := range stages {
-			if E.IsLeft(result) {
-				return result
-			}
-
-			opt := E.ToOption(result)
-			state := O.GetOrElse(func() State { return State{} })(opt)
-			result = stage(ctx, state)
-		}
-		return result
+		// Use A.Reduce for functional sequential composition
+		return A.Reduce(
+			func(acc E.Either[error, State], stage Stage) E.Either[error, State] {
+				// Use E.Chain for automatic error short-circuiting
+				return E.Chain(func(state State) E.Either[error, State] {
+					return stage(ctx, state)
+				})(acc)
+			},
+			E.Right[error](s),
+		)(stages)
 	}
+}
+
+// Parallel is an alias for Sequential (true parallel execution not yet implemented)
+// DEPRECATED: Use Sequential for clarity. True parallel execution is a future enhancement.
+// See: https://github.com/lewis/forge/issues/XXX
+func Parallel(stages ...Stage) Stage {
+	return Sequential(stages...)
 }

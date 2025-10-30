@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
 	O "github.com/IBM/fp-go/option"
 	"github.com/samber/lo"
@@ -51,10 +52,12 @@ func GetBuilder(r Registry, runtime string) O.Option[BuildFunc] {
 	return O.None[BuildFunc]()
 }
 
-// BuildAll builds multiple configs in parallel using functional patterns
+// BuildAll builds multiple configs using functional sequence pattern
+// Uses Array.Reduce to convert []Either[error, Artifact] to Either[error, []Artifact]
+// Automatically short-circuits on first error (railway-oriented programming)
 func BuildAll(ctx context.Context, configs []Config, registry Registry) E.Either[error, []Artifact] {
-	// Map configs to build results
-	results := lo.Map(configs, func(cfg Config, _ int) E.Either[error, Artifact] {
+	// Map configs to build results ([]Either[error, Artifact])
+	buildResults := A.Map(func(cfg Config) E.Either[error, Artifact] {
 		builderOpt := GetBuilder(registry, cfg.Runtime)
 
 		return O.Fold(
@@ -67,31 +70,31 @@ func BuildAll(ctx context.Context, configs []Config, registry Registry) E.Either
 				return builder(ctx, cfg)
 			},
 		)(builderOpt)
-	})
+	})(configs)
 
-	// Check if any failed
-	failures := lo.Filter(results, func(r E.Either[error, Artifact], _ int) bool {
-		return E.IsLeft(r)
-	})
+	// Use functional sequence to convert []Either[error, Artifact] → Either[error, []Artifact]
+	// This automatically short-circuits on first error
+	return sequenceEithers(buildResults)
+}
 
-	if len(failures) > 0 {
-		// Extract first error
-		firstError := E.Fold(
-			func(err error) error { return err },
-			func(a Artifact) error { return nil },
-		)(failures[0])
-		return E.Left[[]Artifact](firstError)
-	}
-
-	// Extract all artifacts
-	artifacts := lo.Map(results, func(r E.Either[error, Artifact], _ int) Artifact {
-		return E.Fold(
-			func(err error) Artifact { return Artifact{} },
-			func(a Artifact) Artifact { return a },
-		)(r)
-	})
-
-	return E.Right[error](artifacts)
+// sequenceEithers converts []Either[E, A] to Either[E, []A]
+// Short-circuits on first Left (error), otherwise collects all Right values
+// PURE: Calculation - deterministic transformation
+func sequenceEithers(eithers []E.Either[error, Artifact]) E.Either[error, []Artifact] {
+	return A.Reduce(
+		func(acc E.Either[error, []Artifact], item E.Either[error, Artifact]) E.Either[error, []Artifact] {
+			// Use E.Chain for railway-oriented programming
+			// If acc is Left (error), it stays Left
+			// If acc is Right and item is Left, it becomes Left
+			// If both are Right, append item to acc
+			return E.Chain(func(artifacts []Artifact) E.Either[error, []Artifact] {
+				return E.Map[error](func(artifact Artifact) []Artifact {
+					return append(artifacts, artifact)
+				})(item)
+			})(acc)
+		},
+		E.Right[error]([]Artifact{}), // Start with empty Right
+	)(eithers)
 }
 
 // WithCache is a higher-order function that adds caching to a builder

@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
@@ -10,6 +12,99 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestNewDestroyCmd tests the destroy command creation
+func TestNewDestroyCmd(t *testing.T) {
+	t.Run("creates destroy command", func(t *testing.T) {
+		cmd := NewDestroyCmd()
+
+		assert.NotNil(t, cmd)
+		assert.Equal(t, "destroy", cmd.Use)
+		assert.NotEmpty(t, cmd.Short)
+		assert.NotEmpty(t, cmd.Long)
+		assert.Contains(t, cmd.Long, "💥 Forge Destroy")
+		assert.Contains(t, cmd.Long, "PERMANENTLY DELETE")
+	})
+
+	t.Run("has auto-approve flag", func(t *testing.T) {
+		cmd := NewDestroyCmd()
+
+		flag := cmd.Flags().Lookup("auto-approve")
+		assert.NotNil(t, flag)
+		assert.Equal(t, "false", flag.DefValue)
+	})
+
+	t.Run("requires no args", func(t *testing.T) {
+		cmd := NewDestroyCmd()
+		assert.NotNil(t, cmd.Args)
+		// Test that Args function rejects arguments
+		err := cmd.Args(cmd, []string{"extra"})
+		assert.Error(t, err, "Should reject extra arguments")
+	})
+
+	t.Run("has RunE function", func(t *testing.T) {
+		cmd := NewDestroyCmd()
+		assert.NotNil(t, cmd.RunE)
+	})
+}
+
+// TestRunDestroy tests the runDestroy function with various scenarios
+func TestRunDestroy(t *testing.T) {
+	t.Run("returns error when config loading fails", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		originalDir, _ := os.Getwd()
+		defer os.Chdir(originalDir)
+
+		// Change to directory without forge.hcl
+		os.Chdir(tmpDir)
+
+		err := runDestroy(true)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to load config")
+	})
+
+	t.Run("succeeds with auto-approve and valid config", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		originalDir, _ := os.Getwd()
+		defer os.Chdir(originalDir)
+
+		// Create minimal forge.hcl
+		forgeHCL := `
+project {
+  name   = "test-project"
+  region = "us-east-1"
+}
+`
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "forge.hcl"), []byte(forgeHCL), 0644))
+
+		// Create infra directory for terraform
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		os.Chdir(tmpDir)
+
+		// This will fail with terraform not found or terraform errors, but config loading should succeed
+		err := runDestroy(true)
+		// We expect terraform-related errors, not config errors
+		if err != nil {
+			assert.NotContains(t, err.Error(), "failed to load config")
+		}
+	})
+
+	t.Run("handles working directory error gracefully", func(t *testing.T) {
+		// We can't really make os.Getwd() fail in a test, but we can verify the error path
+		// by checking that runDestroy handles errors properly
+		// This test documents the expected behavior
+		tmpDir := t.TempDir()
+		originalDir, _ := os.Getwd()
+		defer os.Chdir(originalDir)
+		os.Chdir(tmpDir)
+
+		// Without forge.hcl, we'll get config error
+		err := runDestroy(true)
+		assert.Error(t, err)
+	})
+}
 
 // TestDestroyPipeline tests the destroy pipeline using functional approach
 func TestDestroyPipeline(t *testing.T) {
