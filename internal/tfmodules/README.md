@@ -151,10 +151,14 @@ type Module struct {
 | DynamoDB | `tfmodules/dynamodb` | ✅ Complete | 48 |
 | SNS | `tfmodules/sns` | ✅ Complete | 45 |
 | S3 | `tfmodules/s3` | ✅ Complete | 90+ |
-| Lambda | `tfmodules/lambda` | 📋 Planned | 140+ |
-| EventBridge | `tfmodules/eventbridge` | 📋 Planned | 80+ |
-| API Gateway V2 | `tfmodules/apigatewayv2` | 📋 Planned | 60+ |
-| Step Functions | `tfmodules/stepfunctions` | 📋 Planned | 40+ |
+| Lambda | `tfmodules/lambda` | ✅ Complete | 100+ |
+| API Gateway V2 | `tfmodules/apigatewayv2` | ✅ Complete | 70+ |
+| EventBridge | `tfmodules/eventbridge` | ✅ Complete | 80+ |
+| Step Functions | `tfmodules/stepfunctions` | ✅ Complete | 40+ |
+| RDS Aurora | `tfmodules/rds-aurora` | 📋 Planned | 150+ |
+| RDS Proxy | `tfmodules/rds-proxy` | 📋 Planned | 30+ |
+| CloudFront | `tfmodules/cloudfront` | 📋 Planned | 100+ |
+| AppSync | `tfmodules/appsync` | 📋 Planned | 50+ |
 
 ## Usage Examples
 
@@ -290,7 +294,126 @@ func main() {
 }
 ```
 
-### Example 7: Stack of Multiple Modules
+### Example 7: Lambda Function with VPC
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/lambda"
+
+func main() {
+    fn := lambda.NewModule("api_handler")
+
+    // Configure runtime and resources
+    fn.WithRuntime("python3.13", "app.handler").
+        WithMemoryAndTimeout(1024, 30)
+
+    // VPC configuration
+    fn.WithVPC(
+        []string{"subnet-123", "subnet-456"},
+        []string{"sg-789"},
+    )
+
+    // Environment variables
+    fn.WithEnvironment(map[string]string{
+        "TABLE_NAME": "users",
+        "REGION":     "us-east-1",
+    })
+
+    // Enable tracing
+    fn.WithTracing("Active")
+
+    // Add layers
+    fn.WithLayers(
+        "arn:aws:lambda:us-east-1:123456789012:layer:common:1",
+    )
+}
+```
+
+### Example 8: API Gateway V2 with JWT Auth
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/apigatewayv2"
+
+func main() {
+    api := apigatewayv2.NewModule("my_api")
+
+    // Configure CORS
+    api.WithCORS(
+        []string{"https://example.com"},
+        []string{"GET", "POST", "PUT", "DELETE"},
+        []string{"Content-Type", "Authorization"},
+    )
+
+    // Add JWT authorizer
+    api.WithJWTAuthorizer(
+        "cognito",
+        "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_ABC123",
+        []string{"client-id-123"},
+    )
+
+    // Custom domain
+    api.WithDomainName(
+        "api.example.com",
+        "arn:aws:acm:us-east-1:123456789012:certificate/abc123",
+    )
+}
+```
+
+### Example 9: EventBridge with Lambda Targets
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/eventbridge"
+
+func main() {
+    bus := eventbridge.NewModule("orders")
+
+    // Add rule with event pattern
+    rule := eventbridge.Rule{
+        Description: strPtr("Order created events"),
+        EventPattern: strPtr(`{
+            "source": ["order.service"],
+            "detail-type": ["Order Created"]
+        }`),
+    }
+    bus.WithRule("order_created", rule)
+
+    // Add Lambda target
+    target := eventbridge.Target{
+        ARN: "arn:aws:lambda:us-east-1:123456789012:function:processor",
+    }
+    bus.WithTarget("order_created", target)
+}
+```
+
+### Example 10: Step Functions Workflow
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/stepfunctions"
+
+func main() {
+    workflow := stepfunctions.NewModule("order_processor")
+
+    // State machine definition
+    definition := `{
+        "StartAt": "ProcessOrder",
+        "States": {
+            "ProcessOrder": {
+                "Type": "Task",
+                "Resource": "arn:aws:lambda:us-east-1:123456789012:function:process",
+                "End": true
+            }
+        }
+    }`
+
+    workflow.WithDefinition(definition).
+        WithLogging("ALL", true).
+        WithTracing().
+        WithLambdaIntegration(
+            "arn:aws:lambda:us-east-1:123456789012:function:process",
+        )
+}
+```
+
+### Example 11: Stack of Multiple Modules
 
 ```go
 import "github.com/lewis/forge/internal/tfmodules"
