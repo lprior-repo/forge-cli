@@ -155,13 +155,11 @@ type Module struct {
 | API Gateway V2 | `tfmodules/apigatewayv2` | ✅ Complete | 70+ |
 | EventBridge | `tfmodules/eventbridge` | ✅ Complete | 80+ |
 | Step Functions | `tfmodules/stepfunctions` | ✅ Complete | 40+ |
-| **Secrets Manager** | `tfmodules/secretsmanager` | ✅ Complete | 35+ |
-| **SSM Parameter** | `tfmodules/ssm` | ✅ Complete | 15 |
-| **AppConfig** | `tfmodules/appconfig` | ✅ Complete | 50+ |
-| RDS Aurora | `tfmodules/rds-aurora` | 📋 Planned | 150+ |
-| RDS Proxy | `tfmodules/rds-proxy` | 📋 Planned | 30+ |
-| CloudFront | `tfmodules/cloudfront` | 📋 Planned | 100+ |
-| AppSync | `tfmodules/appsync` | 📋 Planned | 50+ |
+| Secrets Manager | `tfmodules/secretsmanager` | ✅ Complete | 35+ |
+| SSM Parameter | `tfmodules/ssm` | ✅ Complete | 15 |
+| AppConfig | `tfmodules/appconfig` | ✅ Complete | 50+ |
+| **CloudFront** | `tfmodules/cloudfront` | ✅ Complete | 30+ |
+| **AppSync** | `tfmodules/appsync` | ✅ Complete | 50+ |
 
 ## Usage Examples
 
@@ -515,7 +513,170 @@ func main() {
 }
 ```
 
-### Example 14: Stack of Multiple Modules
+### Example 14: CloudFront Distribution with S3 Origin
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/cloudfront"
+
+func main() {
+    cdn := cloudfront.NewModule("My Static Website")
+
+    // Configure S3 origin with Origin Access Control
+    cdn.WithOriginAccessControl("s3_oac", "S3 OAC for static website").
+        WithS3Origin(
+            "s3_origin",
+            "my-bucket.s3.amazonaws.com",
+            "origin-access-identity/cloudfront/ABCDEFG1234567",
+        )
+
+    // Default cache behavior
+    cdn.WithDefaultCacheBehavior("s3_origin", "redirect-to-https").
+        WithAliases("example.com", "www.example.com").
+        WithCertificate(
+            "arn:aws:acm:us-east-1:123456789012:certificate/abc123",
+            "TLSv1.2_2021",
+        )
+
+    // Enable logging and WAF
+    cdn.WithLogging("logs-bucket.s3.amazonaws.com", "cdn/", false).
+        WithWAF("arn:aws:wafv2:us-east-1:123456789012:global/webacl/my-waf/abc123").
+        WithPriceClass("PriceClass_100")
+}
+```
+
+### Example 15: CloudFront with Lambda@Edge
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/cloudfront"
+
+func main() {
+    cdn := cloudfront.NewModule("Dynamic Content CDN")
+
+    // Custom origin (ALB or API Gateway)
+    cdn.WithCustomOrigin("api_origin", "api.example.com", true)
+
+    // Default cache behavior with Lambda@Edge
+    cdn.WithDefaultCacheBehavior("api_origin", "https-only").
+        WithLambdaEdge(
+            "viewer-request",
+            "arn:aws:lambda:us-east-1:123456789012:function:auth-checker:1",
+        ).
+        WithLambdaEdge(
+            "origin-response",
+            "arn:aws:lambda:us-east-1:123456789012:function:header-injector:1",
+        )
+
+    // Geographic restrictions
+    cdn.WithGeoRestriction("whitelist", []string{"US", "CA", "GB"})
+}
+```
+
+### Example 16: AppSync GraphQL API with DynamoDB
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/appsync"
+
+func main() {
+    api := appsync.NewModule("my_api")
+
+    // GraphQL schema
+    schema := `
+        type Query {
+            getUser(id: ID!): User
+            listUsers: [User]
+        }
+        type Mutation {
+            createUser(name: String!, email: String!): User
+        }
+        type User {
+            id: ID!
+            name: String!
+            email: String!
+        }
+    `
+
+    api.WithSchema(schema).
+        WithCognitoAuth("us-east-1_ABC123", "us-east-1").
+        WithLogging("ALL", false).
+        WithXRayTracing()
+
+    // Add DynamoDB data source
+    api.WithDynamoDBDataSource("users_table", "users")
+
+    // Add resolvers
+    api.WithResolver("get_user", appsync.Resolver{
+        Type:       "Query",
+        Field:      "getUser",
+        DataSource: strPtr("users_table"),
+        RequestTemplate: strPtr(`{
+            "version": "2017-02-28",
+            "operation": "GetItem",
+            "key": {
+                "id": $util.dynamodb.toDynamoDBJson($ctx.args.id)
+            }
+        }`),
+        ResponseTemplate: strPtr("$util.toJson($ctx.result)"),
+    })
+}
+```
+
+### Example 17: AppSync with Lambda Resolvers
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/appsync"
+
+func main() {
+    api := appsync.NewModule("serverless_api")
+
+    schema := `
+        type Query {
+            processOrder(orderId: ID!): Order
+        }
+        type Order {
+            id: ID!
+            status: String!
+            total: Float!
+        }
+    `
+
+    api.WithSchema(schema).
+        WithIAMAuth().
+        WithCaching("SMALL", 3600, true, true)
+
+    // Lambda data source with direct integration
+    api.WithLambdaDataSource(
+        "order_processor",
+        "arn:aws:lambda:us-east-1:123456789012:function:process-order",
+    )
+
+    // Pipeline resolver with multiple functions
+    api.WithFunction("validate_order", appsync.Function{
+        DataSource: "order_processor",
+        RequestTemplate: strPtr(`{
+            "version": "2018-05-29",
+            "operation": "Invoke",
+            "payload": {
+                "action": "validate",
+                "orderId": $util.toJson($ctx.args.orderId)
+            }
+        }`),
+        ResponseTemplate: strPtr("$util.toJson($ctx.result)"),
+    })
+
+    api.WithResolver("process_order", appsync.Resolver{
+        Type:  "Query",
+        Field: "processOrder",
+        Kind:  strPtr("PIPELINE"),
+        PipelineConfig: &appsync.PipelineConfig{
+            Functions: []string{"validate_order"},
+        },
+    })
+}
+
+func strPtr(s string) *string { return &s }
+```
+
+### Example 18: Stack of Multiple Modules
 
 ```go
 import "github.com/lewis/forge/internal/tfmodules"
