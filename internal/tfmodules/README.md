@@ -155,6 +155,9 @@ type Module struct {
 | API Gateway V2 | `tfmodules/apigatewayv2` | ✅ Complete | 70+ |
 | EventBridge | `tfmodules/eventbridge` | ✅ Complete | 80+ |
 | Step Functions | `tfmodules/stepfunctions` | ✅ Complete | 40+ |
+| **Secrets Manager** | `tfmodules/secretsmanager` | ✅ Complete | 35+ |
+| **SSM Parameter** | `tfmodules/ssm` | ✅ Complete | 15 |
+| **AppConfig** | `tfmodules/appconfig` | ✅ Complete | 50+ |
 | RDS Aurora | `tfmodules/rds-aurora` | 📋 Planned | 150+ |
 | RDS Proxy | `tfmodules/rds-proxy` | 📋 Planned | 30+ |
 | CloudFront | `tfmodules/cloudfront` | 📋 Planned | 100+ |
@@ -413,7 +416,106 @@ func main() {
 }
 ```
 
-### Example 11: Stack of Multiple Modules
+### Example 11: Secrets Manager with Rotation
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/secretsmanager"
+
+func main() {
+    secret := secretsmanager.NewModule("db_credentials")
+
+    // Store database credentials as JSON
+    credentials := `{
+        "username": "admin",
+        "password": "changeme",
+        "host": "db.example.com"
+    }`
+
+    secret.WithSecretJSON(credentials).
+        WithKMSKey("arn:aws:kms:us-east-1:123456789012:key/abc123").
+        WithRotation(
+            "arn:aws:lambda:us-east-1:123456789012:function:rotate",
+            30, // days
+        ).
+        WithReplication(
+            "us-west-2",
+            "arn:aws:kms:us-west-2:123456789012:key/def456",
+        )
+}
+```
+
+### Example 12: SSM Parameter Store
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/ssm"
+
+func main() {
+    // Simple string parameter
+    apiKey := ssm.NewModule("/myapp/api_key").
+        WithSecureString(
+            "secret-api-key-value",
+            "alias/aws/ssm",
+        )
+
+    // StringList parameter
+    endpoints := ssm.NewModule("/myapp/endpoints").
+        WithStringList([]string{
+            "https://api1.example.com",
+            "https://api2.example.com",
+        })
+
+    // Advanced tier for large values
+    config := ssm.NewModule("/myapp/config").
+        WithValue(largeJSONConfig).
+        WithAdvancedTier().
+        WithValidation("^\\{.*\\}$") // Must be valid JSON
+}
+```
+
+### Example 13: AppConfig Feature Flags
+
+```go
+import "github.com/lewis/forge/internal/tfmodules/appconfig"
+
+func main() {
+    app := appconfig.NewModule("myapp")
+
+    // Add production environment
+    app.WithEnvironment("production", appconfig.Environment{
+        Name: "production",
+        Monitors: []appconfig.Monitor{
+            {AlarmARN: "arn:aws:cloudwatch:us-east-1:123:alarm:api-errors"},
+        },
+    })
+
+    // Feature flags configuration
+    featureFlags := `{
+        "flags": {
+            "new_checkout": {
+                "name": "new_checkout",
+                "description": "Enable new checkout flow",
+                "_deprecation": {"status": "planned"},
+                "attributes": {
+                    "enabled": {"constraints": {"type": "boolean"}}
+                }
+            }
+        },
+        "values": {
+            "new_checkout": {"enabled": true}
+        },
+        "version": "1"
+    }`
+
+    app.WithFeatureFlags(featureFlags).
+        WithDeploymentStrategy(
+            10,   // 10 min duration
+            20.0, // 20% growth factor
+            5,    // 5 min bake time
+        )
+}
+```
+
+### Example 14: Stack of Multiple Modules
 
 ```go
 import "github.com/lewis/forge/internal/tfmodules"
