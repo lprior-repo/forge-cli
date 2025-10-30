@@ -8,6 +8,48 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestGetOutputs tests the GetOutputs helper function
+func TestGetOutputs(t *testing.T) {
+	t.Run("returns outputs from stack", func(t *testing.T) {
+		config := ForgeConfig{
+			Service: "test-service",
+			Provider: ProviderConfig{
+				Region: "us-east-1",
+			},
+			Functions: map[string]FunctionConfig{
+				"api": {
+					Handler: "index.handler",
+					Runtime: "nodejs20.x",
+					Source: SourceConfig{
+						Path: "./src",
+					},
+				},
+			},
+		}
+
+		stack, err := NewForgeStack(config)
+		require.NoError(t, err)
+
+		outputs := GetOutputs(stack)
+
+		assert.NotNil(t, outputs)
+		// Check that outputs are accessible
+		assert.IsType(t, map[string]interface{}{}, outputs)
+	})
+
+	t.Run("returns empty outputs for stack without resources", func(t *testing.T) {
+		stack := &ForgeStack{
+			Name:    "empty-stack",
+			Outputs: map[string]interface{}{},
+		}
+
+		outputs := GetOutputs(stack)
+
+		assert.NotNil(t, outputs)
+		assert.Len(t, outputs, 0)
+	})
+}
+
 // TestNewForgeStack tests Lingon stack creation from configuration
 func TestNewForgeStack(t *testing.T) {
 	t.Run("creates stack from minimal config", func(t *testing.T) {

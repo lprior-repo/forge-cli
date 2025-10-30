@@ -233,7 +233,7 @@ func TestConventionTerraformApplyV2(t *testing.T) {
 		}
 
 		state := State{ProjectDir: "/test/project"}
-		stage := ConventionTerraformApplyV2(exec, true) // auto-approve
+		stage := ConventionTerraformApplyV2(exec, nil) // nil = auto-approve (no approval func)
 		result := stage(context.Background(), state)
 
 		require.True(t, E.IsRight(result))
@@ -276,7 +276,7 @@ func TestConventionTerraformApplyV2(t *testing.T) {
 		}
 
 		state := State{ProjectDir: "/test/project"}
-		stage := ConventionTerraformApplyV2(exec, true)
+		stage := ConventionTerraformApplyV2(exec, nil) // nil = auto-approve (no approval func)
 		result := stage(context.Background(), state)
 
 		require.True(t, E.IsLeft(result))
@@ -305,7 +305,7 @@ func TestConventionTerraformApplyV2(t *testing.T) {
 			Artifacts:  originalArtifacts,
 		}
 
-		stage := ConventionTerraformApplyV2(exec, true)
+		stage := ConventionTerraformApplyV2(exec, nil) // nil = auto-approve (no approval func)
 		result := stage(context.Background(), state)
 
 		require.True(t, E.IsRight(result))
@@ -481,7 +481,7 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 		pipeline := NewEventPipeline(
 			ConventionTerraformInitV2(exec),
 			ConventionTerraformPlanV2(exec, ""),
-			ConventionTerraformApplyV2(exec, true),
+			ConventionTerraformApplyV2(exec, nil), // nil = auto-approve (no approval func)
 			ConventionTerraformOutputsV2(exec),
 		)
 
@@ -529,10 +529,10 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 			}
 		}
 
-		assert.Greater(t, eventCounts["init"], 0, "Should have init events")
-		assert.Greater(t, eventCounts["plan"], 0, "Should have plan events")
-		assert.Greater(t, eventCounts["apply"], 0, "Should have apply events")
-		assert.Greater(t, eventCounts["output"], 0, "Should have output events")
+		assert.Positive(t, eventCounts["init"], "Should have init events")
+		assert.Positive(t, eventCounts["plan"], "Should have plan events")
+		assert.Positive(t, eventCounts["apply"], "Should have apply events")
+		assert.Positive(t, eventCounts["output"], "Should have output events")
 
 		// Verify final state has outputs
 		assert.NotEmpty(t, stageResult.State.Outputs)

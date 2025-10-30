@@ -28,46 +28,70 @@ type DefaultsBlock struct {
 }
 
 // Load loads configuration from forge.hcl
+// ACTION: I/O operation that reads file and applies pure transformations
 func Load(projectRoot string) (*Config, error) {
 	configPath := filepath.Join(projectRoot, "forge.hcl")
 
-	// Check if config exists
+	// I/O: Check if config exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("forge.hcl not found in %s", projectRoot)
 	}
 
-	// Parse HCL
+	// I/O: Parse HCL
 	var cfg Config
 	err := hclsimple.DecodeFile(configPath, nil, &cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse forge.hcl: %w", err)
 	}
 
-	// Apply environment variable overrides
-	if region := os.Getenv("FORGE_REGION"); region != "" && cfg.Project != nil {
-		cfg.Project.Region = region
-	}
+	// PURE: Apply defaults and overrides immutably
+	regionOverride := os.Getenv("FORGE_REGION")
+	cfgWithDefaults := applyDefaults(cfg, regionOverride)
 
-	// Set defaults
-	if cfg.Defaults == nil {
-		cfg.Defaults = &DefaultsBlock{}
-	}
-	if cfg.Defaults.Runtime == "" {
-		cfg.Defaults.Runtime = "go1.x"
-	}
-	if cfg.Defaults.Timeout == 0 {
-		cfg.Defaults.Timeout = 30
-	}
-	if cfg.Defaults.Memory == 0 {
-		cfg.Defaults.Memory = 256
-	}
-
-	// Validate (pure function - no method)
-	if err := ValidateConfig(&cfg); err != nil {
+	// PURE: Validate
+	if err := ValidateConfig(&cfgWithDefaults); err != nil {
 		return nil, err
 	}
 
-	return &cfg, nil
+	return &cfgWithDefaults, nil
+}
+
+// applyDefaults creates a new Config with defaults applied (immutable)
+// PURE: Calculation - no mutations, returns new Config
+func applyDefaults(cfg Config, regionOverride string) Config {
+	newCfg := cfg
+
+	// Apply region override immutably
+	if regionOverride != "" && newCfg.Project != nil {
+		// Create new ProjectBlock instead of mutating
+		proj := *newCfg.Project
+		proj.Region = regionOverride
+		newCfg.Project = &proj
+	}
+
+	// Set defaults immutably
+	if newCfg.Defaults == nil {
+		newCfg.Defaults = &DefaultsBlock{
+			Runtime: "go1.x",
+			Timeout: 30,
+			Memory:  256,
+		}
+	} else {
+		// Create new DefaultsBlock instead of mutating
+		defaults := *newCfg.Defaults
+		if defaults.Runtime == "" {
+			defaults.Runtime = "go1.x"
+		}
+		if defaults.Timeout == 0 {
+			defaults.Timeout = 30
+		}
+		if defaults.Memory == 0 {
+			defaults.Memory = 256
+		}
+		newCfg.Defaults = &defaults
+	}
+
+	return newCfg
 }
 
 // ValidateConfig ensures the configuration is valid

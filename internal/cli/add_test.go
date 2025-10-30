@@ -406,3 +406,193 @@ func TestAddCommand_FlagDefaults(t *testing.T) {
 	assert.NotNil(t, noModuleFlag)
 	assert.Equal(t, "false", noModuleFlag.DefValue)
 }
+
+// TestRunAdd tests the runAdd command execution
+func TestRunAdd(t *testing.T) {
+	t.Run("succeeds with SQS resource", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		// Change to temp directory for test
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"sqs", "test-queue"}
+
+		err = runAdd(cmd, args, "", false, false)
+		assert.NoError(t, err)
+
+		// Verify SQS file was created (generators use generic names)
+		sqsFile := filepath.Join(infraDir, "sqs.tf")
+		assert.FileExists(t, sqsFile)
+
+		// Verify outputs file created
+		outputsFile := filepath.Join(infraDir, "outputs.tf")
+		assert.FileExists(t, outputsFile)
+	})
+
+	t.Run("fails with unsupported resource type", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"invalid-type", "test-resource"}
+
+		err = runAdd(cmd, args, "", false, false)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported resource type")
+	})
+
+	t.Run("fails when infra directory missing", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"sqs", "test-queue"}
+
+		err = runAdd(cmd, args, "", false, false)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "infra/ directory not found")
+	})
+
+	t.Run("uses raw mode when flag set", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"sqs", "test-queue"}
+
+		err = runAdd(cmd, args, "", true, false)
+		assert.NoError(t, err)
+
+		// Verify file was created (implementation detail: raw mode still creates files)
+		sqsFile := filepath.Join(infraDir, "sqs.tf")
+		assert.FileExists(t, sqsFile)
+	})
+
+	t.Run("integrates with Lambda function when --to flag used", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		// Create minimal function state so --to validation passes
+		// Note: In real usage, functions would be discovered from existing Terraform
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"sqs", "test-queue"}
+
+		// This will fail because processor-function doesn't exist
+		// We're testing error handling here
+		err = runAdd(cmd, args, "processor-function", false, false)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
+	})
+
+	t.Run("respects no-module flag", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"sqs", "test-queue"}
+
+		err = runAdd(cmd, args, "", false, true)
+		assert.NoError(t, err)
+
+		// Verify file was created
+		sqsFile := filepath.Join(infraDir, "sqs.tf")
+		assert.FileExists(t, sqsFile)
+	})
+
+	t.Run("supports DynamoDB resource type", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"dynamodb", "test-table"}
+
+		err = runAdd(cmd, args, "", false, false)
+		assert.NoError(t, err)
+
+		// Verify DynamoDB file was created
+		dynamoFile := filepath.Join(infraDir, "dynamodb.tf")
+		assert.FileExists(t, dynamoFile)
+	})
+
+	t.Run("supports SNS resource type", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"sns", "test-topic"}
+
+		err = runAdd(cmd, args, "", false, false)
+		assert.NoError(t, err)
+
+		// Verify SNS file was created
+		snsFile := filepath.Join(infraDir, "sns.tf")
+		assert.FileExists(t, snsFile)
+	})
+
+	t.Run("supports S3 resource type", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		infraDir := filepath.Join(tmpDir, "infra")
+		require.NoError(t, os.MkdirAll(infraDir, 0755))
+
+		origDir, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() { _ = os.Chdir(origDir) }()
+		require.NoError(t, os.Chdir(tmpDir))
+
+		cmd := NewAddCmd()
+		args := []string{"s3", "test-bucket"}
+
+		err = runAdd(cmd, args, "", false, false)
+		assert.NoError(t, err)
+
+		// Verify S3 file was created
+		s3File := filepath.Join(infraDir, "s3.tf")
+		assert.FileExists(t, s3File)
+	})
+}

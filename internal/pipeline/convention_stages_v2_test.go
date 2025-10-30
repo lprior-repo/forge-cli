@@ -376,8 +376,8 @@ func TestRunWithEvents(t *testing.T) {
 			}
 		}
 
-		assert.Greater(t, scanEvents, 0, "Should have scan events")
-		assert.Greater(t, stubEvents, 0, "Should have stub events")
+		assert.Positive(t, scanEvents, "Should have scan events")
+		assert.Positive(t, stubEvents, "Should have stub events")
 
 		// Verify final state
 		functions, ok := stageResult.State.Config.([]discovery.Function)

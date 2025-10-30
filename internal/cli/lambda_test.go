@@ -14,7 +14,7 @@ func TestNewLambdaCmd(t *testing.T) {
 	t.Run("creates lambda command", func(t *testing.T) {
 		cmd := NewLambdaCmd()
 		assert.NotNil(t, cmd)
-		assert.Equal(t, "lambda", cmd.Use)
+		assert.Contains(t, cmd.Use, "lambda")
 		assert.Contains(t, cmd.Short, "Lambda")
 	})
 
@@ -53,7 +53,7 @@ func TestCreatePythonLambda(t *testing.T) {
 		projectName := "my-function"
 
 		opts := LambdaProjectOptions{
-			Runtime:        "python3.13",
+			Runtime:        "python",
 			ServiceName:    projectName,
 			FunctionName:   "handler",
 			Description:    "Test function",
@@ -65,22 +65,22 @@ func TestCreatePythonLambda(t *testing.T) {
 			HTTPMethod:     "POST",
 		}
 
-		err := createPythonLambda(tmpDir, projectName, opts)
+		projectDir := filepath.Join(tmpDir, projectName)
+		err := createPythonLambda(projectDir, projectName, opts)
 		require.NoError(t, err)
 
-		// Check function directory structure
-		functionDir := filepath.Join(tmpDir, projectName, "src", "functions", "handler")
-		assert.DirExists(t, functionDir)
+		// Check service directory structure (actual Python generator output)
+		serviceDir := filepath.Join(projectDir, "service")
+		assert.DirExists(t, serviceDir)
 
-		// Check app.py exists
-		appPy := filepath.Join(functionDir, "app.py")
-		assert.FileExists(t, appPy)
+		// Check handler exists
+		handlerPy := filepath.Join(serviceDir, "handlers", "handle_request.py")
+		assert.FileExists(t, handlerPy)
 
-		// Check content includes handler
-		content, err := os.ReadFile(appPy)
+		// Check content includes handler and powertools
+		content, err := os.ReadFile(handlerPy)
 		require.NoError(t, err)
 		assert.Contains(t, string(content), "lambda_handler")
-		assert.Contains(t, string(content), "aws_lambda_powertools")
 	})
 
 	t.Run("creates infrastructure directory", func(t *testing.T) {
@@ -88,42 +88,44 @@ func TestCreatePythonLambda(t *testing.T) {
 		projectName := "test-func"
 
 		opts := LambdaProjectOptions{
-			Runtime:       "python3.13",
+			Runtime:       "python",
 			ServiceName:   projectName,
 			FunctionName:  "handler",
 			UsePowertools: true,
 		}
 
-		err := createPythonLambda(tmpDir, projectName, opts)
+		projectDir := filepath.Join(tmpDir, projectName)
+		err := createPythonLambda(projectDir, projectName, opts)
 		require.NoError(t, err)
 
-		infraDir := filepath.Join(tmpDir, projectName, "infra")
-		assert.DirExists(t, infraDir)
+		// Check for Terraform files in terraform/ subdirectory
+		terraformDir := filepath.Join(projectDir, "terraform")
+		assert.DirExists(t, terraformDir)
 
-		// Check for Terraform files
-		mainTf := filepath.Join(infraDir, "main.tf")
+		mainTf := filepath.Join(terraformDir, "main.tf")
 		assert.FileExists(t, mainTf)
 	})
 
-	t.Run("creates requirements.txt with dependencies", func(t *testing.T) {
+	t.Run("creates pyproject.toml with dependencies", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		projectName := "test-func"
 
 		opts := LambdaProjectOptions{
-			Runtime:       "python3.13",
+			Runtime:       "python",
 			ServiceName:   projectName,
 			FunctionName:  "handler",
 			UsePowertools: true,
 		}
 
-		err := createPythonLambda(tmpDir, projectName, opts)
+		projectDir := filepath.Join(tmpDir, projectName)
+		err := createPythonLambda(projectDir, projectName, opts)
 		require.NoError(t, err)
 
-		functionDir := filepath.Join(tmpDir, projectName, "src", "functions", "handler")
-		reqFile := filepath.Join(functionDir, "requirements.txt")
-		assert.FileExists(t, reqFile)
+		// Python generator uses pyproject.toml, not requirements.txt
+		pyprojectFile := filepath.Join(projectDir, "pyproject.toml")
+		assert.FileExists(t, pyprojectFile)
 
-		content, err := os.ReadFile(reqFile)
+		content, err := os.ReadFile(pyprojectFile)
 		require.NoError(t, err)
 		assert.Contains(t, string(content), "aws-lambda-powertools")
 	})

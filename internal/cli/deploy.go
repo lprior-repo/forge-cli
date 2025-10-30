@@ -104,6 +104,17 @@ func runDeploy(autoApprove bool, namespace string) error {
 	tfExec := terraform.NewExecutor(tfPath)
 	tfExecutor := adaptTerraformExecutor(tfExec)
 
+	// Create approval function (I/O at edge)
+	var approvalFunc pipeline.ApprovalFunc
+	if !autoApprove {
+		approvalFunc = func() bool {
+			fmt.Print("\nDo you want to apply these changes? (yes/no): ")
+			var response string
+			_, _ = fmt.Scanln(&response) // #nosec G104 - user input error is non-critical
+			return response == "yes"
+		}
+	}
+
 	// Compose functional pipeline using event-based stages:
 	// Scan → Stubs → Build → TF Init → TF Plan → TF Apply → TF Outputs
 	// Event-based stages return events as data instead of printing
@@ -113,7 +124,7 @@ func runDeploy(autoApprove bool, namespace string) error {
 		pipeline.ConventionBuildV2(),
 		pipeline.ConventionTerraformInitV2(tfExecutor),
 		pipeline.ConventionTerraformPlanV2(tfExecutor, namespace),
-		pipeline.ConventionTerraformApplyV2(tfExecutor, autoApprove),
+		pipeline.ConventionTerraformApplyV2(tfExecutor, approvalFunc),
 		pipeline.ConventionTerraformOutputsV2(tfExecutor),
 	)
 

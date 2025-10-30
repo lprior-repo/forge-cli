@@ -72,23 +72,21 @@ func ConventionTerraformPlanV2(exec TerraformExecutor, namespace string) EventSt
 	}
 }
 
+// ApprovalFunc is a function that asks for user approval
+// Returns true if approved, false if canceled
+type ApprovalFunc func() bool
+
 // ConventionTerraformApplyV2 creates an event-based stage that applies infrastructure
 // PURE: Returns events as data instead of printing to console
-func ConventionTerraformApplyV2(exec TerraformExecutor, autoApprove bool) EventStage {
+// Takes an approval function to maintain purity - I/O happens at edges
+func ConventionTerraformApplyV2(exec TerraformExecutor, approvalFunc ApprovalFunc) EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		// Build events
 		events := []StageEvent{}
 
-		// Request approval if not auto-approved
-		if !autoApprove {
-			// This is still an I/O operation (console input)
-			// For now, we'll keep this as-is since it's user interaction
-			fmt.Print("\nDo you want to apply these changes? (yes/no): ")
-			var response string
-			_, _ = fmt.Scanln(&response) // #nosec G104 - user input error is non-critical
-			if response != "yes" {
-				return E.Left[StageResult](fmt.Errorf("deployment canceled by user"))
-			}
+		// Request approval through function parameter (I/O at edge)
+		if approvalFunc != nil && !approvalFunc() {
+			return E.Left[StageResult](fmt.Errorf("deployment canceled by user"))
 		}
 
 		events = append(events, NewEvent(EventLevelInfo, "==> Applying infrastructure changes..."))

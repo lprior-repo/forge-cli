@@ -55,44 +55,65 @@ func GenerateGoBuildSpec(cfg Config) GoBuildSpec {
 	}
 }
 
-// ExecuteGoBuildSpec executes a build specification
+// ExecuteGoBuildSpec executes a build specification using functional composition
 // ACTION: Performs I/O operations (file system, process execution)
 func ExecuteGoBuildSpec(ctx context.Context, spec GoBuildSpec) E.Either[error, Artifact] {
-	artifact, err := func() (Artifact, error) {
-		// I/O: Ensure output directory exists
-		//nolint:gosec // G301: Lambda build directory permissions are intentionally permissive
-		if err := os.MkdirAll(filepath.Dir(spec.OutputPath), 0754); err != nil {
-			return Artifact{}, fmt.Errorf("failed to create output directory: %w", err)
-		}
-
+	// Use E.Chain for railway-oriented programming
+	return E.Chain(func(_ struct{}) E.Either[error, Artifact] {
 		// I/O: Execute build command
-		if err := executeCommand(ctx, spec.Command, spec.Env, spec.WorkDir); err != nil {
-			return Artifact{}, err
-		}
+		return E.Chain(func(_ struct{}) E.Either[error, Artifact] {
+			// I/O: Calculate checksum
+			return E.Chain(func(checksum string) E.Either[error, Artifact] {
+				// I/O: Get file size and create artifact
+				return E.Map[error](func(size int64) Artifact {
+					return Artifact{
+						Path:     spec.OutputPath,
+						Checksum: checksum,
+						Size:     size,
+					}
+				})(ensureFileSize(spec.OutputPath))
+			})(ensureChecksum(spec.OutputPath))
+		})(ensureCommand(ctx, spec.Command, spec.Env, spec.WorkDir))
+	})(ensureOutputDir(spec.OutputPath))
+}
 
-		// I/O: Calculate checksum
-		checksum, err := calculateChecksum(spec.OutputPath)
-		if err != nil {
-			return Artifact{}, fmt.Errorf("failed to calculate checksum: %w", err)
-		}
-
-		// I/O: Get file size
-		size, err := getFileSize(spec.OutputPath)
-		if err != nil {
-			return Artifact{}, fmt.Errorf("failed to get file size: %w", err)
-		}
-
-		return Artifact{
-			Path:     spec.OutputPath,
-			Checksum: checksum,
-			Size:     size,
-		}, nil
-	}()
-
-	if err != nil {
-		return E.Left[Artifact](err)
+// ensureOutputDir creates output directory and returns unit Either
+// ACTION: I/O operation wrapped in Either monad
+func ensureOutputDir(outputPath string) E.Either[error, struct{}] {
+	//nolint:gosec // G301: Lambda build directory permissions are intentionally permissive
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0754); err != nil {
+		return E.Left[struct{}](fmt.Errorf("failed to create output directory: %w", err))
 	}
-	return E.Right[error](artifact)
+	return E.Right[error](struct{}{})
+}
+
+// ensureCommand executes build command and returns unit Either
+// ACTION: I/O operation wrapped in Either monad
+func ensureCommand(ctx context.Context, command, env []string, workDir string) E.Either[error, struct{}] {
+	if err := executeCommand(ctx, command, env, workDir); err != nil {
+		return E.Left[struct{}](err)
+	}
+	return E.Right[error](struct{}{})
+}
+
+// ensureChecksum calculates file checksum and returns Either
+// ACTION: I/O operation wrapped in Either monad
+func ensureChecksum(path string) E.Either[error, string] {
+	checksum, err := calculateChecksum(path)
+	if err != nil {
+		return E.Left[string](fmt.Errorf("failed to calculate checksum: %w", err))
+	}
+	return E.Right[error](checksum)
+}
+
+// ensureFileSize gets file size and returns Either
+// ACTION: I/O operation wrapped in Either monad
+func ensureFileSize(path string) E.Either[error, int64] {
+	size, err := getFileSize(path)
+	if err != nil {
+		return E.Left[int64](fmt.Errorf("failed to get file size: %w", err))
+	}
+	return E.Right[error](size)
 }
 
 // GoBuild composes pure specification generation with impure execution

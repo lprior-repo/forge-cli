@@ -122,12 +122,18 @@ func createProject(name, defaultRuntime string, autoState bool) error {
 	}
 
 	// Generate project structure (pure functional - no OOP)
+	// Detect AWS region from environment
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = os.Getenv("AWS_DEFAULT_REGION")
+	}
+	if region == "" {
+		region = "us-east-1"
+	}
+
 	opts := &scaffold.ProjectOptions{
 		Name:   name,
 		Region: region,
-	}
-	if opts.Region == "" {
-		opts.Region = "us-east-1"
 	}
 
 	if err := scaffold.GenerateProject(projectDir, opts); err != nil {

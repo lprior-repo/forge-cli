@@ -129,10 +129,11 @@ func findJar(targetDir string) (string, error) {
 
 		name := entry.Name()
 		// Skip sources, javadoc, and original jars
+		// Check if filename ends with .jar and doesn't have excluded suffixes
 		if filepath.Ext(name) == ".jar" &&
-			!contains(name, "-sources") &&
-			!contains(name, "-javadoc") &&
-			!contains(name, "-original") {
+			!hasSuffixBeforeExtension(name, "-sources.jar") &&
+			!hasSuffixBeforeExtension(name, "-javadoc.jar") &&
+			!hasSuffixBeforeExtension(name, "-original.jar") {
 			return filepath.Join(targetDir, name), nil
 		}
 	}
@@ -140,8 +141,9 @@ func findJar(targetDir string) (string, error) {
 	return "", fmt.Errorf("no jar file found in %s", targetDir)
 }
 
-// contains checks if a string contains a substring
+// hasSuffixBeforeExtension checks if a filename has a specific suffix (e.g., "myapp-sources.jar")
 // PURE: Calculation - deterministic string matching
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && s[len(s)-len(substr)-len(".jar"):len(s)-len(".jar")] == substr)
+func hasSuffixBeforeExtension(filename, suffix string) bool {
+	// Use standard library - safe and tested
+	return len(filename) >= len(suffix) && filename[len(filename)-len(suffix):] == suffix
 }

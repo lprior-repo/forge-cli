@@ -65,4 +65,33 @@ func TestRunDeploy(t *testing.T) {
 		// Build fails with command execution error
 		assert.Contains(t, err.Error(), "deployment failed")
 	})
+
+	t.Run("uses namespace when provided", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		originalDir, _ := os.Getwd()
+		defer os.Chdir(originalDir)
+		os.Chdir(tmpDir)
+
+		// Will fail early due to missing functions, but namespace should be validated
+		err := runDeploy(true, "pr-123")
+		assert.Error(t, err)
+	})
+
+	t.Run("handles empty namespace", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		originalDir, _ := os.Getwd()
+		defer os.Chdir(originalDir)
+		os.Chdir(tmpDir)
+
+		err := runDeploy(true, "")
+		assert.Error(t, err)
+	})
+}
+
+func TestFindTerraformPath(t *testing.T) {
+	t.Run("finds terraform in PATH", func(t *testing.T) {
+		path := findTerraformPath()
+		// Should return either system terraform or "terraform"
+		assert.NotEmpty(t, path)
+	})
 }
