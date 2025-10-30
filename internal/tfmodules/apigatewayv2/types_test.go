@@ -357,19 +357,19 @@ func TestIntegration(t *testing.T) {
 	})
 }
 
-// Helper function to create pointer to string
+// Helper function to create pointer to string.
 func ptr(s string) *string {
 	return &s
 }
 
-// BenchmarkNewModule benchmarks module creation
+// BenchmarkNewModule benchmarks module creation.
 func BenchmarkNewModule(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_api")
 	}
 }
 
-// BenchmarkFluentAPI benchmarks fluent API calls
+// BenchmarkFluentAPI benchmarks fluent API calls.
 func BenchmarkFluentAPI(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_api").

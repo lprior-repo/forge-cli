@@ -1,17 +1,17 @@
 package dynamodb_test
 
 import (
-	"context"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/generators"
-	"github.com/lewis/forge/internal/generators/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/generators"
+	"github.com/lewis/forge/internal/generators/dynamodb"
 )
 
-// Helper function to extract Right value from Either
+// Helper function to extract Right value from Either.
 func extractConfig(result E.Either[error, generators.ResourceConfig]) generators.ResourceConfig {
 	return E.Fold(
 		func(error) generators.ResourceConfig { return generators.ResourceConfig{} },
@@ -19,7 +19,7 @@ func extractConfig(result E.Either[error, generators.ResourceConfig]) generators
 	)(result)
 }
 
-// Helper function to extract error from Either
+// Helper function to extract error from Either.
 func extractError(result E.Either[error, generators.ResourceConfig]) error {
 	return E.Fold(
 		func(e error) error { return e },
@@ -27,7 +27,7 @@ func extractError(result E.Either[error, generators.ResourceConfig]) error {
 	)(result)
 }
 
-// Helper function to extract generated code
+// Helper function to extract generated code.
 func extractCode(result E.Either[error, generators.GeneratedCode]) generators.GeneratedCode {
 	return E.Fold(
 		func(error) generators.GeneratedCode { return generators.GeneratedCode{} },
@@ -35,7 +35,7 @@ func extractCode(result E.Either[error, generators.GeneratedCode]) generators.Ge
 	)(result)
 }
 
-// Helper function to extract error from GeneratedCode Either
+// Helper function to extract error from GeneratedCode Either.
 func extractCodeError(result E.Either[error, generators.GeneratedCode]) error {
 	return E.Fold(
 		func(e error) error { return e },
@@ -43,7 +43,7 @@ func extractCodeError(result E.Either[error, generators.GeneratedCode]) error {
 	)(result)
 }
 
-// Helper function to find file by path
+// Helper function to find file by path.
 func findFile(files []generators.FileToWrite, path string) *generators.FileToWrite {
 	for i := range files {
 		if files[i].Path == path {
@@ -113,7 +113,7 @@ func TestValidate(t *testing.T) {
 
 func TestPrompt(t *testing.T) {
 	gen := dynamodb.New()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("creates config with defaults", func(t *testing.T) {
 		intent := generators.ResourceIntent{
@@ -289,7 +289,7 @@ func TestGenerate(t *testing.T) {
 	})
 }
 
-// TestGeneratedCodeFormat tests that generated code is well-formatted
+// TestGeneratedCodeFormat tests that generated code is well-formatted.
 func TestGeneratedCodeFormat(t *testing.T) {
 	gen := dynamodb.New()
 
@@ -320,11 +320,11 @@ func TestGeneratedCodeFormat(t *testing.T) {
 
 	for _, file := range code.Files {
 		// Check that code starts with comment
-		assert.True(t, len(file.Content) > 0, "File should have content")
+		assert.Positive(t, file.Content, "File should have content")
 	}
 }
 
-// TestRawResourceGeneration tests generation without module
+// TestRawResourceGeneration tests generation without module.
 func TestRawResourceGeneration(t *testing.T) {
 	gen := dynamodb.New()
 
@@ -359,7 +359,7 @@ func TestRawResourceGeneration(t *testing.T) {
 	assert.NotContains(t, dynamoFile.Content, "module \"")
 }
 
-// TestNamespaceSupport tests namespace variable usage
+// TestNamespaceSupport tests namespace variable usage.
 func TestNamespaceSupport(t *testing.T) {
 	gen := dynamodb.New()
 

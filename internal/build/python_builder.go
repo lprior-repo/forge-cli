@@ -13,8 +13,8 @@ import (
 	E "github.com/IBM/fp-go/either"
 )
 
-// PythonBuildSpec represents the pure specification for a Python build
-// PURE: No side effects, deterministic output from inputs
+// PythonBuildSpec represents the pure specification for a Python build.
+// PURE: No side effects, deterministic output from inputs.
 type PythonBuildSpec struct {
 	OutputPath       string
 	SourceDir        string
@@ -25,9 +25,9 @@ type PythonBuildSpec struct {
 	UsesUV           bool     // Whether uv is available
 }
 
-// GeneratePythonBuildSpec creates a build specification from config
-// PURE: Calculation - same inputs always produce same outputs
-func GeneratePythonBuildSpec(cfg Config, hasUV bool, hasRequirements bool) PythonBuildSpec {
+// GeneratePythonBuildSpec creates a build specification from config.
+// PURE: Calculation - same inputs always produce same outputs.
+func GeneratePythonBuildSpec(cfg Config, hasUV, hasRequirements bool) PythonBuildSpec {
 	outputPath := cfg.OutputPath
 	if outputPath == "" {
 		outputPath = filepath.Join(cfg.SourceDir, "lambda.zip")
@@ -68,8 +68,8 @@ func GeneratePythonBuildSpec(cfg Config, hasUV bool, hasRequirements bool) Pytho
 	}
 }
 
-// ExecutePythonBuildSpec executes a Python build specification
-// ACTION: Performs I/O operations (file system, process execution)
+// ExecutePythonBuildSpec executes a Python build specification.
+// ACTION: Performs I/O operations (file system, process execution).
 func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[error, Artifact] {
 	artifact, err := func() (Artifact, error) {
 		// I/O: Create temporary directory for dependencies
@@ -78,7 +78,9 @@ func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[
 			return Artifact{}, fmt.Errorf("failed to create temp dir: %w", err)
 		}
 		defer func() {
-			_ = os.RemoveAll(tempDir) // Best effort cleanup
+			if err := os.RemoveAll(tempDir); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to remove temp directory %s: %v\n", tempDir, err)
+			}
 		}()
 
 		// I/O: Install dependencies if requirements.txt exists
@@ -99,16 +101,8 @@ func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to create zip: %w", err)
 		}
-		defer func() {
-			_ = zipFile.Close() // Best effort close in defer
-		}()
-
-		zipWriter := zip.NewWriter(zipFile)
-		defer func() {
-			_ = zipWriter.Close() // Best effort close in defer
-		}()
-
-		// I/O: Add dependencies from temp directory
+				zipWriter := zip.NewWriter(zipFile)
+				// I/O: Add dependencies from temp directory
 		if spec.HasRequirements {
 			if err := addDirToZip(zipWriter, tempDir, ""); err != nil {
 				return Artifact{}, fmt.Errorf("failed to add dependencies: %w", err)
@@ -146,15 +140,14 @@ func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[
 			Size:     size,
 		}, nil
 	}()
-
 	if err != nil {
 		return E.Left[Artifact](err)
 	}
 	return E.Right[error](artifact)
 }
 
-// PythonBuild composes pure specification generation with impure execution
-// COMPOSITION: Pure core + Imperative shell
+// PythonBuild composes pure specification generation with impure execution.
+// COMPOSITION: Pure core + Imperative shell.
 func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 	// I/O: Check for uv availability (this is I/O but minimal)
 	_, hasUV := exec.LookPath("uv")
@@ -171,8 +164,7 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 	return ExecutePythonBuildSpec(ctx, spec)
 }
 
-// envSlice converts the env map to a slice
-// PURE: Calculation
+// PURE: Calculation.
 func envSlice(envMap map[string]string) []string {
 	var env []string
 	for k, v := range envMap {
@@ -181,8 +173,7 @@ func envSlice(envMap map[string]string) []string {
 	return env
 }
 
-// addDirToZip recursively adds directory contents to zip
-// ACTION: Performs I/O (file system reads, zip writes)
+// ACTION: Performs I/O (file system reads, zip writes).
 func addDirToZip(zipWriter *zip.Writer, baseDir, prefix string) error {
 	return filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -219,15 +210,18 @@ func addDirToZip(zipWriter *zip.Writer, baseDir, prefix string) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close file %s: %v\n", path, err)
+			}
+		}()
 
 		_, err = io.Copy(w, f)
 		return err
 	})
 }
 
-// shouldSkipFile determines if a file should be excluded from the zip
-// PURE: Calculation - deterministic based on filename
+// PURE: Calculation - deterministic based on filename.
 func shouldSkipFile(name string) bool {
 	skipSuffixes := []string{
 		".pyc",

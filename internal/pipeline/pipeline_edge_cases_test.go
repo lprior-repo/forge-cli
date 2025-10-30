@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestRunEdgeCases tests edge cases in pipeline execution
+// TestRunEdgeCases tests edge cases in pipeline execution.
 func TestRunEdgeCases(t *testing.T) {
 	t.Run("handles state transformation through multiple stages", func(t *testing.T) {
 		stage1 := func(ctx context.Context, s State) E.Either[error, State] {
@@ -29,7 +30,7 @@ func TestRunEdgeCases(t *testing.T) {
 		}
 
 		pipeline := New(stage1, stage2, stage3)
-		result := Run(pipeline, context.Background(), State{})
+		result := Run(pipeline, t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -63,7 +64,7 @@ func TestRunEdgeCases(t *testing.T) {
 		}
 
 		pipeline := New(stage1, stage2)
-		result := Run(pipeline, context.Background(), initialState)
+		result := Run(pipeline, t.Context(), initialState)
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -85,7 +86,7 @@ func TestRunEdgeCases(t *testing.T) {
 		stage2 := func(ctx context.Context, s State) E.Either[error, State] {
 			config, ok := s.Config.(map[string]string)
 			if !ok {
-				return E.Left[State](fmt.Errorf("invalid config type"))
+				return E.Left[State](errors.New("invalid config type"))
 			}
 			config["key2"] = "value2"
 			s.Config = config
@@ -93,7 +94,7 @@ func TestRunEdgeCases(t *testing.T) {
 		}
 
 		pipeline := New(stage1, stage2)
-		result := Run(pipeline, context.Background(), State{})
+		result := Run(pipeline, t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -117,7 +118,7 @@ func TestRunEdgeCases(t *testing.T) {
 
 		stage2 := func(ctx context.Context, s State) E.Either[error, State] {
 			stage2Called = true
-			return E.Left[State](fmt.Errorf("stage 2 error"))
+			return E.Left[State](errors.New("stage 2 error"))
 		}
 
 		stage3 := func(ctx context.Context, s State) E.Either[error, State] {
@@ -126,7 +127,7 @@ func TestRunEdgeCases(t *testing.T) {
 		}
 
 		pipeline := New(stage1, stage2, stage3)
-		result := Run(pipeline, context.Background(), State{})
+		result := Run(pipeline, t.Context(), State{})
 
 		assert.True(t, E.IsLeft(result))
 		assert.True(t, stage1Called)
@@ -149,7 +150,7 @@ func TestRunEdgeCases(t *testing.T) {
 		}
 
 		pipeline := New(stage1, stage2)
-		result := Run(pipeline, context.Background(), State{})
+		result := Run(pipeline, t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -163,7 +164,7 @@ func TestRunEdgeCases(t *testing.T) {
 	})
 }
 
-// TestParallelEdgeCases tests edge cases in parallel execution
+// TestParallelEdgeCases tests edge cases in parallel execution.
 func TestParallelEdgeCases(t *testing.T) {
 	t.Run("parallel stage preserves state modifications", func(t *testing.T) {
 		stage1 := func(ctx context.Context, s State) E.Either[error, State] {
@@ -183,7 +184,7 @@ func TestParallelEdgeCases(t *testing.T) {
 		}
 
 		parallelStage := Parallel(stage1, stage2)
-		result := parallelStage(context.Background(), State{})
+		result := parallelStage(t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -201,7 +202,7 @@ func TestParallelEdgeCases(t *testing.T) {
 
 		stage1 := func(ctx context.Context, s State) E.Either[error, State] {
 			stage1Called = true
-			return E.Left[State](fmt.Errorf("error in stage 1"))
+			return E.Left[State](errors.New("error in stage 1"))
 		}
 
 		stage2 := func(ctx context.Context, s State) E.Either[error, State] {
@@ -210,7 +211,7 @@ func TestParallelEdgeCases(t *testing.T) {
 		}
 
 		parallelStage := Parallel(stage1, stage2)
-		result := parallelStage(context.Background(), State{})
+		result := parallelStage(t.Context(), State{})
 
 		assert.True(t, E.IsLeft(result))
 		assert.True(t, stage1Called)
@@ -225,7 +226,7 @@ func TestParallelEdgeCases(t *testing.T) {
 		}
 
 		parallelStage := Parallel(stage)
-		result := parallelStage(context.Background(), State{})
+		result := parallelStage(t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -237,7 +238,7 @@ func TestParallelEdgeCases(t *testing.T) {
 	})
 }
 
-// TestChainEdgeCases tests edge cases in pipeline chaining
+// TestChainEdgeCases tests edge cases in pipeline chaining.
 func TestChainEdgeCases(t *testing.T) {
 	t.Run("chain preserves stage order", func(t *testing.T) {
 		var order []int
@@ -254,7 +255,7 @@ func TestChainEdgeCases(t *testing.T) {
 		p3 := New(makeStage(5))
 
 		chained := Chain(p1, p2, p3)
-		result := Run(chained, context.Background(), State{})
+		result := Run(chained, t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, order)
@@ -268,7 +269,7 @@ func TestChainEdgeCases(t *testing.T) {
 
 		p := New(stage)
 		chained := Chain(p)
-		result := Run(chained, context.Background(), State{})
+		result := Run(chained, t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -285,7 +286,7 @@ func TestChainEdgeCases(t *testing.T) {
 		}
 
 		errorStage := func(ctx context.Context, s State) E.Either[error, State] {
-			return E.Left[State](fmt.Errorf("error in pipeline 2"))
+			return E.Left[State](errors.New("error in pipeline 2"))
 		}
 
 		p1 := New(successStage)
@@ -293,16 +294,16 @@ func TestChainEdgeCases(t *testing.T) {
 		p3 := New(successStage)
 
 		chained := Chain(p1, p2, p3)
-		result := Run(chained, context.Background(), State{})
+		result := Run(chained, t.Context(), State{})
 
 		assert.True(t, E.IsLeft(result))
 	})
 }
 
-// TestContextCancellation tests context cancellation handling
+// TestContextCancellation tests context cancellation handling.
 func TestContextCancellation(t *testing.T) {
 	t.Run("stage respects context cancellation", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		stage := func(ctx context.Context, s State) E.Either[error, State] {
 			select {
@@ -322,8 +323,8 @@ func TestContextCancellation(t *testing.T) {
 		assert.True(t, E.IsLeft(result))
 	})
 
-	t.Run("pipeline continues if context not cancelled", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+	t.Run("pipeline continues if context not canceled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 
 		stage := func(ctx context.Context, s State) E.Either[error, State] {
@@ -349,7 +350,7 @@ func TestContextCancellation(t *testing.T) {
 	})
 }
 
-// TestStateImmutability tests state transformation behavior
+// TestStateImmutability tests state transformation behavior.
 func TestStateImmutability(t *testing.T) {
 	t.Run("state fields are passed by value but maps by reference", func(t *testing.T) {
 		original := State{
@@ -368,7 +369,7 @@ func TestStateImmutability(t *testing.T) {
 		}
 
 		pipeline := New(stage)
-		_ = Run(pipeline, context.Background(), original)
+		_ = Run(pipeline, t.Context(), original)
 
 		// ProjectDir is unchanged (strings are value types)
 		assert.Equal(t, "/original", original.ProjectDir)
@@ -394,14 +395,14 @@ func TestStateImmutability(t *testing.T) {
 
 		initial := State{ProjectDir: "/initial"}
 		pipeline := New(stage1, stage2)
-		_ = Run(pipeline, context.Background(), initial)
+		_ = Run(pipeline, t.Context(), initial)
 
 		assert.Equal(t, "/initial", state1.ProjectDir)
 		assert.Equal(t, "/stage1", state2.ProjectDir)
 	})
 }
 
-// TestArtifactManipulation tests artifact map operations
+// TestArtifactManipulation tests artifact map operations.
 func TestArtifactManipulation(t *testing.T) {
 	t.Run("nil artifacts map is initialized", func(t *testing.T) {
 		stage := func(ctx context.Context, s State) E.Either[error, State] {
@@ -413,7 +414,7 @@ func TestArtifactManipulation(t *testing.T) {
 		}
 
 		pipeline := New(stage)
-		result := Run(pipeline, context.Background(), State{})
+		result := Run(pipeline, t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -438,7 +439,7 @@ func TestArtifactManipulation(t *testing.T) {
 		}
 
 		pipeline := New(stage)
-		result := Run(pipeline, context.Background(), initial)
+		result := Run(pipeline, t.Context(), initial)
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(
@@ -465,7 +466,7 @@ func TestArtifactManipulation(t *testing.T) {
 		}
 
 		pipeline := New(stage)
-		result := Run(pipeline, context.Background(), initial)
+		result := Run(pipeline, t.Context(), initial)
 
 		require.True(t, E.IsRight(result))
 		finalState := E.Fold(

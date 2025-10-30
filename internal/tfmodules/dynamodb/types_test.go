@@ -479,14 +479,14 @@ func TestReplicaRegion(t *testing.T) {
 	})
 }
 
-// BenchmarkNewModule benchmarks module creation
+// BenchmarkNewModule benchmarks module creation.
 func BenchmarkNewModule(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_table")
 	}
 }
 
-// BenchmarkFluentAPI benchmarks fluent API calls
+// BenchmarkFluentAPI benchmarks fluent API calls.
 func BenchmarkFluentAPI(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_table").

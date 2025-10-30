@@ -82,7 +82,7 @@ project {
 			configPath := filepath.Join(tmpDir, "forge.hcl")
 
 			// Write config file
-			err := os.WriteFile(configPath, []byte(tt.content), 0644)
+			err := os.WriteFile(configPath, []byte(tt.content), 0o644)
 			require.NoError(t, err)
 
 			// Load config
@@ -116,7 +116,7 @@ func TestLoadInvalidHCL(t *testing.T) {
 	// Test that invalid HCL returns parse error
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "forge.hcl")
-	err := os.WriteFile(configPath, []byte("invalid {{{"), 0644)
+	err := os.WriteFile(configPath, []byte("invalid {{{"), 0o644)
 	require.NoError(t, err)
 
 	_, err = Load(tmpDir)
@@ -133,7 +133,7 @@ project {
   # Missing name and region
 }
 `
-	err := os.WriteFile(configPath, []byte(content), 0644)
+	err := os.WriteFile(configPath, []byte(content), 0o644)
 	require.NoError(t, err)
 
 	_, err = Load(tmpDir)
@@ -151,7 +151,7 @@ project {
   region = "us-east-1"
 }
 `
-	err := os.WriteFile(configPath, []byte(content), 0644)
+	err := os.WriteFile(configPath, []byte(content), 0o644)
 	require.NoError(t, err)
 
 	// Set environment variable
@@ -171,7 +171,7 @@ defaults {
   runtime = "go1.x"
 }
 `
-	err := os.WriteFile(configPath, []byte(content), 0644)
+	err := os.WriteFile(configPath, []byte(content), 0o644)
 	require.NoError(t, err)
 
 	t.Setenv("FORGE_REGION", "eu-west-2")

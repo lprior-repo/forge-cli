@@ -14,7 +14,7 @@ import (
 func TestGoBuildSignature(t *testing.T) {
 	t.Run("GoBuild matches BuildFunc signature", func(t *testing.T) {
 		// GoBuild should be assignable to BuildFunc
-		var buildFunc BuildFunc = GoBuild
+		buildFunc := GoBuild
 
 		// Should compile and work with functional patterns
 		result := buildFunc(t.Context(), Config{
@@ -82,28 +82,28 @@ func TestGoBuildComposition(t *testing.T) {
 		cachedBuild := WithCache(cache)(GoBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = cachedBuild
+		buildFunc := cachedBuild
 		assert.NotNil(t, buildFunc)
 	})
 
 	t.Run("composes with WithLogging", func(t *testing.T) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		loggedBuild := WithLogging(logger)(GoBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = loggedBuild
+		buildFunc := loggedBuild
 		assert.NotNil(t, buildFunc)
 	})
 
 	t.Run("composes with multiple decorators", func(t *testing.T) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(
@@ -112,7 +112,7 @@ func TestGoBuildComposition(t *testing.T) {
 		)(GoBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = composed
+		buildFunc := composed
 		assert.NotNil(t, buildFunc)
 	})
 }
@@ -193,14 +193,14 @@ go 1.21
 
 		// Extract artifact
 		artifact := E.Fold(
-			func(err error) Artifact { return Artifact{} },
+			func(_ error) Artifact { return Artifact{} },
 			func(a Artifact) Artifact { return a },
 		)(result)
 
 		// Verify artifact
 		assert.Equal(t, outputPath, artifact.Path)
 		assert.NotEmpty(t, artifact.Checksum, "Should have checksum")
-		assert.Greater(t, artifact.Size, int64(0), "Should have non-zero size")
+		assert.Positive(t, artifact.Size, "Should have non-zero size")
 
 		// Verify binary exists
 		_, err = os.Stat(outputPath)
@@ -247,7 +247,7 @@ go 1.21
 			func(_ Artifact) error { return nil },
 		)(result)
 
-		assert.NotNil(t, buildErr)
+		require.Error(t, buildErr)
 		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
 
@@ -448,8 +448,8 @@ func BenchmarkGoBuildWithComposition(b *testing.B) {
 
 	b.Run("WithLogging", func(b *testing.B) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 		loggedBuild := WithLogging(logger)(GoBuild)
 
@@ -462,8 +462,8 @@ func BenchmarkGoBuildWithComposition(b *testing.B) {
 	b.Run("Composed", func(b *testing.B) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(

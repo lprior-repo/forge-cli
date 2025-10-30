@@ -4,22 +4,24 @@ package s3
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	E "github.com/IBM/fp-go/either"
+
 	"github.com/lewis/forge/internal/generators"
 )
 
-// Generator implements generators.Generator for S3 buckets
+// Generator implements generators.Generator for S3 buckets.
 type Generator struct{}
 
-// New creates a new S3 generator
+// New creates a new S3 generator.
 func New() *Generator {
 	return &Generator{}
 }
 
-// Prompt gathers configuration from user (I/O ACTION)
+// Prompt gathers configuration from user (I/O ACTION).
 func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent, state generators.ProjectState) E.Either[error, generators.ResourceConfig] {
 	// For MVP, use sensible defaults
 	// In Phase 3, this will launch interactive TUI
@@ -70,8 +72,7 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 				},
 			},
 			EnvVars: map[string]string{
-				fmt.Sprintf("%s_BUCKET_NAME", strings.ToUpper(sanitizeName(intent.Name))):
-					fmt.Sprintf("module.%s.s3_bucket_id", sanitizeName(intent.Name)),
+				strings.ToUpper(sanitizeName(intent.Name)) + "_BUCKET_NAME": fmt.Sprintf("module.%s.s3_bucket_id", sanitizeName(intent.Name)),
 			},
 		}
 	}
@@ -79,7 +80,7 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 	return E.Right[error](config)
 }
 
-// Generate creates Terraform code from configuration (PURE CALCULATION)
+// Generate creates Terraform code from configuration (PURE CALCULATION).
 func (g *Generator) Generate(config generators.ResourceConfig, state generators.ProjectState) E.Either[error, generators.GeneratedCode] {
 	// Validate first, then chain generation - automatic error short-circuiting
 	return E.Chain(func(validConfig generators.ResourceConfig) E.Either[error, generators.GeneratedCode] {
@@ -123,33 +124,33 @@ func (g *Generator) Generate(config generators.ResourceConfig, state generators.
 	})(g.Validate(config))
 }
 
-// Validate checks if configuration is valid (PURE CALCULATION)
+// Validate checks if configuration is valid (PURE CALCULATION).
 func (g *Generator) Validate(config generators.ResourceConfig) E.Either[error, generators.ResourceConfig] {
 	if config.Name == "" {
 		return E.Left[generators.ResourceConfig](
-			fmt.Errorf("bucket name is required"),
+			errors.New("bucket name is required"),
 		)
 	}
 
 	// S3 bucket names have stricter requirements
 	if !isValidS3Name(config.Name) {
 		return E.Left[generators.ResourceConfig](
-			fmt.Errorf("bucket name must be lowercase alphanumeric with hyphens, 3-63 characters"),
+			errors.New("bucket name must be lowercase alphanumeric with hyphens, 3-63 characters"),
 		)
 	}
 
 	return E.Right[error](config)
 }
 
-// generateModuleCode creates Terraform module code (PURE)
+// generateModuleCode creates Terraform module code (PURE).
 func generateModuleCode(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 	bucketName := config.Name
 
-	versioningEnabled := config.Variables["versioning_enabled"].(bool)
-	blockPublicACLs := config.Variables["block_public_acls"].(bool)
-	forceDestroy := config.Variables["force_destroy"].(bool)
-	encryption := config.Variables["server_side_encryption"].(string)
+	versioningEnabled, _ := config.Variables["versioning_enabled"].(bool)
+	blockPublicACLs, _ := config.Variables["block_public_acls"].(bool)
+	forceDestroy, _ := config.Variables["force_destroy"].(bool)
+	encryption, _ := config.Variables["server_side_encryption"].(string)
 
 	var parts []string
 
@@ -203,13 +204,13 @@ func generateModuleCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateRawResourceCode creates raw Terraform resource code (PURE)
+// generateRawResourceCode creates raw Terraform resource code (PURE).
 func generateRawResourceCode(config generators.ResourceConfig) string {
 	resourceName := sanitizeName(config.Name)
 	bucketName := config.Name
 
-	versioningEnabled := config.Variables["versioning_enabled"].(bool)
-	forceDestroy := config.Variables["force_destroy"].(bool)
+	versioningEnabled, _ := config.Variables["versioning_enabled"].(bool)
+	forceDestroy, _ := config.Variables["force_destroy"].(bool)
 
 	var parts []string
 
@@ -252,7 +253,7 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateOutputs creates Terraform outputs (PURE)
+// generateOutputs creates Terraform outputs (PURE).
 func generateOutputs(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 
@@ -296,7 +297,7 @@ func generateOutputs(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateIntegrationCode creates S3 bucket notification and IAM policy (PURE)
+// generateIntegrationCode creates S3 bucket notification and IAM policy (PURE).
 func generateIntegrationCode(config generators.ResourceConfig) string {
 	if config.Integration == nil {
 		return ""
@@ -308,7 +309,7 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 	var parts []string
 
 	// Lambda permission for S3 to invoke function
-	parts = append(parts, fmt.Sprintf("# Permission for S3 to invoke %s", functionName))
+	parts = append(parts, "# Permission for S3 to invoke "+functionName)
 	parts = append(parts, fmt.Sprintf("resource \"aws_lambda_permission\" \"%s_s3_%s\" {",
 		functionName, bucketName))
 	parts = append(parts, "  statement_id  = \"AllowExecutionFromS3Bucket\"")
@@ -326,7 +327,7 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 	parts = append(parts, "")
 
 	// S3 bucket notification
-	parts = append(parts, fmt.Sprintf("# S3 bucket notification for %s", config.Name))
+	parts = append(parts, "# S3 bucket notification for "+config.Name)
 	parts = append(parts, fmt.Sprintf("resource \"aws_s3_bucket_notification\" \"%s\" {", bucketName))
 
 	if config.Module {
@@ -400,13 +401,13 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// sanitizeName converts a name to a valid Terraform identifier (PURE)
+// sanitizeName converts a name to a valid Terraform identifier (PURE).
 func sanitizeName(name string) string {
 	// Replace hyphens with underscores for Terraform identifiers
 	return strings.ReplaceAll(name, "-", "_")
 }
 
-// isValidS3Name checks if a name is valid for S3 buckets (PURE)
+// isValidS3Name checks if a name is valid for S3 buckets (PURE).
 func isValidS3Name(name string) bool {
 	// S3 bucket naming rules:
 	// - 3-63 characters

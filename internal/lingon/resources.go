@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/golingon/lingon/pkg/terra"
+
 	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_api"
 	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_authorizer"
 	"github.com/lewis/forge/internal/lingon/aws/aws_apigatewayv2_domain_name"
@@ -26,7 +27,7 @@ import (
 // For actual AWS resource generation, run:
 // terragen -out ./aws -provider aws=hashicorp/aws:5.0.0 -force
 
-// LambdaFunctionResources contains all Terraform resources for a Lambda function
+// LambdaFunctionResources contains all Terraform resources for a Lambda function.
 type LambdaFunctionResources struct {
 	Function            *aws_lambda_function.Resource
 	Role                *aws_iam_role.Resource
@@ -36,7 +37,7 @@ type LambdaFunctionResources struct {
 	Aliases             []*aws_lambda_alias.Resource
 }
 
-// APIGatewayResources contains all Terraform resources for API Gateway
+// APIGatewayResources contains all Terraform resources for API Gateway.
 type APIGatewayResources struct {
 	API          *aws_apigatewayv2_api.Resource
 	Stage        *aws_apigatewayv2_stage.Resource
@@ -48,13 +49,12 @@ type APIGatewayResources struct {
 	Permissions  []terra.Resource // Lambda permissions for API Gateway invocation
 }
 
-// DynamoDBTableResources contains all Terraform resources for a DynamoDB table
+// DynamoDBTableResources contains all Terraform resources for a DynamoDB table.
 type DynamoDBTableResources struct {
 	Table *aws_dynamodb_table.Resource
 }
 
-// createLambdaFunctionResources creates Terraform resources for a Lambda function
-// This is a pure function that transforms config into Lingon resources
+// This is a pure function that transforms config into Lingon resources.
 func createLambdaFunctionResources(service, name string, config FunctionConfig) (*LambdaFunctionResources, error) {
 	// Validate configuration
 	if err := validateFunction(name, config); err != nil {
@@ -69,7 +69,7 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 	roleName := fmt.Sprintf("%s-%s-role", service, name)
 
 	// Create IAM role for Lambda execution
-	assumeRolePolicy, _ := json.Marshal(map[string]interface{}{
+	assumeRolePolicy, err := json.Marshal(map[string]interface{}{
 		"Version": "2012-10-17",
 		"Statement": []map[string]interface{}{
 			{
@@ -81,6 +81,10 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 			},
 		},
 	})
+	if err != nil {
+		// This should never fail for static policy, but handle it
+		assumeRolePolicy = []byte(`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}`)
+	}
 
 	resources.Role = &aws_iam_role.Resource{
 		Name: roleName,
@@ -203,7 +207,7 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 			logGroupName = fmt.Sprintf("/aws/lambda/%s-%s", service, name)
 		}
 		resources.LogGroup = &aws_cloudwatch_log_group.Resource{
-			Name: fmt.Sprintf("%s_logs", name),
+			Name: name + "_logs",
 			Args: aws_cloudwatch_log_group.Args{
 				Name:            terra.String(logGroupName),
 				RetentionInDays: terra.Number(config.Logs.RetentionInDays),
@@ -360,11 +364,11 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 	return resources, nil
 }
 
-// createAPIGatewayResources creates Terraform resources for API Gateway
+// createAPIGatewayResources creates Terraform resources for API Gateway.
 func createAPIGatewayResources(service string, config APIGatewayConfig, functions map[string]FunctionConfig) (*APIGatewayResources, error) {
 	apiName := config.Name
 	if apiName == "" {
-		apiName = fmt.Sprintf("%s-api", service)
+		apiName = service + "-api"
 	}
 
 	resources := &APIGatewayResources{
@@ -514,7 +518,7 @@ func createAPIGatewayResources(service string, config APIGatewayConfig, function
 		}
 
 		resources.Authorizers[authName] = &aws_apigatewayv2_authorizer.Resource{
-			Name: fmt.Sprintf("%s-authorizer", authName),
+			Name: authName + "-authorizer",
 			Args: authArgs,
 		}
 	}
@@ -523,7 +527,7 @@ func createAPIGatewayResources(service string, config APIGatewayConfig, function
 	for fnName, fnConfig := range functions {
 		if fnConfig.HTTPRouting != nil {
 			// Create integration
-			integrationName := fmt.Sprintf("%s-integration", fnName)
+			integrationName := fnName + "-integration"
 			resources.Integrations[integrationName] = &aws_apigatewayv2_integration.Resource{
 				Name: integrationName,
 				Args: aws_apigatewayv2_integration.Args{
@@ -534,7 +538,7 @@ func createAPIGatewayResources(service string, config APIGatewayConfig, function
 			}
 
 			// Create route
-			routeName := fmt.Sprintf("%s-route", fnName)
+			routeName := fnName + "-route"
 			routeKey := fmt.Sprintf("%s %s", fnConfig.HTTPRouting.Method, fnConfig.HTTPRouting.Path)
 			routeArgs := aws_apigatewayv2_route.Args{
 				ApiId:    resources.API.Attributes().Id(),
@@ -562,7 +566,7 @@ func createAPIGatewayResources(service string, config APIGatewayConfig, function
 			}
 
 			// Create Lambda permission for API Gateway to invoke the function
-			permissionName := fmt.Sprintf("%s-api-permission", fnName)
+			permissionName := fnName + "-api-permission"
 			permission := &aws_lambda_permission.Resource{
 				Name: permissionName,
 				Args: aws_lambda_permission.Args{
@@ -580,7 +584,7 @@ func createAPIGatewayResources(service string, config APIGatewayConfig, function
 	return resources, nil
 }
 
-// createDynamoDBTableResources creates Terraform resources for a DynamoDB table
+// createDynamoDBTableResources creates Terraform resources for a DynamoDB table.
 func createDynamoDBTableResources(service, name string, config TableConfig) (*DynamoDBTableResources, error) {
 	tableName := config.TableName
 	if tableName == "" {
@@ -611,7 +615,7 @@ func createDynamoDBTableResources(service, name string, config TableConfig) (*Dy
 	return resources, nil
 }
 
-// PlaceholderResource implements terra.Resource interface for demonstration
+// PlaceholderResource implements terra.Resource interface for demonstration.
 type PlaceholderResource struct {
 	resourceType string
 	resourceName string
@@ -626,47 +630,47 @@ func createPlaceholderResource(resourceType, resourceName string) *PlaceholderRe
 	}
 }
 
-// Type implements terra.Resource - returns the resource type (e.g. aws_iam_role)
+// Type implements terra.Resource - returns the resource type (e.g. aws_iam_role).
 func (r *PlaceholderResource) Type() string {
 	return r.resourceType
 }
 
-// LocalName implements terra.Resource - returns the unique name in state
+// LocalName implements terra.Resource - returns the unique name in state.
 func (r *PlaceholderResource) LocalName() string {
 	return r.resourceName
 }
 
-// Configuration implements terra.Resource - returns the resource arguments
+// Configuration implements terra.Resource - returns the resource arguments.
 func (r *PlaceholderResource) Configuration() interface{} {
 	return r.attributes
 }
 
-// Dependencies implements terra.Resource - returns resource dependencies
+// Dependencies implements terra.Resource - returns resource dependencies.
 func (r *PlaceholderResource) Dependencies() terra.Dependencies {
 	return terra.Dependencies{}
 }
 
-// LifecycleManagement implements terra.Resource - returns lifecycle config
+// LifecycleManagement implements terra.Resource - returns lifecycle config.
 func (r *PlaceholderResource) LifecycleManagement() *terra.Lifecycle {
 	return nil
 }
 
-// ImportState implements terra.Resource - imports state from Terraform
+// ImportState implements terra.Resource - imports state from Terraform.
 func (r *PlaceholderResource) ImportState(attributes io.Reader) error {
 	return nil
 }
 
-// Arn returns a placeholder ARN reference
+// Arn returns a placeholder ARN reference.
 func (r *PlaceholderResource) Arn() string {
 	return fmt.Sprintf("${aws_%s.%s.arn}", r.resourceType, r.resourceName)
 }
 
-// Name returns a placeholder name reference
+// Name returns a placeholder name reference.
 func (r *PlaceholderResource) Name() string {
 	return fmt.Sprintf("${aws_%s.%s.name}", r.resourceType, r.resourceName)
 }
 
-// ID returns a placeholder ID reference
+// ID returns a placeholder ID reference.
 func (r *PlaceholderResource) ID() string {
 	return fmt.Sprintf("${aws_%s.%s.id}", r.resourceType, r.resourceName)
 }

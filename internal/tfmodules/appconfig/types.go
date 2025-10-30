@@ -109,17 +109,17 @@ type Module struct {
 	DeploymentStrategyDescription *string `json:"deployment_strategy_description,omitempty" hcl:"deployment_strategy_description,attr"`
 
 	// DeploymentDurationInMinutes is the deployment duration (0-1440)
-	DeploymentDurationInMinutes *int `json:"deployment_duration_in_minutes,omitempty" hcl:"deployment_duration_in_minutes,attr" validate:"min=0,max=1440"`
+	DeploymentDurationInMinutes *int `json:"deployment_duration_in_minutes,omitempty" validate:"min=0,max=1440" hcl:"deployment_duration_in_minutes,attr"`
 
 	// GrowthFactor is the percentage of targets to receive deployment (1-100)
-	GrowthFactor *float64 `json:"growth_factor,omitempty" hcl:"growth_factor,attr" validate:"min=1,max=100"`
+	GrowthFactor *float64 `json:"growth_factor,omitempty" validate:"min=1,max=100" hcl:"growth_factor,attr"`
 
 	// GrowthType is the growth type
 	// Valid values: "LINEAR" | "EXPONENTIAL"
 	GrowthType *string `json:"growth_type,omitempty" hcl:"growth_type,attr"`
 
 	// FinalBakeTimeInMinutes is the bake time after deployment (0-1440)
-	FinalBakeTimeInMinutes *int `json:"final_bake_time_in_minutes,omitempty" hcl:"final_bake_time_in_minutes,attr" validate:"min=0,max=1440"`
+	FinalBakeTimeInMinutes *int `json:"final_bake_time_in_minutes,omitempty" validate:"min=0,max=1440" hcl:"final_bake_time_in_minutes,attr"`
 
 	// ReplicateTo replicates configuration
 	// Valid values: "NONE" | "SSM_DOCUMENT"
@@ -161,7 +161,7 @@ type Module struct {
 	ExtensionParameters map[string]ExtensionParameter `json:"extension_parameters,omitempty" hcl:"extension_parameters,attr"`
 }
 
-// Environment represents an AppConfig environment
+// Environment represents an AppConfig environment.
 type Environment struct {
 	// Name of the environment
 	Name string `json:"name" hcl:"name,attr"`
@@ -176,7 +176,7 @@ type Environment struct {
 	Tags map[string]string `json:"tags,omitempty" hcl:"tags,attr"`
 }
 
-// Monitor represents a CloudWatch alarm monitor
+// Monitor represents a CloudWatch alarm monitor.
 type Monitor struct {
 	// AlarmARN is the CloudWatch alarm ARN
 	AlarmARN string `json:"alarm_arn" hcl:"alarm_arn,attr"`
@@ -185,7 +185,7 @@ type Monitor struct {
 	AlarmRoleARN *string `json:"alarm_role_arn,omitempty" hcl:"alarm_role_arn,attr"`
 }
 
-// Validator represents a configuration validator
+// Validator represents a configuration validator.
 type Validator struct {
 	// Type is the validator type
 	// Valid values: "JSON_SCHEMA" | "LAMBDA"
@@ -195,7 +195,7 @@ type Validator struct {
 	Content string `json:"content" hcl:"content,attr"`
 }
 
-// ExtensionAction represents an extension action
+// ExtensionAction represents an extension action.
 type ExtensionAction struct {
 	// Name of the action
 	Name string `json:"name" hcl:"name,attr"`
@@ -210,7 +210,7 @@ type ExtensionAction struct {
 	Description *string `json:"description,omitempty" hcl:"description,attr"`
 }
 
-// ExtensionParameter represents an extension parameter
+// ExtensionParameter represents an extension parameter.
 type ExtensionParameter struct {
 	// Required indicates if the parameter is required
 	Required *bool `json:"required,omitempty" hcl:"required,attr"`
@@ -219,7 +219,7 @@ type ExtensionParameter struct {
 	Description *string `json:"description,omitempty" hcl:"description,attr"`
 }
 
-// NewModule creates a new AppConfig module with sensible defaults
+// NewModule creates a new AppConfig module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/appconfig/aws"
 	version := "~> 2.0"
@@ -235,7 +235,7 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithEnvironment adds an environment
+// WithEnvironment adds an environment.
 func (m *Module) WithEnvironment(name string, env Environment) *Module {
 	if m.Environments == nil {
 		m.Environments = make(map[string]Environment)
@@ -244,7 +244,7 @@ func (m *Module) WithEnvironment(name string, env Environment) *Module {
 	return m
 }
 
-// WithFeatureFlags configures as a feature flag configuration
+// WithFeatureFlags configures as a feature flag configuration.
 func (m *Module) WithFeatureFlags(content string) *Module {
 	profileType := "AWS.AppConfig.FeatureFlags"
 	contentType := "application/json"
@@ -257,7 +257,7 @@ func (m *Module) WithFeatureFlags(content string) *Module {
 	return m
 }
 
-// WithFreeformConfig configures as a freeform configuration
+// WithFreeformConfig configures as a freeform configuration.
 func (m *Module) WithFreeformConfig(content, contentType string) *Module {
 	profileType := "AWS.Freeform"
 	createHosted := true
@@ -269,7 +269,7 @@ func (m *Module) WithFreeformConfig(content, contentType string) *Module {
 	return m
 }
 
-// WithDeploymentStrategy adds a deployment strategy
+// WithDeploymentStrategy adds a deployment strategy.
 func (m *Module) WithDeploymentStrategy(durationMin int, growthFactor float64, bakeTimeMin int) *Module {
 	create := true
 	growthType := "LINEAR"
@@ -282,7 +282,7 @@ func (m *Module) WithDeploymentStrategy(durationMin int, growthFactor float64, b
 	return m
 }
 
-// WithValidator adds a configuration validator
+// WithValidator adds a configuration validator.
 func (m *Module) WithValidator(validatorType, content string) *Module {
 	m.ConfigProfileValidator = append(m.ConfigProfileValidator, Validator{
 		Type:    validatorType,
@@ -291,7 +291,7 @@ func (m *Module) WithValidator(validatorType, content string) *Module {
 	return m
 }
 
-// WithTags adds tags to the application
+// WithTags adds tags to the application.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -302,7 +302,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -310,7 +310,7 @@ func (m *Module) LocalName() string {
 	return "appconfig"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

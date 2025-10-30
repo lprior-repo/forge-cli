@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestGenerateStateBucketName tests bucket name generation (PURE function)
+// TestGenerateStateBucketName tests bucket name generation (PURE function).
 func TestGenerateStateBucketName(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -45,7 +45,7 @@ func TestGenerateStateBucketName(t *testing.T) {
 	}
 }
 
-// TestGenerateLockTableName tests DynamoDB table name generation (PURE function)
+// TestGenerateLockTableName tests DynamoDB table name generation (PURE function).
 func TestGenerateLockTableName(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -79,7 +79,7 @@ func TestGenerateLockTableName(t *testing.T) {
 	}
 }
 
-// TestGenerateStateKey tests state key generation with namespace support (PURE function)
+// TestGenerateStateKey tests state key generation with namespace support (PURE function).
 func TestGenerateStateKey(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -118,7 +118,7 @@ func TestGenerateStateKey(t *testing.T) {
 	}
 }
 
-// TestGenerateS3BucketSpec tests S3 bucket specification generation (PURE function)
+// TestGenerateS3BucketSpec tests S3 bucket specification generation (PURE function).
 func TestGenerateS3BucketSpec(t *testing.T) {
 	projectName := "test-app"
 	region := "us-west-2"
@@ -152,7 +152,7 @@ func TestGenerateS3BucketSpec(t *testing.T) {
 	}
 }
 
-// TestGenerateDynamoDBTableSpec tests DynamoDB table specification generation (PURE function)
+// TestGenerateDynamoDBTableSpec tests DynamoDB table specification generation (PURE function).
 func TestGenerateDynamoDBTableSpec(t *testing.T) {
 	projectName := "test-app"
 	region := "us-east-1"
@@ -185,7 +185,7 @@ func TestGenerateDynamoDBTableSpec(t *testing.T) {
 	}
 }
 
-// TestGenerateBackendConfig tests backend configuration generation (PURE function)
+// TestGenerateBackendConfig tests backend configuration generation (PURE function).
 func TestGenerateBackendConfig(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -248,7 +248,7 @@ func TestGenerateBackendConfig(t *testing.T) {
 	}
 }
 
-// TestGenerateStateResources tests complete state resources generation (PURE function)
+// TestGenerateStateResources tests complete state resources generation (PURE function).
 func TestGenerateStateResources(t *testing.T) {
 	projectName := "production-app"
 	region := "eu-west-1"
@@ -276,7 +276,7 @@ func TestGenerateStateResources(t *testing.T) {
 	}
 }
 
-// TestRenderBackendTF tests backend.tf rendering (PURE function)
+// TestRenderBackendTF tests backend.tf rendering (PURE function).
 func TestRenderBackendTF(t *testing.T) {
 	config := BackendConfig{
 		Bucket:        "my-state-bucket",
@@ -319,7 +319,7 @@ func TestRenderBackendTF(t *testing.T) {
 	}
 }
 
-// TestRenderBackendTF_WithoutLocking tests backend.tf without locking
+// TestRenderBackendTF_WithoutLocking tests backend.tf without locking.
 func TestRenderBackendTF_WithoutLocking(t *testing.T) {
 	config := BackendConfig{
 		Bucket:        "my-state-bucket",
@@ -336,7 +336,7 @@ func TestRenderBackendTF_WithoutLocking(t *testing.T) {
 	}
 }
 
-// TestRenderS3BucketTF tests S3 bucket Terraform generation (PURE function)
+// TestRenderS3BucketTF tests S3 bucket Terraform generation (PURE function).
 func TestRenderS3BucketTF(t *testing.T) {
 	spec := S3BucketSpec{
 		Name:   "test-bucket",
@@ -394,7 +394,7 @@ func TestRenderS3BucketTF(t *testing.T) {
 	}
 }
 
-// TestRenderDynamoDBTableTF tests DynamoDB table Terraform generation (PURE function)
+// TestRenderDynamoDBTableTF tests DynamoDB table Terraform generation (PURE function).
 func TestRenderDynamoDBTableTF(t *testing.T) {
 	spec := DynamoDBTableSpec{
 		Name:        "test-locks",
@@ -442,7 +442,7 @@ func TestRenderDynamoDBTableTF(t *testing.T) {
 	}
 }
 
-// TestRenderStateBootstrapTF tests complete bootstrap Terraform generation (PURE function)
+// TestRenderStateBootstrapTF tests complete bootstrap Terraform generation (PURE function).
 func TestRenderStateBootstrapTF(t *testing.T) {
 	resources := GenerateStateResources("test-app", "us-east-1", "")
 
@@ -473,7 +473,7 @@ func TestRenderStateBootstrapTF(t *testing.T) {
 	}
 }
 
-// TestPureFunctionIdempotency tests that pure functions are idempotent
+// TestPureFunctionIdempotency tests that pure functions are idempotent.
 func TestPureFunctionIdempotency(t *testing.T) {
 	projectName := "idempotency-test"
 	region := "eu-central-1"
@@ -498,7 +498,7 @@ func TestPureFunctionIdempotency(t *testing.T) {
 	}
 }
 
-// TestRenderBackendTF_NamespaceAware tests namespace-aware state keys
+// TestRenderBackendTF_NamespaceAware tests namespace-aware state keys.
 func TestRenderBackendTF_NamespaceAware(t *testing.T) {
 	tests := []struct {
 		name      string

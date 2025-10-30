@@ -2,7 +2,7 @@ package python
 
 import "fmt"
 
-// generateEnvVars generates environment variables model
+// generateEnvVars generates environment variables model.
 func generateEnvVars(config ProjectConfig) string {
 	content := `from typing import Annotated, Literal
 
@@ -48,7 +48,7 @@ class Observability(BaseModel):
 	return content
 }
 
-// generateInputModel generates Pydantic input model
+// generateInputModel generates Pydantic input model.
 func generateInputModel(config ProjectConfig) string {
 	return `from typing import Annotated
 
@@ -81,7 +81,7 @@ class RequestInput(BaseModel):
 `
 }
 
-// generateOutputModel generates Pydantic output model
+// generateOutputModel generates Pydantic output model.
 func generateOutputModel(config ProjectConfig) string {
 	return `from typing import Annotated
 
@@ -116,7 +116,7 @@ class ErrorOutput(BaseModel):
 `
 }
 
-// generateObservability generates observability utilities
+// generateObservability generates observability utilities.
 func generateObservability(config ProjectConfig) string {
 	if config.UsePowertools {
 		return fmt.Sprintf(`from aws_lambda_powertools import Logger, Metrics, Tracer
@@ -146,7 +146,7 @@ def log_error(message: str, **kwargs):
 `
 }
 
-// generateRestAPI generates REST API resolver
+// generateRestAPI generates REST API resolver.
 func generateRestAPI(config ProjectConfig) string {
 	if config.UsePowertools {
 		return fmt.Sprintf(`from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
@@ -164,7 +164,7 @@ API_PATH = '` + config.APIPath + `'
 `
 }
 
-// generateBusinessLogic generates business logic layer
+// generateBusinessLogic generates business logic layer.
 func generateBusinessLogic(config ProjectConfig) string {
 	content := `import uuid
 from typing import Any
@@ -256,7 +256,7 @@ from service.models.output import RequestOutput
 	return content
 }
 
-// generateDynamoDBHandler generates DynamoDB data access layer
+// generateDynamoDBHandler generates DynamoDB data access layer.
 func generateDynamoDBHandler(config ProjectConfig) string {
 	return `import boto3
 from typing import Any
@@ -285,7 +285,7 @@ def delete_item(table_name: str, key: dict[str, Any]) -> None:
 `
 }
 
-// generateDBModel generates database model
+// generateDBModel generates database model.
 func generateDBModel(config ProjectConfig) string {
 	return `from typing import Annotated
 

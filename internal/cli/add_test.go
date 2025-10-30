@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/generators"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/generators"
 )
 
-// Helper to extract ProjectState from Either
+// Helper to extract ProjectState from Either.
 func extractState(result E.Either[error, generators.ProjectState]) generators.ProjectState {
 	return E.Fold(
 		func(error) generators.ProjectState { return generators.ProjectState{} },
@@ -19,7 +20,7 @@ func extractState(result E.Either[error, generators.ProjectState]) generators.Pr
 	)(result)
 }
 
-// Helper to extract error from ProjectState Either
+// Helper to extract error from ProjectState Either.
 func extractStateError(result E.Either[error, generators.ProjectState]) error {
 	return E.Fold(
 		func(e error) error { return e },
@@ -27,7 +28,7 @@ func extractStateError(result E.Either[error, generators.ProjectState]) error {
 	)(result)
 }
 
-// Helper to extract WrittenFiles from Either
+// Helper to extract WrittenFiles from Either.
 func extractWritten(result E.Either[error, generators.WrittenFiles]) generators.WrittenFiles {
 	return E.Fold(
 		func(error) generators.WrittenFiles { return generators.WrittenFiles{} },
@@ -35,7 +36,7 @@ func extractWritten(result E.Either[error, generators.WrittenFiles]) generators.
 	)(result)
 }
 
-// TestCreateGeneratorRegistry tests registry creation
+// TestCreateGeneratorRegistry tests registry creation.
 func TestCreateGeneratorRegistry(t *testing.T) {
 	registry := createGeneratorRegistry()
 
@@ -56,7 +57,7 @@ func TestCreateGeneratorRegistry(t *testing.T) {
 	}
 }
 
-// TestDiscoverProjectState tests project state discovery
+// TestDiscoverProjectState tests project state discovery.
 func TestDiscoverProjectState(t *testing.T) {
 	t.Run("infra directory not found", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -71,7 +72,7 @@ func TestDiscoverProjectState(t *testing.T) {
 	t.Run("empty infra directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		result := discoverProjectState(tmpDir)
 
@@ -87,17 +88,17 @@ func TestDiscoverProjectState(t *testing.T) {
 	t.Run("discovers .tf files", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Create test .tf files
 		files := []string{"main.tf", "variables.tf", "outputs.tf"}
 		for _, file := range files {
 			path := filepath.Join(infraDir, file)
-			require.NoError(t, os.WriteFile(path, []byte("# test"), 0644))
+			require.NoError(t, os.WriteFile(path, []byte("# test"), 0o644))
 		}
 
 		// Create non-.tf file (should be ignored)
-		require.NoError(t, os.WriteFile(filepath.Join(infraDir, "readme.md"), []byte("test"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(infraDir, "readme.md"), []byte("test"), 0o644))
 
 		result := discoverProjectState(tmpDir)
 
@@ -112,7 +113,7 @@ func TestDiscoverProjectState(t *testing.T) {
 	})
 }
 
-// TestWriteGeneratedFiles tests file writing logic
+// TestWriteGeneratedFiles tests file writing logic.
 func TestWriteGeneratedFiles(t *testing.T) {
 	t.Run("create new file", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -146,11 +147,11 @@ func TestWriteGeneratedFiles(t *testing.T) {
 	t.Run("create mode skips existing file", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Create existing file
 		filePath := filepath.Join(infraDir, "sqs.tf")
-		require.NoError(t, os.WriteFile(filePath, []byte("existing"), 0644))
+		require.NoError(t, os.WriteFile(filePath, []byte("existing"), 0o644))
 
 		code := generators.GeneratedCode{
 			Files: []generators.FileToWrite{
@@ -207,11 +208,11 @@ func TestWriteGeneratedFiles(t *testing.T) {
 	t.Run("append mode adds to existing file", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Create existing file
 		filePath := filepath.Join(infraDir, "outputs.tf")
-		require.NoError(t, os.WriteFile(filePath, []byte("# Existing outputs"), 0644))
+		require.NoError(t, os.WriteFile(filePath, []byte("# Existing outputs"), 0o644))
 
 		code := generators.GeneratedCode{
 			Files: []generators.FileToWrite{
@@ -304,11 +305,11 @@ func TestWriteGeneratedFiles(t *testing.T) {
 	t.Run("update mode appends to file", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Create existing file
 		filePath := filepath.Join(infraDir, "lambda.tf")
-		require.NoError(t, os.WriteFile(filePath, []byte("# Existing Lambda"), 0644))
+		require.NoError(t, os.WriteFile(filePath, []byte("# Existing Lambda"), 0o644))
 
 		code := generators.GeneratedCode{
 			Files: []generators.FileToWrite{
@@ -335,7 +336,7 @@ func TestWriteGeneratedFiles(t *testing.T) {
 	})
 }
 
-// TestWriteGeneratedFiles_Permissions tests file permission handling
+// TestWriteGeneratedFiles_Permissions tests file permission handling.
 func TestWriteGeneratedFiles_Permissions(t *testing.T) {
 	tmpDir := t.TempDir()
 	infraDir := filepath.Join(tmpDir, "infra")
@@ -359,16 +360,16 @@ func TestWriteGeneratedFiles_Permissions(t *testing.T) {
 	require.NoError(t, err)
 
 	mode := stat.Mode()
-	assert.Equal(t, os.FileMode(0644), mode.Perm(), "File should have 0644 permissions")
+	assert.Equal(t, os.FileMode(0o644), mode.Perm(), "File should have 0644 permissions")
 }
 
-// TestWriteGeneratedFiles_ErrorHandling tests error scenarios
+// TestWriteGeneratedFiles_ErrorHandling tests error scenarios.
 func TestWriteGeneratedFiles_ErrorHandling(t *testing.T) {
 	t.Run("invalid path", func(t *testing.T) {
 		// Use a path that will fail (like a file as directory)
 		tmpDir := t.TempDir()
 		filePath := filepath.Join(tmpDir, "file.txt")
-		require.NoError(t, os.WriteFile(filePath, []byte("test"), 0644))
+		require.NoError(t, os.WriteFile(filePath, []byte("test"), 0o644))
 
 		// Try to use file as directory
 		infraDir := filePath
@@ -389,7 +390,7 @@ func TestWriteGeneratedFiles_ErrorHandling(t *testing.T) {
 	})
 }
 
-// TestAddCommand_FlagDefaults tests command flag defaults
+// TestAddCommand_FlagDefaults tests command flag defaults.
 func TestAddCommand_FlagDefaults(t *testing.T) {
 	cmd := NewAddCmd()
 
@@ -407,12 +408,12 @@ func TestAddCommand_FlagDefaults(t *testing.T) {
 	assert.Equal(t, "false", noModuleFlag.DefValue)
 }
 
-// TestRunAdd tests the runAdd command execution
+// TestRunAdd tests the runAdd command execution.
 func TestRunAdd(t *testing.T) {
 	t.Run("succeeds with SQS resource", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Change to temp directory for test
 		origDir, err := os.Getwd()
@@ -438,7 +439,7 @@ func TestRunAdd(t *testing.T) {
 	t.Run("fails with unsupported resource type", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		origDir, err := os.Getwd()
 		require.NoError(t, err)
@@ -472,7 +473,7 @@ func TestRunAdd(t *testing.T) {
 	t.Run("uses raw mode when flag set", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		origDir, err := os.Getwd()
 		require.NoError(t, err)
@@ -493,7 +494,7 @@ func TestRunAdd(t *testing.T) {
 	t.Run("integrates with Lambda function when --to flag used", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Create minimal function state so --to validation passes
 		// Note: In real usage, functions would be discovered from existing Terraform
@@ -515,7 +516,7 @@ func TestRunAdd(t *testing.T) {
 	t.Run("respects no-module flag", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		origDir, err := os.Getwd()
 		require.NoError(t, err)
@@ -536,7 +537,7 @@ func TestRunAdd(t *testing.T) {
 	t.Run("supports DynamoDB resource type", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		origDir, err := os.Getwd()
 		require.NoError(t, err)
@@ -557,7 +558,7 @@ func TestRunAdd(t *testing.T) {
 	t.Run("supports SNS resource type", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		origDir, err := os.Getwd()
 		require.NoError(t, err)
@@ -578,7 +579,7 @@ func TestRunAdd(t *testing.T) {
 	t.Run("supports S3 resource type", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		origDir, err := os.Getwd()
 		require.NoError(t, err)

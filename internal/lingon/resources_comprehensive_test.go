@@ -34,7 +34,7 @@ func TestCreateLambdaFunctionResources(t *testing.T) {
 				Path: "./src",
 			},
 			Environment: map[string]string{
-				"NODE_ENV": "production",
+				"NODE_ENV":  "production",
 				"LOG_LEVEL": "debug",
 			},
 		}
@@ -69,7 +69,7 @@ func TestCreateLambdaFunctionResources(t *testing.T) {
 				Path: "./src",
 			},
 			VPC: &VPCConfig{
-				SubnetIds: []string{"subnet-123", "subnet-456"},
+				SubnetIds:        []string{"subnet-123", "subnet-456"},
 				SecurityGroupIds: []string{"sg-123"},
 			},
 		}
@@ -423,9 +423,9 @@ func TestCreateAPIGatewayResources(t *testing.T) {
 
 	t.Run("creates API with disabled execute endpoint", func(t *testing.T) {
 		config := APIGatewayConfig{
-			Name:                       "test-api",
-			ProtocolType:               "HTTP",
-			DisableExecuteApiEndpoint:  true,
+			Name:                      "test-api",
+			ProtocolType:              "HTTP",
+			DisableExecuteApiEndpoint: true,
 		}
 		functions := map[string]FunctionConfig{}
 
@@ -596,8 +596,8 @@ func TestCreateAPIGatewayResources(t *testing.T) {
 		resources, err := createAPIGatewayResources("test-service", config, functions)
 
 		require.NoError(t, err)
-		assert.Len(t, resources.Integrations, 0)
-		assert.Len(t, resources.Routes, 0)
+		assert.Empty(t, resources.Integrations)
+		assert.Empty(t, resources.Routes)
 	})
 }
 

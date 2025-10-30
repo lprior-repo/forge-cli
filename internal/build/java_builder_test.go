@@ -15,7 +15,7 @@ import (
 func TestJavaBuildSignature(t *testing.T) {
 	t.Run("JavaBuild matches BuildFunc signature", func(t *testing.T) {
 		// JavaBuild should be assignable to BuildFunc
-		var buildFunc BuildFunc = JavaBuild
+		buildFunc := JavaBuild
 
 		// Should compile and work with functional patterns
 		result := buildFunc(t.Context(), Config{
@@ -82,28 +82,28 @@ func TestJavaBuildComposition(t *testing.T) {
 		cachedBuild := WithCache(cache)(JavaBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = cachedBuild
+		buildFunc := cachedBuild
 		assert.NotNil(t, buildFunc)
 	})
 
 	t.Run("composes with WithLogging", func(t *testing.T) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		loggedBuild := WithLogging(logger)(JavaBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = loggedBuild
+		buildFunc := loggedBuild
 		assert.NotNil(t, buildFunc)
 	})
 
 	t.Run("composes with multiple decorators", func(t *testing.T) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(
@@ -112,7 +112,7 @@ func TestJavaBuildComposition(t *testing.T) {
 		)(JavaBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = composed
+		buildFunc := composed
 		assert.NotNil(t, buildFunc)
 	})
 }
@@ -238,7 +238,7 @@ func TestFindJar(t *testing.T) {
 		// No JAR files
 
 		_, err = findJar(targetDir)
-		assert.Error(t, err, "Should return error if no jar found")
+		require.Error(t, err, "Should return error if no jar found")
 		assert.Contains(t, err.Error(), "no jar file found")
 	})
 
@@ -400,7 +400,7 @@ public class Handler implements RequestHandler<Map<String, Object>, Map<String, 
 
 		// Verify artifact
 		artifact := E.Fold(
-			func(err error) Artifact { return Artifact{} },
+			func(_ error) Artifact { return Artifact{} },
 			func(a Artifact) Artifact { return a },
 		)(result)
 
@@ -478,8 +478,8 @@ func BenchmarkJavaBuildWithComposition(b *testing.B) {
 
 	b.Run("WithLogging", func(b *testing.B) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 		loggedBuild := WithLogging(logger)(JavaBuild)
 
@@ -492,8 +492,8 @@ func BenchmarkJavaBuildWithComposition(b *testing.B) {
 	b.Run("Composed", func(b *testing.B) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(

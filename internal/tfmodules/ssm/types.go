@@ -63,7 +63,7 @@ type Module struct {
 	Overwrite *bool `json:"overwrite,omitempty" hcl:"overwrite,attr"`
 }
 
-// NewModule creates a new SSM Parameter module with sensible defaults
+// NewModule creates a new SSM Parameter module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/ssm-parameter/aws"
 	version := "~> 1.0"
@@ -81,13 +81,13 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithValue sets a string value
+// WithValue sets a string value.
 func (m *Module) WithValue(value string) *Module {
 	m.Value = &value
 	return m
 }
 
-// WithStringList sets multiple values (StringList type)
+// WithStringList sets multiple values (StringList type).
 func (m *Module) WithStringList(values []string) *Module {
 	stringListType := "StringList"
 	m.Type = &stringListType
@@ -95,7 +95,7 @@ func (m *Module) WithStringList(values []string) *Module {
 	return m
 }
 
-// WithSecureString creates a SecureString parameter with KMS encryption
+// WithSecureString creates a SecureString parameter with KMS encryption.
 func (m *Module) WithSecureString(value, kmsKeyID string) *Module {
 	secureType := "SecureString"
 	secure := true
@@ -108,42 +108,41 @@ func (m *Module) WithSecureString(value, kmsKeyID string) *Module {
 	return m
 }
 
-// WithAdvancedTier configures the parameter as Advanced tier
-// Required for parameters > 4 KB or high throughput
+// Required for parameters > 4 KB or high throughput.
 func (m *Module) WithAdvancedTier() *Module {
 	tier := "Advanced"
 	m.Tier = &tier
 	return m
 }
 
-// WithIntelligentTiering enables intelligent tiering
+// WithIntelligentTiering enables intelligent tiering.
 func (m *Module) WithIntelligentTiering() *Module {
 	tier := "Intelligent-Tiering"
 	m.Tier = &tier
 	return m
 }
 
-// WithValidation adds a regex pattern for value validation
+// WithValidation adds a regex pattern for value validation.
 func (m *Module) WithValidation(pattern string) *Module {
 	m.AllowedPattern = &pattern
 	return m
 }
 
-// WithAMIDataType configures the parameter for AMI IDs
+// WithAMIDataType configures the parameter for AMI IDs.
 func (m *Module) WithAMIDataType() *Module {
 	dataType := "aws:ec2:image"
 	m.DataType = &dataType
 	return m
 }
 
-// WithIgnoreChanges ignores external changes to the parameter value
+// WithIgnoreChanges ignores external changes to the parameter value.
 func (m *Module) WithIgnoreChanges() *Module {
 	ignore := true
 	m.IgnoreValueChanges = &ignore
 	return m
 }
 
-// WithTags adds tags to the parameter
+// WithTags adds tags to the parameter.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -154,7 +153,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -162,7 +161,7 @@ func (m *Module) LocalName() string {
 	return "parameter"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

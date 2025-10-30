@@ -343,7 +343,7 @@ func TestPrompterSelect(t *testing.T) {
 	})
 }
 
-// BenchmarkConfirm tests confirm performance
+// BenchmarkConfirm tests confirm performance.
 func BenchmarkConfirm(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		reader := strings.NewReader("yes\n")
@@ -353,7 +353,7 @@ func BenchmarkConfirm(b *testing.B) {
 	}
 }
 
-// BenchmarkConfirmDestruction tests destructive confirm performance
+// BenchmarkConfirmDestruction tests destructive confirm performance.
 func BenchmarkConfirmDestruction(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		reader := strings.NewReader("yes\n")

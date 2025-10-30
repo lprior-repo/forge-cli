@@ -35,7 +35,7 @@ func TestLambdaDeploymentEndToEnd(t *testing.T) {
 
 		// Generate a unique identifier for this test run
 		uniqueID := random.UniqueId()
-		namespace := fmt.Sprintf("forge-test-%s", strings.ToLower(uniqueID))
+		namespace := "forge-test-" + strings.ToLower(uniqueID)
 
 		// Configure Terraform options
 		terraformOptions := &terraform.Options{
@@ -106,7 +106,6 @@ func TestLambdaDeploymentEndToEnd(t *testing.T) {
 					},
 				},
 			)
-
 			if err != nil {
 				return "", fmt.Errorf("failed to invoke Lambda function: %w", err)
 			}

@@ -77,7 +77,7 @@ func TestCreateStack(t *testing.T) {
 		os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
-		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0644))
+		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
 
 		err := createStack("api", "provided.al2023", "API Lambda")
 		require.NoError(t, err)
@@ -97,7 +97,7 @@ func TestCreateStack(t *testing.T) {
 		os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
-		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0644))
+		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
 
 		err := createStack("worker", "python3.13", "Worker Lambda")
 		require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestCreateStack(t *testing.T) {
 		os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
-		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0644))
+		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
 
 		err := createStack("frontend", "nodejs22.x", "Frontend Lambda")
 		require.NoError(t, err)
@@ -135,7 +135,7 @@ func TestCreateStack(t *testing.T) {
 		os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
-		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0644))
+		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
 
 		err := createStack("service", "java21", "Service Lambda")
 		require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestNewNewCmdExecution(t *testing.T) {
 		os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
-		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0644))
+		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
 
 		cmd := NewNewCmd()
 		cmd.SetArgs([]string{"--stack", "api", "--runtime", "go1.x", "--description", "API Lambda"})
@@ -197,7 +197,7 @@ func TestNewNewCmdExecution(t *testing.T) {
 		os.Chdir(tmpDir)
 
 		cmd := NewNewCmd()
-		cmd.SetArgs([]string{})  // No project name, no stack name
+		cmd.SetArgs([]string{}) // No project name, no stack name
 
 		err := cmd.Execute()
 		assert.Error(t, err)

@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/pipeline"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/pipeline"
 )
 
-// TestRunDeployWithMockTerraform tests deploy with full mocked infrastructure
+// TestRunDeployWithMockTerraform tests deploy with full mocked infrastructure.
 func TestRunDeployWithMockTerraform(t *testing.T) {
 	t.Run("deploys successfully with auto-approve", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -21,12 +22,12 @@ func TestRunDeployWithMockTerraform(t *testing.T) {
 
 		// Create minimal project structure
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main\nfunc main() {}"), 0644))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main\nfunc main() {}"), 0o644))
 
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(infraDir, "main.tf"), []byte("# terraform"), 0644))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(infraDir, "main.tf"), []byte("# terraform"), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -46,8 +47,8 @@ func TestRunDeployWithMockTerraform(t *testing.T) {
 		defer os.Chdir(origDir)
 
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -57,7 +58,7 @@ func TestRunDeployWithMockTerraform(t *testing.T) {
 	})
 }
 
-// TestRunDestroyWithMockTerraform tests destroy with mocked infrastructure
+// TestRunDestroyWithMockTerraform tests destroy with mocked infrastructure.
 func TestRunDestroyWithMockTerraform(t *testing.T) {
 	t.Run("fails gracefully when not in project directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -72,7 +73,7 @@ func TestRunDestroyWithMockTerraform(t *testing.T) {
 	})
 }
 
-// TestRunBuildErrorPaths tests error handling in runBuild
+// TestRunBuildErrorPaths tests error handling in runBuild.
 func TestRunBuildErrorPaths(t *testing.T) {
 	t.Run("handles build failure gracefully", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -81,11 +82,11 @@ func TestRunBuildErrorPaths(t *testing.T) {
 
 		// Create function with invalid code
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		invalidGo := `package main
 this is invalid go code that will not compile
 `
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -95,7 +96,7 @@ this is invalid go code that will not compile
 	})
 }
 
-// TestNewCmdProjectCreation tests new command project creation paths
+// TestNewCmdProjectCreation tests new command project creation paths.
 func TestNewCmdProjectCreation(t *testing.T) {
 	t.Run("creates project with auto-state flag (skip actual provisioning)", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -177,7 +178,7 @@ func TestNewCmdProjectCreation(t *testing.T) {
 		os.Chdir(tmpDir)
 
 		// Create directory first
-		require.NoError(t, os.MkdirAll("existing-project", 0755))
+		require.NoError(t, os.MkdirAll("existing-project", 0o755))
 
 		err := createProject("existing-project", "provided.al2023", false)
 		assert.Error(t, err)
@@ -185,7 +186,7 @@ func TestNewCmdProjectCreation(t *testing.T) {
 	})
 }
 
-// TestAddCommandEdgeCases tests edge cases in add command
+// TestAddCommandEdgeCases tests edge cases in add command.
 func TestAddCommandEdgeCases(t *testing.T) {
 	t.Run("handles working directory error", func(t *testing.T) {
 		// We can't easily force os.Getwd() to fail, but we test the path
@@ -195,7 +196,7 @@ func TestAddCommandEdgeCases(t *testing.T) {
 
 		// Create infra directory
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		os.Chdir(tmpDir)
 
@@ -207,7 +208,7 @@ func TestAddCommandEdgeCases(t *testing.T) {
 	})
 }
 
-// TestPipelineIntegration tests pipeline integration with CLI
+// TestPipelineIntegration tests pipeline integration with CLI.
 func TestPipelineIntegration(t *testing.T) {
 	t.Run("pipeline handles successful workflow", func(t *testing.T) {
 		// Test successful pipeline execution
@@ -227,7 +228,7 @@ func TestPipelineIntegration(t *testing.T) {
 			Outputs:    make(map[string]interface{}),
 		}
 
-		result := pipeline.RunWithEvents(pipe, context.Background(), initialState)
+		result := pipeline.RunWithEvents(pipe, t.Context(), initialState)
 
 		assert.True(t, E.IsRight(result))
 	})
@@ -244,13 +245,13 @@ func TestPipelineIntegration(t *testing.T) {
 			ProjectDir: "/test",
 		}
 
-		result := pipeline.RunWithEvents(pipe, context.Background(), initialState)
+		result := pipeline.RunWithEvents(pipe, t.Context(), initialState)
 
 		assert.True(t, E.IsLeft(result))
 	})
 }
 
-// TestCommandOutputFormatting tests that commands produce expected output
+// TestCommandOutputFormatting tests that commands produce expected output.
 func TestCommandOutputFormatting(t *testing.T) {
 	t.Run("build command shows helpful output on error", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -293,12 +294,12 @@ func TestCommandOutputFormatting(t *testing.T) {
 // The version command uses fmt.Println which writes to stdout, not cmd.Out
 // Testing output capture would require os.Stdout redirection which is tested in integration tests
 
-// TestFlagInteractions tests complex flag interactions
+// TestFlagInteractions tests complex flag interactions.
 func TestFlagInteractions(t *testing.T) {
 	t.Run("add command with both --raw and --no-module", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		origDir, _ := os.Getwd()
 		defer os.Chdir(origDir)
@@ -327,7 +328,7 @@ func TestFlagInteractions(t *testing.T) {
 
 		// Create empty functions directory
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		os.Chdir(tmpDir)
 
@@ -336,7 +337,7 @@ func TestFlagInteractions(t *testing.T) {
 	})
 }
 
-// TestCreateStackEdgeCases tests edge cases in stack creation
+// TestCreateStackEdgeCases tests edge cases in stack creation.
 func TestCreateStackEdgeCases(t *testing.T) {
 	t.Run("createStack with all default values", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -346,7 +347,7 @@ func TestCreateStackEdgeCases(t *testing.T) {
 		os.Chdir(tmpDir)
 
 		// Create forge.hcl
-		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0644))
+		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
 
 		err := createStack("default-stack", "provided.al2023", "")
 		require.NoError(t, err)

@@ -1,10 +1,12 @@
+// Package lingon provides type-safe Terraform generation using Lingon and declarative infrastructure configuration.
+
 package lingon
 
 import (
 	"time"
 )
 
-// ForgeConfig is the root configuration structure for Forge infrastructure
+// ForgeConfig is the root configuration structure for Forge infrastructure.
 type ForgeConfig struct {
 	// Service name for the application
 	Service string `json:"service"`
@@ -40,15 +42,14 @@ type ForgeConfig struct {
 	Alarms map[string]AlarmConfig `json:"alarms,omitempty"`
 }
 
-// ProviderConfig contains AWS provider configuration
+// ProviderConfig contains AWS provider configuration.
 type ProviderConfig struct {
 	Region  string            `json:"region"`
 	Profile string            `json:"profile,omitempty"`
 	Tags    map[string]string `json:"tags,omitempty"`
 }
 
-// FunctionConfig contains complete Lambda function configuration
-// Matches ALL terraform-aws-lambda module options (170+ parameters)
+// Matches ALL terraform-aws-lambda module options (170+ parameters).
 type FunctionConfig struct {
 	// === Core Configuration ===
 	Handler     string `json:"handler"`
@@ -128,7 +129,7 @@ type FunctionConfig struct {
 
 	// === Replacement Strategy ===
 	ReplaceSecurityGroupsOnDestroy bool     `json:"replaceSecurityGroupsOnDestroy,omitempty"`
-	ReplacementSecurityGroupIds    []string `json:"replacementSecurityGroupIds,omitempty"`
+	ReplacementSecurityGroupIDs    []string `json:"replacementSecurityGroupIDs,omitempty"`
 
 	// === Function URL ===
 	FunctionURL *FunctionURLConfig `json:"functionUrl,omitempty"`
@@ -161,7 +162,7 @@ type FunctionConfig struct {
 	AllowedTriggers map[string]AllowedTrigger `json:"allowedTriggers,omitempty"`
 }
 
-// SourceConfig defines how to build and package the Lambda function
+// SourceConfig defines how to build and package the Lambda function.
 type SourceConfig struct {
 	// Path to source code
 	Path string `json:"path"`
@@ -199,7 +200,7 @@ type SourceConfig struct {
 	Filename string `json:"filename,omitempty"`
 }
 
-// DockerConfig for container-based Lambda functions
+// DockerConfig for container-based Lambda functions.
 type DockerConfig struct {
 	File       string            `json:"file,omitempty"`       // Dockerfile path
 	BuildArgs  map[string]string `json:"buildArgs,omitempty"`  // Docker build args
@@ -209,7 +210,7 @@ type DockerConfig struct {
 	Tag        string            `json:"tag,omitempty"`        // Image tag
 }
 
-// PoetryConfig for Python Poetry dependency management
+// PoetryConfig for Python Poetry dependency management.
 type PoetryConfig struct {
 	Version       string   `json:"version,omitempty"`       // Poetry version
 	InstallArgs   string   `json:"installArgs,omitempty"`   // Additional install args
@@ -219,7 +220,7 @@ type PoetryConfig struct {
 	IncludeExtras []string `json:"includeExtras,omitempty"` // Include extra dependencies
 }
 
-// PipConfig for Python pip dependency management
+// PipConfig for Python pip dependency management.
 type PipConfig struct {
 	RequirementsFile string `json:"requirementsFile,omitempty"` // Path to requirements.txt
 	InstallArgs      string `json:"installArgs,omitempty"`      // Additional pip install args
@@ -227,7 +228,7 @@ type PipConfig struct {
 	Target           string `json:"target,omitempty"`           // Install target directory
 }
 
-// NpmConfig for Node.js npm dependency management
+// NpmConfig for Node.js npm dependency management.
 type NpmConfig struct {
 	PackageManager string `json:"packageManager,omitempty"` // npm, yarn, or pnpm
 	InstallArgs    string `json:"installArgs,omitempty"`    // Additional install args
@@ -235,14 +236,14 @@ type NpmConfig struct {
 	ProductionOnly bool   `json:"productionOnly,omitempty"` // Only install production deps
 }
 
-// VPCConfig for Lambda VPC configuration
+// VPCConfig for Lambda VPC configuration.
 type VPCConfig struct {
-	SubnetIds               []string `json:"subnetIds"`
-	SecurityGroupIds        []string `json:"securityGroupIds"`
+	SubnetIDs               []string `json:"subnetIds"`
+	SecurityGroupIDs        []string `json:"securityGroupIds"`
 	IPv6AllowedForDualStack bool     `json:"ipv6AllowedForDualStack,omitempty"`
 }
 
-// IAMConfig for Lambda IAM permissions
+// IAMConfig for Lambda IAM permissions.
 type IAMConfig struct {
 	// Role ARN (if using existing role)
 	RoleArn string `json:"roleArn,omitempty"`
@@ -281,13 +282,13 @@ type IAMConfig struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
-// InlinePolicy represents an inline IAM policy
+// InlinePolicy represents an inline IAM policy.
 type InlinePolicy struct {
 	Name   string `json:"name"`
 	Policy string `json:"policy"` // JSON policy document
 }
 
-// PolicyStatement represents an IAM policy statement
+// PolicyStatement represents an IAM policy statement.
 type PolicyStatement struct {
 	Effect    string                 `json:"effect"` // Allow or Deny
 	Actions   []string               `json:"actions"`
@@ -295,7 +296,7 @@ type PolicyStatement struct {
 	Condition map[string]interface{} `json:"condition,omitempty"`
 }
 
-// CloudWatchLogsConfig for Lambda logging
+// CloudWatchLogsConfig for Lambda logging.
 type CloudWatchLogsConfig struct {
 	RetentionInDays     int               `json:"retentionInDays,omitempty"`
 	LogGroupName        string            `json:"logGroupName,omitempty"`
@@ -308,30 +309,30 @@ type CloudWatchLogsConfig struct {
 	Tags                map[string]string `json:"tags,omitempty"`
 }
 
-// DeadLetterConfig for Lambda DLQ
+// DeadLetterConfig for Lambda DLQ.
 type DeadLetterConfig struct {
 	TargetArn string `json:"targetArn"` // SNS topic or SQS queue ARN
 }
 
-// FileSystemConfig for Lambda EFS integration
+// FileSystemConfig for Lambda EFS integration.
 type FileSystemConfig struct {
 	Arn            string `json:"arn"`            // EFS access point ARN
 	LocalMountPath string `json:"localMountPath"` // Mount path in Lambda (e.g., /mnt/efs)
 }
 
-// ImageConfig for container image Lambda configuration
+// ImageConfig for container image Lambda configuration.
 type ImageConfig struct {
 	Command          []string `json:"command,omitempty"`
 	EntryPoint       []string `json:"entryPoint,omitempty"`
 	WorkingDirectory string   `json:"workingDirectory,omitempty"`
 }
 
-// EphemeralStorageConfig for Lambda /tmp storage
+// EphemeralStorageConfig for Lambda /tmp storage.
 type EphemeralStorageConfig struct {
 	Size int `json:"size"` // Size in MB (512 - 10240)
 }
 
-// AsyncConfig for Lambda asynchronous invocation
+// AsyncConfig for Lambda asynchronous invocation.
 type AsyncConfig struct {
 	MaximumRetryAttempts     int `json:"maximumRetryAttempts,omitempty"`     // 0-2
 	MaximumEventAgeInSeconds int `json:"maximumEventAgeInSeconds,omitempty"` // 60-21600
@@ -341,17 +342,17 @@ type AsyncConfig struct {
 	OnFailure *DestinationConfig `json:"onFailure,omitempty"`
 }
 
-// DestinationConfig for async invocation destinations
+// DestinationConfig for async invocation destinations.
 type DestinationConfig struct {
 	Destination string `json:"destination"` // SNS, SQS, Lambda, or EventBridge ARN
 }
 
-// SnapStartConfig for Lambda SnapStart (Java only)
+// SnapStartConfig for Lambda SnapStart (Java only).
 type SnapStartConfig struct {
 	ApplyOn string `json:"applyOn"` // "PublishedVersions" or "None"
 }
 
-// EventSourceMappingConfig for Lambda event sources
+// EventSourceMappingConfig for Lambda event sources.
 type EventSourceMappingConfig struct {
 	// Event source ARN (DynamoDB Stream, Kinesis Stream, SQS Queue, Kafka, etc.)
 	EventSourceArn string `json:"eventSourceArn"`
@@ -405,27 +406,27 @@ type EventSourceMappingConfig struct {
 	Queues []string `json:"queues,omitempty"` // Amazon MQ queues
 }
 
-// EventSourceDestinationConfig for event source mapping destinations
+// EventSourceDestinationConfig for event source mapping destinations.
 type EventSourceDestinationConfig struct {
 	OnFailure *DestinationConfig `json:"onFailure,omitempty"`
 }
 
-// FilterCriteria for event filtering
+// FilterCriteria for event filtering.
 type FilterCriteria struct {
 	Filters []FilterPattern `json:"filters"`
 }
 
-// FilterPattern represents an event filter pattern
+// FilterPattern represents an event filter pattern.
 type FilterPattern struct {
 	Pattern string `json:"pattern"` // JSON filter pattern
 }
 
-// ScalingConfig for SQS event source scaling
+// ScalingConfig for SQS event source scaling.
 type ScalingConfig struct {
 	MaximumConcurrency int `json:"maximumConcurrency"` // 2-1000
 }
 
-// AliasConfig for Lambda function aliases
+// AliasConfig for Lambda function aliases.
 type AliasConfig struct {
 	Name            string              `json:"name"`
 	Description     string              `json:"description,omitempty"`
@@ -433,18 +434,18 @@ type AliasConfig struct {
 	RoutingConfig   *AliasRoutingConfig `json:"routingConfig,omitempty"`   // For weighted routing
 }
 
-// AliasRoutingConfig for weighted routing between versions
+// AliasRoutingConfig for weighted routing between versions.
 type AliasRoutingConfig struct {
 	AdditionalVersionWeights map[string]float64 `json:"additionalVersionWeights"` // version -> weight (0.0-1.0)
 }
 
-// SourceAccessConfiguration for Kafka authentication
+// SourceAccessConfiguration for Kafka authentication.
 type SourceAccessConfiguration struct {
 	Type string `json:"type"` // BASIC_AUTH, VPC_SUBNET, VPC_SECURITY_GROUP, etc.
 	URI  string `json:"uri"`
 }
 
-// AllowedTrigger defines a trigger that is allowed to invoke the Lambda function
+// AllowedTrigger defines a trigger that is allowed to invoke the Lambda function.
 type AllowedTrigger struct {
 	Service        string `json:"service"`                  // e.g., "apigateway", "s3", "sns", "sqs", "events"
 	SourceArn      string `json:"sourceArn,omitempty"`      // ARN of the triggering resource
@@ -453,12 +454,12 @@ type AllowedTrigger struct {
 	StatementId    string `json:"statementId,omitempty"`    // Statement ID for the permission
 }
 
-// SelfManagedEventSourceConfig for self-managed Kafka
+// SelfManagedEventSourceConfig for self-managed Kafka.
 type SelfManagedEventSourceConfig struct {
 	Endpoints map[string][]string `json:"endpoints"` // KAFKA_BOOTSTRAP_SERVERS
 }
 
-// HTTPRoutingConfig for API Gateway integration
+// HTTPRoutingConfig for API Gateway integration.
 type HTTPRoutingConfig struct {
 	// HTTP method (GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD, ANY)
 	Method string `json:"method"`
@@ -489,7 +490,7 @@ type HTTPRoutingConfig struct {
 	ThrottlingRateLimit  float64 `json:"throttlingRateLimit,omitempty"`
 }
 
-// CORSConfig for API Gateway CORS
+// CORSConfig for API Gateway CORS.
 type CORSConfig struct {
 	AllowOrigins     []string `json:"allowOrigins"`
 	AllowMethods     []string `json:"allowMethods,omitempty"`
@@ -499,7 +500,7 @@ type CORSConfig struct {
 	AllowCredentials bool     `json:"allowCredentials,omitempty"`
 }
 
-// PackageConfig for Lambda deployment package
+// PackageConfig for Lambda deployment package.
 type PackageConfig struct {
 	// Patterns to include
 	Patterns []string `json:"patterns,omitempty"`
@@ -514,7 +515,7 @@ type PackageConfig struct {
 	ExcludeDevDependencies bool `json:"excludeDevDependencies,omitempty"`
 }
 
-// FunctionURLConfig for Lambda Function URLs
+// FunctionURLConfig for Lambda Function URLs.
 type FunctionURLConfig struct {
 	// Authorization type (NONE or AWS_IAM)
 	AuthorizationType string `json:"authorizationType"`
@@ -529,13 +530,13 @@ type FunctionURLConfig struct {
 	Qualifier string `json:"qualifier,omitempty"`
 }
 
-// RuntimeManagementConfig for Lambda runtime updates
+// RuntimeManagementConfig for Lambda runtime updates.
 type RuntimeManagementConfig struct {
 	UpdateRuntimeOn   string `json:"updateRuntimeOn"` // Auto, Manual, or FunctionUpdate
 	RuntimeVersionArn string `json:"runtimeVersionArn,omitempty"`
 }
 
-// LoggingConfig for advanced Lambda logging
+// LoggingConfig for advanced Lambda logging.
 type LoggingConfig struct {
 	LogFormat           string `json:"logFormat"` // JSON or Text
 	ApplicationLogLevel string `json:"applicationLogLevel,omitempty"`
@@ -543,8 +544,7 @@ type LoggingConfig struct {
 	LogGroup            string `json:"logGroup,omitempty"`
 }
 
-// APIGatewayConfig contains complete API Gateway v2 configuration
-// Matches ALL terraform-aws-apigateway-v2 module options (80+ parameters)
+// Matches ALL terraform-aws-apigateway-v2 module options (80+ parameters).
 type APIGatewayConfig struct {
 	// === Core Configuration ===
 	Name         string `json:"name"`
@@ -607,7 +607,7 @@ type APIGatewayConfig struct {
 	Models map[string]ModelConfig `json:"models,omitempty"`
 }
 
-// DomainConfig for custom domain configuration
+// DomainConfig for custom domain configuration.
 type DomainConfig struct {
 	DomainName     string            `json:"domainName"`
 	CertificateArn string            `json:"certificateArn"`
@@ -618,7 +618,7 @@ type DomainConfig struct {
 	Tags           map[string]string `json:"tags,omitempty"`
 }
 
-// StageConfig for API Gateway stage
+// StageConfig for API Gateway stage.
 type StageConfig struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
@@ -646,7 +646,7 @@ type StageConfig struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
-// RouteSettings for API Gateway throttling and logging
+// RouteSettings for API Gateway throttling and logging.
 type RouteSettings struct {
 	DataTraceEnabled       bool    `json:"dataTraceEnabled,omitempty"`
 	DetailedMetricsEnabled bool    `json:"detailedMetricsEnabled,omitempty"`
@@ -655,7 +655,7 @@ type RouteSettings struct {
 	ThrottlingRateLimit    float64 `json:"throttlingRateLimit,omitempty"`
 }
 
-// AuthorizerConfig for API Gateway authorizers
+// AuthorizerConfig for API Gateway authorizers.
 type AuthorizerConfig struct {
 	Name string `json:"name"`
 	Type string `json:"type"` // JWT or REQUEST
@@ -672,40 +672,40 @@ type AuthorizerConfig struct {
 	EnableSimpleResponses          bool     `json:"enableSimpleResponses,omitempty"`
 }
 
-// JWTConfiguration for JWT authorizers
+// JWTConfiguration for JWT authorizers.
 type JWTConfiguration struct {
 	Issuer   string   `json:"issuer"`
 	Audience []string `json:"audience"`
 }
 
-// AccessLogsConfig for API Gateway access logging
+// AccessLogsConfig for API Gateway access logging.
 type AccessLogsConfig struct {
 	DestinationArn string `json:"destinationArn"` // CloudWatch Logs ARN
 	Format         string `json:"format"`         // JSON format string
 }
 
-// MutualTLSConfig for mTLS authentication
+// MutualTLSConfig for mTLS authentication.
 type MutualTLSConfig struct {
 	TruststoreUri     string `json:"truststoreUri"` // S3 URI
 	TruststoreVersion string `json:"truststoreVersion,omitempty"`
 }
 
-// VPCLinkConfig for private integrations
+// VPCLinkConfig for private integrations.
 type VPCLinkConfig struct {
 	Name             string            `json:"name"`
-	SecurityGroupIds []string          `json:"securityGroupIds"`
-	SubnetIds        []string          `json:"subnetIds"`
+	SecurityGroupIDs []string          `json:"securityGroupIds"`
+	SubnetIDs        []string          `json:"subnetIds"`
 	Tags             map[string]string `json:"tags,omitempty"`
 }
 
-// RequestValidatorConfig for request validation
+// RequestValidatorConfig for request validation.
 type RequestValidatorConfig struct {
 	Name                      string `json:"name"`
 	ValidateRequestBody       bool   `json:"validateRequestBody,omitempty"`
 	ValidateRequestParameters bool   `json:"validateRequestParameters,omitempty"`
 }
 
-// ModelConfig for API models (schemas)
+// ModelConfig for API models (schemas).
 type ModelConfig struct {
 	Name        string `json:"name"`
 	ContentType string `json:"contentType"`
@@ -713,8 +713,7 @@ type ModelConfig struct {
 	Schema      string `json:"schema"` // JSON Schema
 }
 
-// TableConfig contains complete DynamoDB table configuration
-// Matches ALL terraform-aws-dynamodb-table options (50+ parameters)
+// Matches ALL terraform-aws-dynamodb-table options (50+ parameters).
 type TableConfig struct {
 	// === Core Configuration ===
 	TableName   string `json:"tableName"`
@@ -772,13 +771,13 @@ type TableConfig struct {
 	ImportTable *ImportTableConfig `json:"importTable,omitempty"`
 }
 
-// AttributeDefinition for DynamoDB attributes
+// AttributeDefinition for DynamoDB attributes.
 type AttributeDefinition struct {
 	Name string `json:"name"`
 	Type string `json:"type"` // S, N, or B (String, Number, Binary)
 }
 
-// GlobalSecondaryIndex for DynamoDB GSI
+// GlobalSecondaryIndex for DynamoDB GSI.
 type GlobalSecondaryIndex struct {
 	Name             string   `json:"name"`
 	HashKey          string   `json:"hashKey"`
@@ -789,7 +788,7 @@ type GlobalSecondaryIndex struct {
 	WriteCapacity    int      `json:"writeCapacity,omitempty"`
 }
 
-// LocalSecondaryIndex for DynamoDB LSI
+// LocalSecondaryIndex for DynamoDB LSI.
 type LocalSecondaryIndex struct {
 	Name             string   `json:"name"`
 	RangeKey         string   `json:"rangeKey"`
@@ -797,24 +796,24 @@ type LocalSecondaryIndex struct {
 	NonKeyAttributes []string `json:"nonKeyAttributes,omitempty"`
 }
 
-// TTLConfig for DynamoDB TTL
+// TTLConfig for DynamoDB TTL.
 type TTLConfig struct {
 	Enabled       bool   `json:"enabled"`
 	AttributeName string `json:"attributeName"`
 }
 
-// ServerSideEncryptionConfig for DynamoDB encryption
+// ServerSideEncryptionConfig for DynamoDB encryption.
 type ServerSideEncryptionConfig struct {
 	Enabled   bool   `json:"enabled"`
 	KMSKeyArn string `json:"kmsKeyArn,omitempty"`
 }
 
-// PointInTimeRecoveryConfig for DynamoDB PITR
+// PointInTimeRecoveryConfig for DynamoDB PITR.
 type PointInTimeRecoveryConfig struct {
 	Enabled bool `json:"enabled"`
 }
 
-// ReplicaConfig for DynamoDB global tables
+// ReplicaConfig for DynamoDB global tables.
 type ReplicaConfig struct {
 	RegionName          string            `json:"regionName"`
 	KMSKeyArn           string            `json:"kmsKeyArn,omitempty"`
@@ -822,7 +821,7 @@ type ReplicaConfig struct {
 	Tags                map[string]string `json:"tags,omitempty"`
 }
 
-// AutoScalingConfig for DynamoDB auto scaling
+// AutoScalingConfig for DynamoDB auto scaling.
 type AutoScalingConfig struct {
 	// Read capacity auto scaling
 	ReadMinCapacity       int     `json:"readMinCapacity,omitempty"`
@@ -835,7 +834,7 @@ type AutoScalingConfig struct {
 	WriteTargetUtilization float64 `json:"writeTargetUtilization,omitempty"`
 }
 
-// ImportTableConfig for importing data into DynamoDB
+// ImportTableConfig for importing data into DynamoDB.
 type ImportTableConfig struct {
 	S3BucketSource       *S3BucketSource     `json:"s3BucketSource"`
 	InputFormat          string              `json:"inputFormat"`                    // CSV, DYNAMODB_JSON, or ION
@@ -843,20 +842,20 @@ type ImportTableConfig struct {
 	InputFormatOptions   *InputFormatOptions `json:"inputFormatOptions,omitempty"`
 }
 
-// S3BucketSource for table import
+// S3BucketSource for table import.
 type S3BucketSource struct {
 	Bucket      string `json:"bucket"`
 	KeyPrefix   string `json:"keyPrefix,omitempty"`
 	BucketOwner string `json:"bucketOwner,omitempty"`
 }
 
-// InputFormatOptions for CSV import
+// InputFormatOptions for CSV import.
 type InputFormatOptions struct {
 	Delimiter  string   `json:"delimiter,omitempty"`
 	HeaderList []string `json:"headerList,omitempty"`
 }
 
-// EventBridgeConfig for EventBridge rules
+// EventBridgeConfig for EventBridge rules.
 type EventBridgeConfig struct {
 	Name               string              `json:"name"`
 	Description        string              `json:"description,omitempty"`
@@ -868,7 +867,7 @@ type EventBridgeConfig struct {
 	Tags               map[string]string   `json:"tags,omitempty"`
 }
 
-// EventBridgeTarget for EventBridge rule targets
+// EventBridgeTarget for EventBridge rule targets.
 type EventBridgeTarget struct {
 	Arn              string            `json:"arn"` // Target ARN (Lambda, SNS, SQS, etc.)
 	RoleArn          string            `json:"roleArn,omitempty"`
@@ -879,19 +878,19 @@ type EventBridgeTarget struct {
 	DeadLetterConfig *DeadLetterConfig `json:"deadLetterConfig,omitempty"`
 }
 
-// InputTransformer for EventBridge input transformation
+// InputTransformer for EventBridge input transformation.
 type InputTransformer struct {
 	InputPathsMap map[string]string `json:"inputPathsMap,omitempty"`
 	InputTemplate string            `json:"inputTemplate"`
 }
 
-// RetryPolicy for EventBridge targets
+// RetryPolicy for EventBridge targets.
 type RetryPolicy struct {
 	MaximumRetryAttempts     int `json:"maximumRetryAttempts"`
 	MaximumEventAgeInSeconds int `json:"maximumEventAgeInSeconds"`
 }
 
-// StateMachineConfig for Step Functions state machines
+// StateMachineConfig for Step Functions state machines.
 type StateMachineConfig struct {
 	Name                 string                     `json:"name"`
 	Definition           string                     `json:"definition"`     // ASL JSON
@@ -902,29 +901,29 @@ type StateMachineConfig struct {
 	Tags                 map[string]string          `json:"tags,omitempty"`
 }
 
-// StateMachineLoggingConfig for Step Functions logging
+// StateMachineLoggingConfig for Step Functions logging.
 type StateMachineLoggingConfig struct {
 	Level                string           `json:"level"` // ALL, ERROR, FATAL, OFF
 	IncludeExecutionData bool             `json:"includeExecutionData,omitempty"`
 	Destinations         []LogDestination `json:"destinations"`
 }
 
-// LogDestination for Step Functions logs
+// LogDestination for Step Functions logs.
 type LogDestination struct {
 	CloudWatchLogsLogGroup *CloudWatchLogsLogGroup `json:"cloudWatchLogsLogGroup"`
 }
 
-// CloudWatchLogsLogGroup for log destination
+// CloudWatchLogsLogGroup for log destination.
 type CloudWatchLogsLogGroup struct {
 	LogGroupArn string `json:"logGroupArn"`
 }
 
-// TracingConfiguration for Step Functions X-Ray tracing
+// TracingConfiguration for Step Functions X-Ray tracing.
 type TracingConfiguration struct {
 	Enabled bool `json:"enabled"`
 }
 
-// TopicConfig for SNS topics
+// TopicConfig for SNS topics.
 type TopicConfig struct {
 	Name                      string               `json:"name"`
 	DisplayName               string               `json:"displayName,omitempty"`
@@ -936,7 +935,7 @@ type TopicConfig struct {
 	Tags                      map[string]string    `json:"tags,omitempty"`
 }
 
-// SubscriptionConfig for SNS subscriptions
+// SubscriptionConfig for SNS subscriptions.
 type SubscriptionConfig struct {
 	Protocol           string `json:"protocol"`               // sqs, lambda, email, etc.
 	Endpoint           string `json:"endpoint"`               // ARN or email
@@ -944,7 +943,7 @@ type SubscriptionConfig struct {
 	RawMessageDelivery bool   `json:"rawMessageDelivery,omitempty"`
 }
 
-// QueueConfig for SQS queues
+// QueueConfig for SQS queues.
 type QueueConfig struct {
 	Name                         string            `json:"name"`
 	FifoQueue                    bool              `json:"fifoQueue,omitempty"`
@@ -960,13 +959,13 @@ type QueueConfig struct {
 	Tags                         map[string]string `json:"tags,omitempty"`
 }
 
-// RedrivePolicy for SQS dead letter queue
+// RedrivePolicy for SQS dead letter queue.
 type RedrivePolicy struct {
 	DeadLetterTargetArn string `json:"deadLetterTargetArn"`
 	MaxReceiveCount     int    `json:"maxReceiveCount"`
 }
 
-// BucketConfig for S3 buckets
+// BucketConfig for S3 buckets.
 type BucketConfig struct {
 	Name                 string                   `json:"name"`
 	Versioning           *VersioningConfig        `json:"versioning,omitempty"`
@@ -978,13 +977,13 @@ type BucketConfig struct {
 	Tags                 map[string]string        `json:"tags,omitempty"`
 }
 
-// VersioningConfig for S3 versioning
+// VersioningConfig for S3 versioning.
 type VersioningConfig struct {
 	Enabled   bool `json:"enabled"`
 	MFADelete bool `json:"mfaDelete,omitempty"`
 }
 
-// LifecycleRule for S3 lifecycle policies
+// LifecycleRule for S3 lifecycle policies.
 type LifecycleRule struct {
 	ID          string            `json:"id"`
 	Enabled     bool              `json:"enabled"`
@@ -994,24 +993,24 @@ type LifecycleRule struct {
 	Expiration  *Expiration       `json:"expiration,omitempty"`
 }
 
-// Transition for S3 lifecycle transitions
+// Transition for S3 lifecycle transitions.
 type Transition struct {
 	Days         int    `json:"days"`
 	StorageClass string `json:"storageClass"`
 }
 
-// Expiration for S3 lifecycle expiration
+// Expiration for S3 lifecycle expiration.
 type Expiration struct {
 	Days int `json:"days"`
 }
 
-// S3EncryptionConfig for S3 server-side encryption
+// S3EncryptionConfig for S3 server-side encryption.
 type S3EncryptionConfig struct {
 	SSEAlgorithm   string `json:"sseAlgorithm"` // AES256 or aws:kms
 	KMSMasterKeyID string `json:"kmsMasterKeyId,omitempty"`
 }
 
-// PublicAccessBlockConfig for S3 public access settings
+// PublicAccessBlockConfig for S3 public access settings.
 type PublicAccessBlockConfig struct {
 	BlockPublicAcls       bool `json:"blockPublicAcls"`
 	BlockPublicPolicy     bool `json:"blockPublicPolicy"`
@@ -1019,7 +1018,7 @@ type PublicAccessBlockConfig struct {
 	RestrictPublicBuckets bool `json:"restrictPublicBuckets"`
 }
 
-// S3CORSRule for S3 CORS
+// S3CORSRule for S3 CORS.
 type S3CORSRule struct {
 	AllowedHeaders []string `json:"allowedHeaders,omitempty"`
 	AllowedMethods []string `json:"allowedMethods"`
@@ -1028,7 +1027,7 @@ type S3CORSRule struct {
 	MaxAgeSeconds  int      `json:"maxAgeSeconds,omitempty"`
 }
 
-// S3NotificationConfig for S3 event notifications
+// S3NotificationConfig for S3 event notifications.
 type S3NotificationConfig struct {
 	Events            []string `json:"events"` // s3:ObjectCreated:*, etc.
 	FilterPrefix      string   `json:"filterPrefix,omitempty"`
@@ -1038,7 +1037,7 @@ type S3NotificationConfig struct {
 	TopicArn          string   `json:"topicArn,omitempty"`
 }
 
-// AlarmConfig for CloudWatch alarms
+// AlarmConfig for CloudWatch alarms.
 type AlarmConfig struct {
 	Name                    string            `json:"name"`
 	Description             string            `json:"description,omitempty"`

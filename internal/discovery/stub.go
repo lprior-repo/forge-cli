@@ -7,11 +7,10 @@ import (
 	"path/filepath"
 )
 
-// CreateStubZip creates an empty zip file as a placeholder
-// This allows Terraform to initialize even before actual builds are complete
+// This allows Terraform to initialize even before actual builds are complete.
 func CreateStubZip(outputPath string) error {
 	// Ensure parent directory exists
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0750); err != nil {
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o750); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -21,12 +20,16 @@ func CreateStubZip(outputPath string) error {
 		return fmt.Errorf("failed to create stub zip: %w", err)
 	}
 	defer func() {
-		_ = zipFile.Close() // Best effort close
+		if err := zipFile.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close stub zip %s: %v\n", outputPath, err)
+		}
 	}()
 
 	// Create empty zip archive with a placeholder comment
 	zipWriter := zip.NewWriter(zipFile)
-	_ = zipWriter.SetComment("Forge stub - will be replaced by actual build")
+	if err := zipWriter.SetComment("Forge stub - will be replaced by actual build"); err != nil {
+		return fmt.Errorf("failed to set zip comment: %w", err)
+	}
 
 	if err := zipWriter.Close(); err != nil {
 		return fmt.Errorf("failed to close stub zip: %w", err)
@@ -35,10 +38,9 @@ func CreateStubZip(outputPath string) error {
 	return nil
 }
 
-// CreateStubZips creates stub zip files for all discovered functions
-// Returns the number of stubs created
+// Returns the number of stubs created.
 func CreateStubZips(functions []Function, buildDir string) (int, error) {
-	if err := os.MkdirAll(buildDir, 0750); err != nil {
+	if err := os.MkdirAll(buildDir, 0o750); err != nil {
 		return 0, fmt.Errorf("failed to create build directory: %w", err)
 	}
 

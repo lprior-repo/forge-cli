@@ -1,16 +1,18 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/lewis/forge/internal/generators/python"
 	"github.com/spf13/cobra"
+
+	"github.com/lewis/forge/internal/generators/python"
 )
 
-// NewLambdaCmd creates the 'new lambda' command
+// NewLambdaCmd creates the 'new lambda' command.
 func NewLambdaCmd() *cobra.Command {
 	var (
 		runtime        string
@@ -143,7 +145,7 @@ Complete with observability, validation, testing, and infrastructure.
 	return cmd
 }
 
-// LambdaProjectOptions holds configuration for creating a Lambda project
+// LambdaProjectOptions holds configuration for creating a Lambda project.
 type LambdaProjectOptions struct {
 	Runtime        string
 	ServiceName    string
@@ -157,7 +159,7 @@ type LambdaProjectOptions struct {
 	HTTPMethod     string
 }
 
-// createLambdaProject creates a new Lambda project
+// createLambdaProject creates a new Lambda project.
 func createLambdaProject(projectName string, opts LambdaProjectOptions) error {
 	projectDir := filepath.Join(".", projectName)
 
@@ -171,10 +173,10 @@ func createLambdaProject(projectName string, opts LambdaProjectOptions) error {
 		opts.ServiceName = strings.ReplaceAll(projectName, "-", "_")
 	}
 	if opts.Description == "" {
-		opts.Description = fmt.Sprintf("%s Lambda service", opts.ServiceName)
+		opts.Description = opts.ServiceName + " Lambda service"
 	}
 	if opts.TableName == "" {
-		opts.TableName = fmt.Sprintf("%s-table", strings.ReplaceAll(opts.ServiceName, "_", "-"))
+		opts.TableName = strings.ReplaceAll(opts.ServiceName, "_", "-") + "-table"
 	}
 
 	// Generate based on runtime
@@ -182,15 +184,15 @@ func createLambdaProject(projectName string, opts LambdaProjectOptions) error {
 	case "python":
 		return createPythonLambda(projectDir, projectName, opts)
 	case "go":
-		return fmt.Errorf("Go runtime not yet implemented")
+		return errors.New("Go runtime not yet implemented")
 	case "nodejs":
-		return fmt.Errorf("Node.js runtime not yet implemented")
+		return errors.New("Node.js runtime not yet implemented")
 	default:
 		return fmt.Errorf("unsupported runtime: %s", opts.Runtime)
 	}
 }
 
-// createPythonLambda creates a Python Lambda project
+// createPythonLambda creates a Python Lambda project.
 func createPythonLambda(projectDir, projectName string, opts LambdaProjectOptions) error {
 	// Configure Python project
 	config := python.ProjectConfig{

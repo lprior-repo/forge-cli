@@ -467,19 +467,266 @@ func TestPipe(t *testing.T) {
 	})
 }
 
-// Helper function to create pointer to string
+// Helper function to create pointer to string.
 func ptr(s string) *string {
 	return &s
 }
 
-// BenchmarkNewModule benchmarks module creation
+// TestModule_WithLambdaTarget tests Lambda target helper.
+func TestModule_WithLambdaTarget(t *testing.T) {
+	t.Run("adds Lambda target to rule", func(t *testing.T) {
+		lambdaARN := "arn:aws:lambda:us-east-1:123456789012:function:processor"
+		module := NewModule("test_bus")
+
+		result := module.WithLambdaTarget("rule1", lambdaARN)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Targets)
+		require.Len(t, module.Targets["rule1"], 1)
+		assert.Equal(t, lambdaARN, module.Targets["rule1"][0].ARN)
+	})
+
+	t.Run("supports fluent chaining", func(t *testing.T) {
+		module := NewModule("test_bus").
+			WithLambdaTarget("rule1", "arn:lambda:1").
+			WithLambdaTarget("rule2", "arn:lambda:2")
+
+		assert.Len(t, module.Targets["rule1"], 1)
+		assert.Len(t, module.Targets["rule2"], 1)
+	})
+}
+
+// TestModule_WithSQSTarget tests SQS target helper.
+func TestModule_WithSQSTarget(t *testing.T) {
+	t.Run("adds SQS target to rule", func(t *testing.T) {
+		queueARN := "arn:aws:sqs:us-east-1:123456789012:my-queue"
+		module := NewModule("test_bus")
+
+		result := module.WithSQSTarget("rule1", queueARN)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Targets)
+		require.Len(t, module.Targets["rule1"], 1)
+		assert.Equal(t, queueARN, module.Targets["rule1"][0].ARN)
+	})
+}
+
+// TestModule_WithSNSTarget tests SNS target helper.
+func TestModule_WithSNSTarget(t *testing.T) {
+	t.Run("adds SNS target to rule", func(t *testing.T) {
+		topicARN := "arn:aws:sns:us-east-1:123456789012:my-topic"
+		module := NewModule("test_bus")
+
+		result := module.WithSNSTarget("rule1", topicARN)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Targets)
+		require.Len(t, module.Targets["rule1"], 1)
+		assert.Equal(t, topicARN, module.Targets["rule1"][0].ARN)
+	})
+}
+
+// TestModule_WithStepFunctionsTarget tests Step Functions target helper.
+func TestModule_WithStepFunctionsTarget(t *testing.T) {
+	t.Run("adds Step Functions target to rule", func(t *testing.T) {
+		stateMachineARN := "arn:aws:states:us-east-1:123456789012:stateMachine:my-machine"
+		module := NewModule("test_bus")
+
+		result := module.WithStepFunctionsTarget("rule1", stateMachineARN)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Targets)
+		require.Len(t, module.Targets["rule1"], 1)
+		assert.Equal(t, stateMachineARN, module.Targets["rule1"][0].ARN)
+	})
+}
+
+// TestModule_WithKinesisTarget tests Kinesis target helper.
+func TestModule_WithKinesisTarget(t *testing.T) {
+	t.Run("adds Kinesis target to rule", func(t *testing.T) {
+		streamARN := "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream"
+		module := NewModule("test_bus")
+
+		result := module.WithKinesisTarget("rule1", streamARN)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Targets)
+		require.Len(t, module.Targets["rule1"], 1)
+		assert.Equal(t, streamARN, module.Targets["rule1"][0].ARN)
+	})
+}
+
+// TestModule_WithECSTarget tests ECS target helper.
+func TestModule_WithECSTarget(t *testing.T) {
+	t.Run("adds ECS target with network configuration", func(t *testing.T) {
+		clusterARN := "arn:aws:ecs:us-east-1:123456789012:cluster/my-cluster"
+		taskDefARN := "arn:aws:ecs:us-east-1:123456789012:task-definition/my-task:1"
+		subnets := []string{"subnet-1", "subnet-2"}
+
+		module := NewModule("test_bus")
+		result := module.WithECSTarget("rule1", clusterARN, taskDefARN, subnets)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Targets)
+		require.Len(t, module.Targets["rule1"], 1)
+
+		target := module.Targets["rule1"][0]
+		assert.Equal(t, clusterARN, target.ARN)
+		require.NotNil(t, target.ECSTarget)
+		assert.Equal(t, taskDefARN, target.ECSTarget.TaskDefinitionARN)
+		require.NotNil(t, target.ECSTarget.NetworkConfiguration)
+		require.NotNil(t, target.ECSTarget.NetworkConfiguration.AWSVPCConfiguration)
+		assert.Equal(t, subnets, target.ECSTarget.NetworkConfiguration.AWSVPCConfiguration.Subnets)
+	})
+
+	t.Run("creates defensive copy of subnets slice", func(t *testing.T) {
+		subnets := []string{"subnet-1", "subnet-2"}
+		module := NewModule("test_bus")
+		module.WithECSTarget("rule1", "cluster", "task", subnets)
+
+		// Modify original slice
+		subnets[0] = "modified"
+
+		// Target should still have original values (defensive copy)
+		target := module.Targets["rule1"][0]
+		assert.Equal(t, "subnet-1", target.ECSTarget.NetworkConfiguration.AWSVPCConfiguration.Subnets[0])
+	})
+}
+
+// TestModule_WithEventPatternRule tests event pattern rule helper.
+func TestModule_WithEventPatternRule(t *testing.T) {
+	t.Run("creates rule with event pattern", func(t *testing.T) {
+		key := "ec2_events"
+		description := "React to EC2 events"
+		pattern := `{"source": ["aws.ec2"], "detail-type": ["EC2 Instance State-change Notification"]}`
+		enabled := true
+
+		module := NewModule("test_bus")
+		result := module.WithEventPatternRule(key, description, pattern, enabled)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Rules)
+		require.Contains(t, module.Rules, key)
+
+		rule := module.Rules[key]
+		assert.Equal(t, description, *rule.Description)
+		assert.Equal(t, pattern, *rule.EventPattern)
+		assert.True(t, *rule.Enabled)
+	})
+
+	t.Run("creates disabled event pattern rule", func(t *testing.T) {
+		module := NewModule("test_bus")
+		module.WithEventPatternRule("disabled", "Disabled rule", "{}", false)
+
+		rule := module.Rules["disabled"]
+		assert.False(t, *rule.Enabled)
+	})
+
+	t.Run("supports complex event patterns", func(t *testing.T) {
+		pattern := `{
+			"source": ["aws.s3"],
+			"detail-type": ["Object Created"],
+			"detail": {
+				"bucket": {
+					"name": ["my-bucket"]
+				}
+			}
+		}`
+
+		module := NewModule("test_bus")
+		module.WithEventPatternRule("s3_events", "S3 object created", pattern, true)
+
+		assert.Contains(t, *module.Rules["s3_events"].EventPattern, "aws.s3")
+	})
+}
+
+// TestModule_WithScheduleRule tests schedule rule helper.
+func TestModule_WithScheduleRule(t *testing.T) {
+	t.Run("creates rule with rate expression", func(t *testing.T) {
+		key := "hourly"
+		description := "Runs every hour"
+		scheduleExpr := "rate(1 hour)"
+		enabled := true
+
+		module := NewModule("test_bus")
+		result := module.WithScheduleRule(key, description, scheduleExpr, enabled)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Rules)
+		require.Contains(t, module.Rules, key)
+
+		rule := module.Rules[key]
+		assert.Equal(t, description, *rule.Description)
+		assert.Equal(t, scheduleExpr, *rule.ScheduleExpression)
+		assert.True(t, *rule.Enabled)
+	})
+
+	t.Run("creates rule with cron expression", func(t *testing.T) {
+		module := NewModule("test_bus")
+		module.WithScheduleRule("daily", "Daily at midnight", "cron(0 0 * * ? *)", true)
+
+		rule := module.Rules["daily"]
+		assert.Equal(t, "cron(0 0 * * ? *)", *rule.ScheduleExpression)
+	})
+
+	t.Run("creates disabled schedule rule", func(t *testing.T) {
+		module := NewModule("test_bus")
+		module.WithScheduleRule("disabled", "Disabled schedule", "rate(5 minutes)", false)
+
+		rule := module.Rules["disabled"]
+		assert.False(t, *rule.Enabled)
+	})
+}
+
+// TestModule_WithAPIDestinationTarget tests API destination target helper.
+func TestModule_WithAPIDestinationTarget(t *testing.T) {
+	t.Run("adds API destination target to rule", func(t *testing.T) {
+		destinationARN := "arn:aws:events:us-east-1:123456789012:destination/my-destination"
+		module := NewModule("test_bus")
+
+		result := module.WithAPIDestinationTarget("rule1", destinationARN)
+
+		assert.Equal(t, module, result, "should return same instance")
+		require.NotNil(t, module.Targets)
+		require.Len(t, module.Targets["rule1"], 1)
+		assert.Equal(t, destinationARN, module.Targets["rule1"][0].ARN)
+	})
+}
+
+// TestTargetHelpers tests that all helper methods work together.
+func TestTargetHelpers(t *testing.T) {
+	t.Run("all target helpers add targets to same rule", func(t *testing.T) {
+		module := NewModule("test_bus").
+			WithLambdaTarget("rule1", "arn:lambda").
+			WithSQSTarget("rule1", "arn:sqs").
+			WithSNSTarget("rule1", "arn:sns")
+
+		// All three targets should be on the same rule
+		require.NotNil(t, module.Targets)
+		assert.Len(t, module.Targets["rule1"], 3)
+	})
+
+	t.Run("target helpers work with rule helpers", func(t *testing.T) {
+		module := NewModule("test_bus").
+			WithScheduleRule("hourly", "Hourly task", "rate(1 hour)", true).
+			WithLambdaTarget("hourly", "arn:aws:lambda:us-east-1:123456789012:function:task")
+
+		// Rule and target should both be present
+		require.Contains(t, module.Rules, "hourly")
+		require.Contains(t, module.Targets, "hourly")
+		assert.Equal(t, "rate(1 hour)", *module.Rules["hourly"].ScheduleExpression)
+		assert.Equal(t, "arn:aws:lambda:us-east-1:123456789012:function:task", module.Targets["hourly"][0].ARN)
+	})
+}
+
+// BenchmarkNewModule benchmarks module creation.
 func BenchmarkNewModule(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_bus")
 	}
 }
 
-// BenchmarkFluentAPI benchmarks fluent API calls
+// BenchmarkFluentAPI benchmarks fluent API calls.
 func BenchmarkFluentAPI(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rule := Rule{ScheduleExpression: ptr("rate(1 hour)")}

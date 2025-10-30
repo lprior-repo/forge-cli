@@ -3,16 +3,18 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 
 	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
+
 	"github.com/lewis/forge/internal/build"
 	"github.com/lewis/forge/internal/discovery"
 )
 
-// ConventionScan creates a stage that scans for functions using convention-based discovery
+// ConventionScan creates a stage that scans for functions using convention-based discovery.
 func ConventionScan() Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		fmt.Println("==> Scanning for Lambda functions...")
@@ -24,7 +26,7 @@ func ConventionScan() Stage {
 		}
 
 		if len(functions) == 0 {
-			return E.Left[State](fmt.Errorf("no functions found in src/functions/"))
+			return E.Left[State](errors.New("no functions found in src/functions/"))
 		}
 
 		fmt.Printf("Found %d function(s):\n", len(functions))
@@ -39,13 +41,13 @@ func ConventionScan() Stage {
 	}
 }
 
-// ConventionStubs creates a stage that generates stub zip files
+// ConventionStubs creates a stage that generates stub zip files.
 func ConventionStubs() Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		// Extract functions from state
 		functions, ok := s.Config.([]discovery.Function)
 		if !ok {
-			return E.Left[State](fmt.Errorf("invalid state: functions not found"))
+			return E.Left[State](errors.New("invalid state: functions not found"))
 		}
 
 		buildDir := filepath.Join(s.ProjectDir, ".forge", "build")
@@ -63,13 +65,13 @@ func ConventionStubs() Stage {
 	}
 }
 
-// BuildResult represents the result of building a function
+// BuildResult represents the result of building a function.
 type BuildResult struct {
 	name     string
 	artifact Artifact
 }
 
-// buildFunction is a helper that builds a single function and returns Either
+// buildFunction is a helper that builds a single function and returns Either.
 func buildFunction(ctx context.Context, registry build.Registry, buildDir string) func(discovery.Function) E.Either[error, BuildResult] {
 	return func(fn discovery.Function) E.Either[error, BuildResult] {
 		fmt.Printf("[%s] Building...\n", fn.Name)
@@ -88,7 +90,7 @@ func buildFunction(ctx context.Context, registry build.Registry, buildDir string
 					fmt.Printf("[%s] ✓ Built: %s (%.2f MB)\n", fn.Name, filepath.Base(artifact.Path), sizeMB)
 
 					return E.Right[error](BuildResult{
-						name:     fn.Name,
+						name: fn.Name,
 						artifact: Artifact{
 							Path:     artifact.Path,
 							Checksum: artifact.Checksum,
@@ -101,7 +103,7 @@ func buildFunction(ctx context.Context, registry build.Registry, buildDir string
 	}
 }
 
-// ConventionBuild creates a stage that builds all discovered functions
+// ConventionBuild creates a stage that builds all discovered functions.
 func ConventionBuild() Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		fmt.Println("==> Building Lambda functions...")
@@ -109,7 +111,7 @@ func ConventionBuild() Stage {
 		// Extract functions from state
 		functions, ok := s.Config.([]discovery.Function)
 		if !ok {
-			return E.Left[State](fmt.Errorf("invalid state: functions not found"))
+			return E.Left[State](errors.New("invalid state: functions not found"))
 		}
 
 		registry := build.NewRegistry()
@@ -146,7 +148,7 @@ func ConventionBuild() Stage {
 	}
 }
 
-// ConventionTerraformInit creates a stage that initializes Terraform in infra/
+// ConventionTerraformInit creates a stage that initializes Terraform in infra/.
 func ConventionTerraformInit(exec TerraformExecutor) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		fmt.Println("==> Initializing Terraform...")
@@ -160,7 +162,7 @@ func ConventionTerraformInit(exec TerraformExecutor) Stage {
 	}
 }
 
-// ConventionTerraformPlan creates a stage that plans infrastructure in infra/
+// ConventionTerraformPlan creates a stage that plans infrastructure in infra/.
 func ConventionTerraformPlan(exec TerraformExecutor, namespace string) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		fmt.Println("==> Planning infrastructure changes...")
@@ -189,7 +191,7 @@ func ConventionTerraformPlan(exec TerraformExecutor, namespace string) Stage {
 	}
 }
 
-// ConventionTerraformApply creates a stage that applies infrastructure in infra/
+// ConventionTerraformApply creates a stage that applies infrastructure in infra/.
 func ConventionTerraformApply(exec TerraformExecutor, autoApprove bool) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		// Request approval if not auto-approved
@@ -198,7 +200,7 @@ func ConventionTerraformApply(exec TerraformExecutor, autoApprove bool) Stage {
 			var response string
 			_, _ = fmt.Scanln(&response) // #nosec G104 - user input error is non-critical
 			if response != "yes" {
-				return E.Left[State](fmt.Errorf("deployment canceled by user"))
+				return E.Left[State](errors.New("deployment canceled by user"))
 			}
 		}
 
@@ -213,7 +215,7 @@ func ConventionTerraformApply(exec TerraformExecutor, autoApprove bool) Stage {
 	}
 }
 
-// ConventionTerraformOutputs creates a stage that captures Terraform outputs
+// ConventionTerraformOutputs creates a stage that captures Terraform outputs.
 func ConventionTerraformOutputs(exec TerraformExecutor) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		infraDir := filepath.Join(s.ProjectDir, "infra")
@@ -234,23 +236,22 @@ func ConventionTerraformOutputs(exec TerraformExecutor) Stage {
 	}
 }
 
-// TerraformInitFunc initializes Terraform in a directory
+// TerraformInitFunc initializes Terraform in a directory.
 type TerraformInitFunc func(ctx context.Context, dir string) error
 
-// TerraformPlanFunc plans infrastructure changes
+// TerraformPlanFunc plans infrastructure changes.
 type TerraformPlanFunc func(ctx context.Context, dir string) (bool, error)
 
-// TerraformPlanWithVarsFunc plans infrastructure changes with variables
+// TerraformPlanWithVarsFunc plans infrastructure changes with variables.
 type TerraformPlanWithVarsFunc func(ctx context.Context, dir string, vars map[string]string) (bool, error)
 
-// TerraformApplyFunc applies infrastructure changes
+// TerraformApplyFunc applies infrastructure changes.
 type TerraformApplyFunc func(ctx context.Context, dir string) error
 
-// TerraformOutputFunc retrieves Terraform outputs
+// TerraformOutputFunc retrieves Terraform outputs.
 type TerraformOutputFunc func(ctx context.Context, dir string) (map[string]interface{}, error)
 
-// TerraformExecutor is a collection of terraform functions (not methods!)
-// This follows functional programming - functions as first-class values
+// This follows functional programming - functions as first-class values.
 type TerraformExecutor struct {
 	Init         TerraformInitFunc
 	Plan         TerraformPlanFunc

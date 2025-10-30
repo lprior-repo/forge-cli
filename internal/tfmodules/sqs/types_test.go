@@ -499,9 +499,9 @@ func TestModule_ComplexConfiguration(t *testing.T) {
 	})
 
 	t.Run("configures custom message retention and visibility", func(t *testing.T) {
-		retention := 86400   // 1 day
-		visibility := 120    // 2 minutes
-		maxSize := 262144    // 256 KiB
+		retention := 86400 // 1 day
+		visibility := 120  // 2 minutes
+		maxSize := 262144  // 256 KiB
 
 		module := NewModule("custom_timings")
 		module.MessageRetentionSeconds = &retention
@@ -606,14 +606,14 @@ func TestModule_QueuePolicy(t *testing.T) {
 	})
 }
 
-// BenchmarkNewModule benchmarks module creation
+// BenchmarkNewModule benchmarks module creation.
 func BenchmarkNewModule(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_queue")
 	}
 }
 
-// BenchmarkFluentAPI benchmarks fluent API calls
+// BenchmarkFluentAPI benchmarks fluent API calls.
 func BenchmarkFluentAPI(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_queue").
@@ -625,7 +625,7 @@ func BenchmarkFluentAPI(b *testing.B) {
 	}
 }
 
-// BenchmarkWithTags benchmarks tag merging
+// BenchmarkWithTags benchmarks tag merging.
 func BenchmarkWithTags(b *testing.B) {
 	module := NewModule("bench_queue")
 	tags := map[string]string{

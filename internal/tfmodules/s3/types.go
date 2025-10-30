@@ -288,7 +288,7 @@ type Module struct {
 	MetadataJournalTableRecordExpiration *string `json:"metadata_journal_table_record_expiration,omitempty" hcl:"metadata_journal_table_record_expiration,attr"`
 }
 
-// Grant represents an ACL policy grant
+// Grant represents an ACL policy grant.
 type Grant struct {
 	// ID is the canonical user ID
 	ID *string `json:"id,omitempty" hcl:"id,attr"`
@@ -303,7 +303,7 @@ type Grant struct {
 	URI *string `json:"uri,omitempty" hcl:"uri,attr"`
 }
 
-// NewModule creates a new S3 module with sensible defaults
+// NewModule creates a new S3 module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/s3-bucket/aws"
 	version := "~> 4.0"
@@ -343,7 +343,7 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithVersioning configures versioning
+// WithVersioning configures versioning.
 func (m *Module) WithVersioning(enabled bool) *Module {
 	if enabled {
 		m.Versioning = map[string]string{"enabled": "true"}
@@ -353,7 +353,7 @@ func (m *Module) WithVersioning(enabled bool) *Module {
 	return m
 }
 
-// WithEncryption configures KMS encryption
+// WithEncryption configures KMS encryption.
 func (m *Module) WithEncryption(kmsKeyARN string) *Module {
 	m.ServerSideEncryptionConfiguration = map[string]interface{}{
 		"rule": map[string]interface{}{
@@ -366,7 +366,7 @@ func (m *Module) WithEncryption(kmsKeyARN string) *Module {
 	return m
 }
 
-// WithPublicAccess allows public access (removes blocks)
+// WithPublicAccess allows public access (removes blocks).
 func (m *Module) WithPublicAccess() *Module {
 	blockFalse := false
 	m.BlockPublicACLs = &blockFalse
@@ -376,7 +376,7 @@ func (m *Module) WithPublicAccess() *Module {
 	return m
 }
 
-// WithWebsite configures static website hosting
+// WithWebsite configures static website hosting.
 func (m *Module) WithWebsite(indexDocument, errorDocument string) *Module {
 	m.Website = map[string]string{
 		"index_document": indexDocument,
@@ -385,7 +385,7 @@ func (m *Module) WithWebsite(indexDocument, errorDocument string) *Module {
 	return m
 }
 
-// WithLogging configures access logging
+// WithLogging configures access logging.
 func (m *Module) WithLogging(targetBucket, targetPrefix string) *Module {
 	m.Logging = map[string]interface{}{
 		"target_bucket": targetBucket,
@@ -394,7 +394,7 @@ func (m *Module) WithLogging(targetBucket, targetPrefix string) *Module {
 	return m
 }
 
-// WithCORS adds CORS rules
+// WithCORS adds CORS rules.
 func (m *Module) WithCORS(allowedOrigins, allowedMethods, allowedHeaders []string) *Module {
 	m.CORSRule = []interface{}{
 		map[string]interface{}{
@@ -406,13 +406,13 @@ func (m *Module) WithCORS(allowedOrigins, allowedMethods, allowedHeaders []strin
 	return m
 }
 
-// WithLifecycleRule adds lifecycle rules
+// WithLifecycleRule adds lifecycle rules.
 func (m *Module) WithLifecycleRule(rule map[string]interface{}) *Module {
 	m.LifecycleRule = append(m.LifecycleRule, rule)
 	return m
 }
 
-// WithTags adds tags to the bucket
+// WithTags adds tags to the bucket.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -423,7 +423,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Bucket != nil {
 		return *m.Bucket
@@ -431,7 +431,7 @@ func (m *Module) LocalName() string {
 	return "s3_bucket"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

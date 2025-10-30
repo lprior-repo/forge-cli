@@ -151,12 +151,12 @@ func TestGenerateBasicPythonLambda(t *testing.T) {
 	t.Log("✓ Basic Python Lambda project generated successfully")
 }
 
-// TestGenerateErrorPaths tests error handling in project generation
+// TestGenerateErrorPaths tests error handling in project generation.
 func TestGenerateErrorPaths(t *testing.T) {
 	t.Run("fails when directory cannot be created", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		blockingFile := filepath.Join(tmpDir, "blocking")
-		err := os.WriteFile(blockingFile, []byte("test"), 0644)
+		err := os.WriteFile(blockingFile, []byte("test"), 0o644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -193,7 +193,7 @@ func TestGenerateErrorPaths(t *testing.T) {
 		}
 
 		// Make directory read-only
-		err = os.Chmod(projectDir, 0555)
+		err = os.Chmod(projectDir, 0o555)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -205,7 +205,7 @@ func TestGenerateErrorPaths(t *testing.T) {
 		}
 
 		// Clean up
-		os.Chmod(projectDir, 0755)
+		os.Chmod(projectDir, 0o755)
 	})
 
 	t.Run("fails when terraform directory cannot be created", func(t *testing.T) {
@@ -220,13 +220,13 @@ func TestGenerateErrorPaths(t *testing.T) {
 		}
 
 		// Create project directory
-		err := os.MkdirAll(projectDir, 0755)
+		err := os.MkdirAll(projectDir, 0o755)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// Make directory read-only to prevent terraform/ creation
-		err = os.Chmod(projectDir, 0555)
+		err = os.Chmod(projectDir, 0o555)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -238,11 +238,11 @@ func TestGenerateErrorPaths(t *testing.T) {
 		}
 
 		// Clean up
-		os.Chmod(projectDir, 0755)
+		os.Chmod(projectDir, 0o755)
 	})
 }
 
-// TestPowertoolsHandlerVariations tests different HTTP methods
+// TestPowertoolsHandlerVariations tests different HTTP methods.
 func TestPowertoolsHandlerVariations(t *testing.T) {
 	methods := []struct {
 		httpMethod string
@@ -273,7 +273,7 @@ func TestPowertoolsHandlerVariations(t *testing.T) {
 	}
 }
 
-// TestDynamoDBConditionalGeneration tests DynamoDB file generation
+// TestDynamoDBConditionalGeneration tests DynamoDB file generation.
 func TestDynamoDBConditionalGeneration(t *testing.T) {
 	t.Run("generates DynamoDB files when enabled", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -339,7 +339,7 @@ func TestDynamoDBConditionalGeneration(t *testing.T) {
 	})
 }
 
-// TestGeneratorFunctions tests individual generator functions
+// TestGeneratorFunctions tests individual generator functions.
 func TestGeneratorFunctions(t *testing.T) {
 	t.Run("generatePyProjectToml with Powertools", func(t *testing.T) {
 		config := ProjectConfig{
@@ -463,7 +463,7 @@ func TestGeneratorFunctions(t *testing.T) {
 	})
 }
 
-// Helper function
+// Helper function.
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || findSubstring(s, substr))
 }

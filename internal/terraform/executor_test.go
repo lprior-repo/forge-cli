@@ -8,36 +8,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestMockExecutor tests the mock executor (no terraform binary needed)
+// TestMockExecutor tests the mock executor (no terraform binary needed).
 func TestMockExecutor(t *testing.T) {
 	t.Run("Init should succeed with mock", func(t *testing.T) {
 		exec := NewMockExecutor()
-		err := exec.Init(context.Background(), "/tmp/test")
+		err := exec.Init(t.Context(), "/tmp/test")
 		assert.NoError(t, err)
 	})
 
 	t.Run("Plan should return hasChanges=true by default", func(t *testing.T) {
 		exec := NewMockExecutor()
-		hasChanges, err := exec.Plan(context.Background(), "/tmp/test")
+		hasChanges, err := exec.Plan(t.Context(), "/tmp/test")
 		assert.NoError(t, err)
 		assert.True(t, hasChanges, "Mock should return hasChanges=true by default")
 	})
 
 	t.Run("Apply should succeed with mock", func(t *testing.T) {
 		exec := NewMockExecutor()
-		err := exec.Apply(context.Background(), "/tmp/test")
+		err := exec.Apply(t.Context(), "/tmp/test")
 		assert.NoError(t, err)
 	})
 
 	t.Run("Destroy should succeed with mock", func(t *testing.T) {
 		exec := NewMockExecutor()
-		err := exec.Destroy(context.Background(), "/tmp/test")
+		err := exec.Destroy(t.Context(), "/tmp/test")
 		assert.NoError(t, err)
 	})
 
 	t.Run("Output should return empty map by default", func(t *testing.T) {
 		exec := NewMockExecutor()
-		outputs, err := exec.Output(context.Background(), "/tmp/test")
+		outputs, err := exec.Output(t.Context(), "/tmp/test")
 		assert.NoError(t, err)
 		assert.NotNil(t, outputs)
 		assert.Empty(t, outputs)
@@ -45,12 +45,12 @@ func TestMockExecutor(t *testing.T) {
 
 	t.Run("Validate should succeed with mock", func(t *testing.T) {
 		exec := NewMockExecutor()
-		err := exec.Validate(context.Background(), "/tmp/test")
+		err := exec.Validate(t.Context(), "/tmp/test")
 		assert.NoError(t, err)
 	})
 }
 
-// TestMockExecutorCustomBehavior tests customizing mock behavior
+// TestMockExecutorCustomBehavior tests customizing mock behavior.
 func TestMockExecutorCustomBehavior(t *testing.T) {
 	t.Run("can customize Init to return error", func(t *testing.T) {
 		exec := Executor{
@@ -59,7 +59,7 @@ func TestMockExecutorCustomBehavior(t *testing.T) {
 			},
 		}
 
-		err := exec.Init(context.Background(), "/tmp/test")
+		err := exec.Init(t.Context(), "/tmp/test")
 		assert.Error(t, err)
 	})
 
@@ -70,7 +70,7 @@ func TestMockExecutorCustomBehavior(t *testing.T) {
 			},
 		}
 
-		hasChanges, err := exec.Plan(context.Background(), "/tmp/test")
+		hasChanges, err := exec.Plan(t.Context(), "/tmp/test")
 		assert.NoError(t, err)
 		assert.False(t, hasChanges, "Custom mock should return hasChanges=false")
 	})
@@ -94,9 +94,9 @@ func TestMockExecutorCustomBehavior(t *testing.T) {
 		}
 
 		// Execute operations
-		exec.Init(context.Background(), "/tmp/test")
-		exec.Plan(context.Background(), "/tmp/test")
-		exec.Apply(context.Background(), "/tmp/test")
+		exec.Init(t.Context(), "/tmp/test")
+		exec.Plan(t.Context(), "/tmp/test")
+		exec.Apply(t.Context(), "/tmp/test")
 
 		// Verify all were called
 		assert.True(t, initCalled, "Init should have been called")
@@ -115,14 +115,14 @@ func TestMockExecutorCustomBehavior(t *testing.T) {
 		}
 
 		// Call with options
-		exec.Init(context.Background(), "/tmp/test", Upgrade(true), Backend(false))
+		exec.Init(t.Context(), "/tmp/test", Upgrade(true), Backend(false))
 
 		// Verify options were received
 		assert.Len(t, receivedOpts, 2, "Should receive 2 options")
 	})
 }
 
-// TestFunctionalOptions tests the functional options pattern
+// TestFunctionalOptions tests the functional options pattern.
 func TestFunctionalOptions(t *testing.T) {
 	t.Run("InitOptions", func(t *testing.T) {
 		t.Run("Upgrade option sets Upgrade field", func(t *testing.T) {
@@ -207,7 +207,7 @@ func TestFunctionalOptions(t *testing.T) {
 	})
 }
 
-// TestExecutorComposition tests composing executor operations
+// TestExecutorComposition tests composing executor operations.
 func TestExecutorComposition(t *testing.T) {
 	t.Run("Init → Plan → Apply workflow", func(t *testing.T) {
 		var workflow []string
@@ -227,7 +227,7 @@ func TestExecutorComposition(t *testing.T) {
 			},
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		dir := "/tmp/test"
 
 		// Execute workflow
@@ -252,7 +252,7 @@ func TestExecutorComposition(t *testing.T) {
 			},
 		}
 
-		hasChanges, err := exec.Plan(context.Background(), "/tmp/test")
+		hasChanges, err := exec.Plan(t.Context(), "/tmp/test")
 		require.NoError(t, err)
 
 		if hasChanges {
@@ -261,7 +261,7 @@ func TestExecutorComposition(t *testing.T) {
 	})
 }
 
-// TestExecutorErrorHandling tests error handling in executor
+// TestExecutorErrorHandling tests error handling in executor.
 func TestExecutorErrorHandling(t *testing.T) {
 	t.Run("propagates Init errors", func(t *testing.T) {
 		exec := Executor{
@@ -270,7 +270,7 @@ func TestExecutorErrorHandling(t *testing.T) {
 			},
 		}
 
-		err := exec.Init(context.Background(), "/tmp/test")
+		err := exec.Init(t.Context(), "/tmp/test")
 		assert.Error(t, err)
 	})
 
@@ -281,7 +281,7 @@ func TestExecutorErrorHandling(t *testing.T) {
 			},
 		}
 
-		_, err := exec.Plan(context.Background(), "/tmp/test")
+		_, err := exec.Plan(t.Context(), "/tmp/test")
 		assert.Error(t, err)
 	})
 
@@ -292,15 +292,15 @@ func TestExecutorErrorHandling(t *testing.T) {
 			},
 		}
 
-		err := exec.Apply(context.Background(), "/tmp/test")
+		err := exec.Apply(t.Context(), "/tmp/test")
 		assert.Error(t, err)
 	})
 }
 
-// BenchmarkMockExecutor benchmarks the mock executor
+// BenchmarkMockExecutor benchmarks the mock executor.
 func BenchmarkMockExecutor(b *testing.B) {
 	exec := NewMockExecutor()
-	ctx := context.Background()
+	ctx := b.Context()
 
 	b.Run("Init", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {

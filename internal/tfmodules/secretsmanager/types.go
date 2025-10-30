@@ -40,7 +40,7 @@ type Module struct {
 
 	// RecoveryWindowInDays is the number of days before deletion (0-30)
 	// 0 = force deletion without recovery, 7-30 = recovery window, default = 30
-	RecoveryWindowInDays *int `json:"recovery_window_in_days,omitempty" hcl:"recovery_window_in_days,attr" validate:"min=0,max=30"`
+	RecoveryWindowInDays *int `json:"recovery_window_in_days,omitempty" validate:"min=0,max=30" hcl:"recovery_window_in_days,attr"`
 
 	// ForceOverwriteReplicaSecret overwrites secret with same name in destination region
 	ForceOverwriteReplicaSecret *bool `json:"force_overwrite_replica_secret,omitempty" hcl:"force_overwrite_replica_secret,attr"`
@@ -101,7 +101,7 @@ type Module struct {
 	RotateImmediately *bool `json:"rotate_immediately,omitempty" hcl:"rotate_immediately,attr"`
 }
 
-// Replica represents secret replication configuration
+// Replica represents secret replication configuration.
 type Replica struct {
 	// Region is the destination region (defaults to map key if not set)
 	Region *string `json:"region,omitempty" hcl:"region,attr"`
@@ -110,7 +110,7 @@ type Replica struct {
 	KMSKeyID *string `json:"kms_key_id,omitempty" hcl:"kms_key_id,attr"`
 }
 
-// PolicyStatement represents an IAM policy statement
+// PolicyStatement represents an IAM policy statement.
 type PolicyStatement struct {
 	// SID is the statement ID
 	SID *string `json:"sid,omitempty" hcl:"sid,attr"`
@@ -140,7 +140,7 @@ type PolicyStatement struct {
 	Condition []Condition `json:"condition,omitempty" hcl:"condition,block"`
 }
 
-// Principal represents an IAM principal
+// Principal represents an IAM principal.
 type Principal struct {
 	// Type of principal (AWS, Service, Federated, etc.)
 	Type string `json:"type" hcl:"type,attr"`
@@ -149,7 +149,7 @@ type Principal struct {
 	Identifiers []string `json:"identifiers" hcl:"identifiers,attr"`
 }
 
-// Condition represents an IAM condition
+// Condition represents an IAM condition.
 type Condition struct {
 	// Test is the condition operator
 	Test string `json:"test" hcl:"test,attr"`
@@ -161,10 +161,10 @@ type Condition struct {
 	Values []string `json:"values" hcl:"values,attr"`
 }
 
-// RotationRules represents automatic rotation configuration
+// RotationRules represents automatic rotation configuration.
 type RotationRules struct {
 	// AutomaticallyAfterDays is the number of days between rotations (1-365)
-	AutomaticallyAfterDays *int `json:"automatically_after_days,omitempty" hcl:"automatically_after_days,attr" validate:"min=1,max=365"`
+	AutomaticallyAfterDays *int `json:"automatically_after_days,omitempty" validate:"min=1,max=365" hcl:"automatically_after_days,attr"`
 
 	// Duration is the rotation window duration (e.g., "3h", "2h30m")
 	Duration *string `json:"duration,omitempty" hcl:"duration,attr"`
@@ -173,7 +173,7 @@ type RotationRules struct {
 	ScheduleExpression *string `json:"schedule_expression,omitempty" hcl:"schedule_expression,attr"`
 }
 
-// NewModule creates a new Secrets Manager module with sensible defaults
+// NewModule creates a new Secrets Manager module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/secrets-manager/aws"
 	version := "~> 1.0"
@@ -191,31 +191,31 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithSecretString sets the secret value as a string
+// WithSecretString sets the secret value as a string.
 func (m *Module) WithSecretString(value string) *Module {
 	m.SecretString = &value
 	return m
 }
 
-// WithSecretJSON sets the secret value as JSON (common for multiple values)
+// WithSecretJSON sets the secret value as JSON (common for multiple values).
 func (m *Module) WithSecretJSON(jsonString string) *Module {
 	m.SecretString = &jsonString
 	return m
 }
 
-// WithKMSKey configures customer-managed KMS encryption
+// WithKMSKey configures customer-managed KMS encryption.
 func (m *Module) WithKMSKey(kmsKeyID string) *Module {
 	m.KMSKeyID = &kmsKeyID
 	return m
 }
 
-// WithRecoveryWindow sets the recovery window (0 for immediate deletion, 7-30 for recovery)
+// WithRecoveryWindow sets the recovery window (0 for immediate deletion, 7-30 for recovery).
 func (m *Module) WithRecoveryWindow(days int) *Module {
 	m.RecoveryWindowInDays = &days
 	return m
 }
 
-// WithReplication adds replication to another region
+// WithReplication adds replication to another region.
 func (m *Module) WithReplication(region, kmsKeyID string) *Module {
 	if m.Replica == nil {
 		m.Replica = make(map[string]Replica)
@@ -227,7 +227,7 @@ func (m *Module) WithReplication(region, kmsKeyID string) *Module {
 	return m
 }
 
-// WithRotation enables automatic secret rotation
+// WithRotation enables automatic secret rotation.
 func (m *Module) WithRotation(lambdaARN string, daysInterval int) *Module {
 	enabled := true
 	m.EnableRotation = &enabled
@@ -238,7 +238,7 @@ func (m *Module) WithRotation(lambdaARN string, daysInterval int) *Module {
 	return m
 }
 
-// WithPolicy adds a resource policy statement
+// WithPolicy adds a resource policy statement.
 func (m *Module) WithPolicy(statementID string, statement PolicyStatement) *Module {
 	createPolicy := true
 	m.CreatePolicy = &createPolicy
@@ -249,7 +249,7 @@ func (m *Module) WithPolicy(statementID string, statement PolicyStatement) *Modu
 	return m
 }
 
-// WithTags adds tags to the secret
+// WithTags adds tags to the secret.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -260,7 +260,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -268,7 +268,7 @@ func (m *Module) LocalName() string {
 	return "secret"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

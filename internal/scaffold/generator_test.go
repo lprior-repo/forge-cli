@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestGenerateProject tests that functions work without needing a generator struct
+// TestGenerateProject tests that functions work without needing a generator struct.
 func TestGenerateFunctional(t *testing.T) {
 	t.Run("can call functions without generator", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -23,7 +23,7 @@ func TestGenerateFunctional(t *testing.T) {
 	})
 }
 
-// TestGenerateProjectFiles tests project generation
+// TestGenerateProjectFiles tests project generation.
 func TestGenerateProjectFiles(t *testing.T) {
 	t.Run("generates complete project structure", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -61,7 +61,7 @@ func TestGenerateProjectFiles(t *testing.T) {
 	})
 }
 
-// TestGenerateGoStack tests Go stack generation
+// TestGenerateGoStack tests Go stack generation.
 func TestGenerateGoStack(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -83,7 +83,7 @@ func TestGenerateGoStack(t *testing.T) {
 	assert.FileExists(t, filepath.Join(stackDir, "stack.forge.hcl"))
 }
 
-// TestGeneratePythonStack tests Python stack generation
+// TestGeneratePythonStack tests Python stack generation.
 func TestGeneratePythonStack(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -105,7 +105,7 @@ func TestGeneratePythonStack(t *testing.T) {
 	assert.FileExists(t, filepath.Join(stackDir, "stack.forge.hcl"))
 }
 
-// TestGenerateNodeStack tests Node.js stack generation
+// TestGenerateNodeStack tests Node.js stack generation.
 func TestGenerateNodeStack(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -132,7 +132,7 @@ func TestGenerateNodeStack(t *testing.T) {
 	assert.Contains(t, string(content), "frontend")
 }
 
-// TestGenerateJavaStack tests Java stack generation
+// TestGenerateJavaStack tests Java stack generation.
 func TestGenerateJavaStack(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -160,7 +160,7 @@ func TestGenerateJavaStack(t *testing.T) {
 	assert.Contains(t, string(content), "service")
 }
 
-// TestGenerateStackUnsupportedRuntime tests error handling for unsupported runtimes
+// TestGenerateStackUnsupportedRuntime tests error handling for unsupported runtimes.
 func TestGenerateStackUnsupportedRuntime(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -175,7 +175,7 @@ func TestGenerateStackUnsupportedRuntime(t *testing.T) {
 	assert.Contains(t, err.Error(), "unsupported runtime")
 }
 
-// TestTemplateData tests template data population
+// TestTemplateData tests template data population.
 func TestTemplateData(t *testing.T) {
 	t.Run("stack template includes description", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -213,7 +213,7 @@ func TestTemplateData(t *testing.T) {
 	})
 }
 
-// TestMultipleStacks tests generating multiple stacks
+// TestMultipleStacks tests generating multiple stacks.
 func TestMultipleStacks(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -240,7 +240,7 @@ func TestMultipleStacks(t *testing.T) {
 	assert.FileExists(t, filepath.Join(tmpDir, "frontend", "stack.forge.hcl"))
 }
 
-// TestRuntimeVariants tests different runtime version variants
+// TestRuntimeVariants tests different runtime version variants.
 func TestRuntimeVariants(t *testing.T) {
 	tests := []struct {
 		runtime      string
@@ -280,7 +280,7 @@ func TestRuntimeVariants(t *testing.T) {
 	}
 }
 
-// TestTemplateRendering tests that templates render without errors
+// TestTemplateRendering tests that templates render without errors.
 func TestTemplateRendering(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -309,13 +309,13 @@ func TestTemplateRendering(t *testing.T) {
 	}
 }
 
-// TestGenerateProjectErrorPaths tests error handling in project generation
+// TestGenerateProjectErrorPaths tests error handling in project generation.
 func TestGenerateProjectErrorPaths(t *testing.T) {
 	t.Run("fails on invalid project directory path", func(t *testing.T) {
 		// Use a path that will fail to create (e.g., inside a file)
 		tmpDir := t.TempDir()
 		blockingFile := filepath.Join(tmpDir, "blocking")
-		err := os.WriteFile(blockingFile, []byte("test"), 0644)
+		err := os.WriteFile(blockingFile, []byte("test"), 0o644)
 		require.NoError(t, err)
 
 		// Try to create a directory where a file exists
@@ -333,7 +333,7 @@ func TestGenerateProjectErrorPaths(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		// Create the directory but make it read-only after creation
-		err := os.Mkdir(filepath.Join(tmpDir, "readonly"), 0555)
+		err := os.Mkdir(filepath.Join(tmpDir, "readonly"), 0o555)
 		require.NoError(t, err)
 
 		opts := &ProjectOptions{
@@ -349,7 +349,7 @@ func TestGenerateProjectErrorPaths(t *testing.T) {
 	t.Run("fails when gitignore cannot be written", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		projectDir := filepath.Join(tmpDir, "project")
-		err := os.MkdirAll(projectDir, 0755)
+		err := os.MkdirAll(projectDir, 0o755)
 		require.NoError(t, err)
 
 		opts := &ProjectOptions{
@@ -359,13 +359,13 @@ func TestGenerateProjectErrorPaths(t *testing.T) {
 
 		// Write forge.hcl first
 		forgeHCL := generateForgeHCL(opts)
-		err = os.WriteFile(filepath.Join(projectDir, "forge.hcl"), []byte(forgeHCL), 0644)
+		err = os.WriteFile(filepath.Join(projectDir, "forge.hcl"), []byte(forgeHCL), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only after forge.hcl is written
-		err = os.Chmod(projectDir, 0555)
+		err = os.Chmod(projectDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(projectDir, 0755) // Clean up
+		defer os.Chmod(projectDir, 0o755) // Clean up
 
 		err = GenerateProject(projectDir, opts)
 		require.Error(t, err)
@@ -375,7 +375,7 @@ func TestGenerateProjectErrorPaths(t *testing.T) {
 	t.Run("fails when README cannot be written", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		projectDir := filepath.Join(tmpDir, "project")
-		err := os.MkdirAll(projectDir, 0755)
+		err := os.MkdirAll(projectDir, 0o755)
 		require.NoError(t, err)
 
 		opts := &ProjectOptions{
@@ -385,17 +385,17 @@ func TestGenerateProjectErrorPaths(t *testing.T) {
 
 		// Write forge.hcl and .gitignore first
 		forgeHCL := generateForgeHCL(opts)
-		err = os.WriteFile(filepath.Join(projectDir, "forge.hcl"), []byte(forgeHCL), 0644)
+		err = os.WriteFile(filepath.Join(projectDir, "forge.hcl"), []byte(forgeHCL), 0o644)
 		require.NoError(t, err)
 
 		gitignore := generateGitignore()
-		err = os.WriteFile(filepath.Join(projectDir, ".gitignore"), []byte(gitignore), 0644)
+		err = os.WriteFile(filepath.Join(projectDir, ".gitignore"), []byte(gitignore), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(projectDir, 0555)
+		err = os.Chmod(projectDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(projectDir, 0755) // Clean up
+		defer os.Chmod(projectDir, 0o755) // Clean up
 
 		err = GenerateProject(projectDir, opts)
 		require.Error(t, err)
@@ -403,12 +403,12 @@ func TestGenerateProjectErrorPaths(t *testing.T) {
 	})
 }
 
-// TestGenerateStackErrorPaths tests error handling in stack generation
+// TestGenerateStackErrorPaths tests error handling in stack generation.
 func TestGenerateStackErrorPaths(t *testing.T) {
 	t.Run("fails when stack directory cannot be created", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		blockingFile := filepath.Join(tmpDir, "blocking")
-		err := os.WriteFile(blockingFile, []byte("test"), 0644)
+		err := os.WriteFile(blockingFile, []byte("test"), 0o644)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -424,7 +424,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 	t.Run("fails when stack.forge.hcl cannot be written - Go", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0555) // Read-only
+		err := os.MkdirAll(stackDir, 0o555) // Read-only
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -440,7 +440,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 	t.Run("fails when main.go cannot be written", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl first
@@ -448,11 +448,11 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "go1.x",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only to prevent main.go write
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -464,13 +464,13 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up permissions
-		os.Chmod(stackDir, 0755)
+		os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when handler.py cannot be written - Python", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl first
@@ -478,11 +478,11 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "python3.13",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -494,13 +494,13 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0755)
+		os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when requirements.txt cannot be written - Python", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl and handler.py first
@@ -508,18 +508,18 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "python3.13",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		handler := generatePythonHandler(&StackOptions{
 			Name:    "test-stack",
 			Runtime: "python3.13",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "handler.py"), []byte(handler), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "handler.py"), []byte(handler), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -531,13 +531,13 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0755)
+		os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when index.js cannot be written - Node", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl first
@@ -545,11 +545,11 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "nodejs22.x",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -561,13 +561,13 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0755)
+		os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when package.json cannot be written - Node", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl and index.js first
@@ -575,18 +575,18 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "nodejs22.x",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		index := generateNodeIndex(&StackOptions{
 			Name:    "test-stack",
 			Runtime: "nodejs22.x",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "index.js"), []byte(index), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "index.js"), []byte(index), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -598,13 +598,13 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0755)
+		os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when Java directory structure cannot be created", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl first
@@ -612,11 +612,11 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "java21",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only to prevent creating src/
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -628,14 +628,14 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0755)
+		os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when Handler.java cannot be written", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
 		javaDir := filepath.Join(stackDir, "src", "main", "java", "com", "example")
-		err := os.MkdirAll(javaDir, 0755)
+		err := os.MkdirAll(javaDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl first
@@ -643,11 +643,11 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "java21",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		// Make Java directory read-only
-		err = os.Chmod(javaDir, 0555)
+		err = os.Chmod(javaDir, 0o555)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -659,14 +659,14 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(javaDir, 0755)
+		os.Chmod(javaDir, 0o755)
 	})
 
 	t.Run("fails when pom.xml cannot be written", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
 		javaDir := filepath.Join(stackDir, "src", "main", "java", "com", "example")
-		err := os.MkdirAll(javaDir, 0755)
+		err := os.MkdirAll(javaDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl and Handler.java first
@@ -674,18 +674,18 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "java21",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		handler := generateJavaHandler(&StackOptions{
 			Name:    "test-stack",
 			Runtime: "java21",
 		})
-		err = os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte(handler), 0644)
+		err = os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte(handler), 0o644)
 		require.NoError(t, err)
 
 		// Make stack directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -697,13 +697,13 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0755)
+		os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when go.mod cannot be written", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl and main.go first
@@ -711,20 +711,20 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 			Name:    "test-stack",
 			Runtime: "go1.x",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		mainGo := generateGoMain(&StackOptions{
 			Name:    "test-stack",
 			Runtime: "go1.x",
 		})
-		err = os.WriteFile(filepath.Join(stackDir, "main.go"), []byte(mainGo), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "main.go"), []byte(mainGo), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0755)
+		defer os.Chmod(stackDir, 0o755)
 
 		opts := &StackOptions{
 			Name:    "test-stack",
@@ -739,7 +739,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 	t.Run("fails when main.tf cannot be written - Go", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		// Write stack.forge.hcl, main.go, and go.mod first
@@ -749,21 +749,21 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		}
 
 		stackHCL := generateStackHCL(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		mainGo := generateGoMain(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "main.go"), []byte(mainGo), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "main.go"), []byte(mainGo), 0o644)
 		require.NoError(t, err)
 
 		goMod := generateGoMod(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "go.mod"), []byte(goMod), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "go.mod"), []byte(goMod), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0755)
+		defer os.Chmod(stackDir, 0o755)
 
 		err = GenerateStack(tmpDir, opts)
 		require.Error(t, err)
@@ -773,7 +773,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 	t.Run("fails when main.tf cannot be written - Python", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -783,21 +783,21 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 
 		// Write all files except main.tf
 		stackHCL := generateStackHCL(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		handler := generatePythonHandler(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "handler.py"), []byte(handler), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "handler.py"), []byte(handler), 0o644)
 		require.NoError(t, err)
 
 		requirements := generateRequirementsTxt()
-		err = os.WriteFile(filepath.Join(stackDir, "requirements.txt"), []byte(requirements), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "requirements.txt"), []byte(requirements), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0755)
+		defer os.Chmod(stackDir, 0o755)
 
 		err = GenerateStack(tmpDir, opts)
 		require.Error(t, err)
@@ -807,7 +807,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 	t.Run("fails when main.tf cannot be written - Node", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
-		err := os.MkdirAll(stackDir, 0755)
+		err := os.MkdirAll(stackDir, 0o755)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -817,21 +817,21 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 
 		// Write all files except main.tf
 		stackHCL := generateStackHCL(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		index := generateNodeIndex(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "index.js"), []byte(index), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "index.js"), []byte(index), 0o644)
 		require.NoError(t, err)
 
 		pkg := generatePackageJson(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "package.json"), []byte(pkg), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "package.json"), []byte(pkg), 0o644)
 		require.NoError(t, err)
 
 		// Make directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0755)
+		defer os.Chmod(stackDir, 0o755)
 
 		err = GenerateStack(tmpDir, opts)
 		require.Error(t, err)
@@ -842,7 +842,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		tmpDir := t.TempDir()
 		stackDir := filepath.Join(tmpDir, "test-stack")
 		javaDir := filepath.Join(stackDir, "src", "main", "java", "com", "example")
-		err := os.MkdirAll(javaDir, 0755)
+		err := os.MkdirAll(javaDir, 0o755)
 		require.NoError(t, err)
 
 		opts := &StackOptions{
@@ -852,21 +852,21 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 
 		// Write all files except main.tf
 		stackHCL := generateStackHCL(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		handler := generateJavaHandler(opts)
-		err = os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte(handler), 0644)
+		err = os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte(handler), 0o644)
 		require.NoError(t, err)
 
 		pom := generatePomXml(opts)
-		err = os.WriteFile(filepath.Join(stackDir, "pom.xml"), []byte(pom), 0644)
+		err = os.WriteFile(filepath.Join(stackDir, "pom.xml"), []byte(pom), 0o644)
 		require.NoError(t, err)
 
 		// Make stack directory read-only
-		err = os.Chmod(stackDir, 0555)
+		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0755)
+		defer os.Chmod(stackDir, 0o755)
 
 		err = GenerateStack(tmpDir, opts)
 		require.Error(t, err)
@@ -874,7 +874,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 	})
 }
 
-// TestEdgeCases tests edge cases in scaffold generation
+// TestEdgeCases tests edge cases in scaffold generation.
 func TestEdgeCases(t *testing.T) {
 	t.Run("empty description uses default", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -948,7 +948,7 @@ func TestEdgeCases(t *testing.T) {
 	})
 }
 
-// TestGenerateHelperFunctions tests individual generator helper functions
+// TestGenerateHelperFunctions tests individual generator helper functions.
 func TestGenerateHelperFunctions(t *testing.T) {
 	t.Run("generateForgeHCL produces valid HCL", func(t *testing.T) {
 		opts := &ProjectOptions{

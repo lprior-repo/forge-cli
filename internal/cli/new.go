@@ -2,17 +2,19 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/lewis/forge/internal/scaffold"
 	"github.com/lewis/forge/internal/state"
 	"github.com/lewis/forge/internal/terraform"
-	"github.com/spf13/cobra"
 )
 
-// NewNewCmd creates the 'new' command
+// NewNewCmd creates the 'new' command.
 func NewNewCmd() *cobra.Command {
 	var (
 		projectName string
@@ -94,7 +96,7 @@ No YAML files, no config templates - just pure Terraform + smart defaults.
 
 			// New stack in existing project
 			if stackName == "" {
-				return fmt.Errorf("--stack flag is required when creating a new stack")
+				return errors.New("--stack flag is required when creating a new stack")
 			}
 
 			return createStack(stackName, runtime, description)
@@ -112,7 +114,7 @@ No YAML files, no config templates - just pure Terraform + smart defaults.
 	return cmd
 }
 
-// createProject creates a new Forge project
+// createProject creates a new Forge project.
 func createProject(name, defaultRuntime string, autoState bool) error {
 	projectDir := filepath.Join(".", name)
 
@@ -212,8 +214,7 @@ func createProject(name, defaultRuntime string, autoState bool) error {
 	return nil
 }
 
-// provisionStateBackend provisions S3 bucket and DynamoDB table for Terraform state
-// This is the imperative shell that orchestrates state backend provisioning
+// This is the imperative shell that orchestrates state backend provisioning.
 func provisionStateBackend(projectDir, projectName, region string) error {
 	ctx := context.Background()
 
@@ -235,11 +236,11 @@ func provisionStateBackend(projectDir, projectName, region string) error {
 	return nil
 }
 
-// createStack creates a new stack in the current project
+// createStack creates a new stack in the current project.
 func createStack(name, runtime, desc string) error {
 	// Verify we're in a Forge project
 	if _, err := os.Stat("forge.hcl"); os.IsNotExist(err) {
-		return fmt.Errorf("not in a Forge project (forge.hcl not found)")
+		return errors.New("not in a Forge project (forge.hcl not found)")
 	}
 
 	// Get current directory as project root

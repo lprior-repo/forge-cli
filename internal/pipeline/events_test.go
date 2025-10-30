@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestPrintEvents tests the event printing function
+// TestPrintEvents tests the event printing function.
 func TestPrintEvents(t *testing.T) {
 	t.Run("prints info events", func(t *testing.T) {
 		events := []StageEvent{
@@ -179,7 +179,7 @@ func TestPrintEvents(t *testing.T) {
 	})
 }
 
-// TestCollectEvents tests event collection from stage results
+// TestCollectEvents tests event collection from stage results.
 func TestCollectEvents(t *testing.T) {
 	t.Run("collects events from result", func(t *testing.T) {
 		events := []StageEvent{
@@ -207,7 +207,7 @@ func TestCollectEvents(t *testing.T) {
 
 		collected := CollectEvents(result)
 		assert.NotNil(t, collected)
-		assert.Len(t, collected, 0)
+		assert.Empty(t, collected)
 	})
 
 	t.Run("collects nil events", func(t *testing.T) {
@@ -241,7 +241,7 @@ func TestCollectEvents(t *testing.T) {
 	})
 }
 
-// TestStageEvent tests event creation
+// TestStageEvent tests event creation.
 func TestStageEvent(t *testing.T) {
 	t.Run("NewEvent creates event without data", func(t *testing.T) {
 		event := NewEvent(EventLevelInfo, "Test message")
@@ -280,7 +280,7 @@ func TestStageEvent(t *testing.T) {
 	})
 }
 
-// TestStageResult tests stage result structure
+// TestStageResult tests stage result structure.
 func TestStageResult(t *testing.T) {
 	t.Run("creates stage result with state and events", func(t *testing.T) {
 		state := State{
@@ -332,7 +332,7 @@ func TestStageResult(t *testing.T) {
 	})
 }
 
-// TestEventLevels tests event level constants
+// TestEventLevels tests event level constants.
 func TestEventLevels(t *testing.T) {
 	t.Run("event levels are distinct", func(t *testing.T) {
 		levels := []EventLevel{
@@ -353,9 +353,9 @@ func TestEventLevels(t *testing.T) {
 	})
 
 	t.Run("event level string values are correct", func(t *testing.T) {
-		assert.Equal(t, EventLevel("info"), EventLevelInfo)
-		assert.Equal(t, EventLevel("success"), EventLevelSuccess)
-		assert.Equal(t, EventLevel("warning"), EventLevelWarning)
-		assert.Equal(t, EventLevel("error"), EventLevelError)
+		assert.Equal(t, EventLevelInfo, EventLevel("info"))
+		assert.Equal(t, EventLevelSuccess, EventLevel("success"))
+		assert.Equal(t, EventLevelWarning, EventLevel("warning"))
+		assert.Equal(t, EventLevelError, EventLevel("error"))
 	})
 }

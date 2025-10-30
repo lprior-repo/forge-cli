@@ -6,13 +6,14 @@ import (
 	"os"
 
 	E "github.com/IBM/fp-go/either"
+	"github.com/spf13/cobra"
+
 	"github.com/lewis/forge/internal/pipeline"
 	"github.com/lewis/forge/internal/terraform"
 	"github.com/lewis/forge/internal/ui"
-	"github.com/spf13/cobra"
 )
 
-// NewDeployCmd creates the 'deploy' command using convention-based discovery
+// NewDeployCmd creates the 'deploy' command using convention-based discovery.
 func NewDeployCmd() *cobra.Command {
 	var (
 		autoApprove bool
@@ -83,7 +84,7 @@ One command to go from code to production AWS resources.
 	return cmd
 }
 
-// runDeploy executes the deployment using functional pipeline composition
+// runDeploy executes the deployment using functional pipeline composition.
 func runDeploy(autoApprove bool, namespace string) error {
 	out := ui.DefaultOutput()
 
@@ -110,7 +111,11 @@ func runDeploy(autoApprove bool, namespace string) error {
 		approvalFunc = func() bool {
 			fmt.Print("\nDo you want to apply these changes? (yes/no): ")
 			var response string
-			_, _ = fmt.Scanln(&response) // #nosec G104 - user input error is non-critical
+			if _, err := fmt.Scanln(&response); err != nil {
+				// User input error is non-critical, treat as "no"
+				fmt.Fprintf(os.Stderr, "Warning: failed to read input: %v\n", err)
+				return false
+			}
 			return response == "yes"
 		}
 	}
@@ -170,7 +175,7 @@ func runDeploy(autoApprove bool, namespace string) error {
 	)(result)
 }
 
-// findTerraformPath finds the terraform binary
+// findTerraformPath finds the terraform binary.
 func findTerraformPath() string {
 	// For now, assume terraform is in PATH
 	// TODO: Add logic to find terraform binary

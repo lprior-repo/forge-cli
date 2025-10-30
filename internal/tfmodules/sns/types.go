@@ -127,7 +127,7 @@ type Module struct {
 	DataProtectionPolicy *string `json:"data_protection_policy,omitempty" hcl:"data_protection_policy,attr"`
 }
 
-// FeedbackConfig represents delivery feedback configuration
+// FeedbackConfig represents delivery feedback configuration.
 type FeedbackConfig struct {
 	// FailureRoleARN is the IAM role ARN for failure feedback
 	FailureRoleARN *string `json:"failure_role_arn,omitempty" hcl:"failure_role_arn,attr"`
@@ -139,7 +139,7 @@ type FeedbackConfig struct {
 	SuccessSampleRate *int `json:"success_sample_rate,omitempty" hcl:"success_sample_rate,attr"`
 }
 
-// Subscription represents an SNS subscription
+// Subscription represents an SNS subscription.
 type Subscription struct {
 	// Protocol is the subscription protocol (sqs, lambda, email, etc.)
 	Protocol string `json:"protocol" hcl:"protocol,attr"`
@@ -176,7 +176,7 @@ type Subscription struct {
 	SubscriptionRoleARN *string `json:"subscription_role_arn,omitempty" hcl:"subscription_role_arn,attr"`
 }
 
-// PolicyStatement represents an IAM policy statement
+// PolicyStatement represents an IAM policy statement.
 type PolicyStatement struct {
 	// SID is the statement ID
 	SID *string `json:"sid,omitempty" hcl:"sid,attr"`
@@ -206,7 +206,7 @@ type PolicyStatement struct {
 	Condition []Condition `json:"condition,omitempty" hcl:"condition,block"`
 }
 
-// Principal represents an IAM principal
+// Principal represents an IAM principal.
 type Principal struct {
 	// Type of principal (AWS, Service, etc.)
 	Type string `json:"type" hcl:"type,attr"`
@@ -215,7 +215,7 @@ type Principal struct {
 	Identifiers []string `json:"identifiers" hcl:"identifiers,attr"`
 }
 
-// Condition represents an IAM condition
+// Condition represents an IAM condition.
 type Condition struct {
 	// Test is the condition operator
 	Test string `json:"test" hcl:"test,attr"`
@@ -227,7 +227,7 @@ type Condition struct {
 	Values []string `json:"values" hcl:"values,attr"`
 }
 
-// NewModule creates a new SNS module with sensible defaults
+// NewModule creates a new SNS module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/sns/aws"
 	version := "~> 6.0"
@@ -247,7 +247,7 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithFIFO configures the topic as a FIFO topic
+// WithFIFO configures the topic as a FIFO topic.
 func (m *Module) WithFIFO(contentBasedDedup bool) *Module {
 	fifo := true
 	m.FifoTopic = &fifo
@@ -255,13 +255,13 @@ func (m *Module) WithFIFO(contentBasedDedup bool) *Module {
 	return m
 }
 
-// WithEncryption configures KMS encryption
+// WithEncryption configures KMS encryption.
 func (m *Module) WithEncryption(kmsKeyID string) *Module {
 	m.KMSMasterKeyID = &kmsKeyID
 	return m
 }
 
-// WithSubscription adds a subscription to the topic
+// WithSubscription adds a subscription to the topic.
 func (m *Module) WithSubscription(name string, sub Subscription) *Module {
 	if m.Subscriptions == nil {
 		m.Subscriptions = make(map[string]Subscription)
@@ -270,7 +270,7 @@ func (m *Module) WithSubscription(name string, sub Subscription) *Module {
 	return m
 }
 
-// WithLambdaSubscription adds a Lambda subscription
+// WithLambdaSubscription adds a Lambda subscription.
 func (m *Module) WithLambdaSubscription(name, lambdaARN string) *Module {
 	sub := Subscription{
 		Protocol: "lambda",
@@ -279,7 +279,7 @@ func (m *Module) WithLambdaSubscription(name, lambdaARN string) *Module {
 	return m.WithSubscription(name, sub)
 }
 
-// WithSQSSubscription adds an SQS subscription
+// WithSQSSubscription adds an SQS subscription.
 func (m *Module) WithSQSSubscription(name, queueARN string, rawMessageDelivery bool) *Module {
 	sub := Subscription{
 		Protocol:           "sqs",
@@ -289,7 +289,7 @@ func (m *Module) WithSQSSubscription(name, queueARN string, rawMessageDelivery b
 	return m.WithSubscription(name, sub)
 }
 
-// WithTags adds tags to the topic
+// WithTags adds tags to the topic.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -300,7 +300,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -308,7 +308,7 @@ func (m *Module) LocalName() string {
 	return "sns_topic"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

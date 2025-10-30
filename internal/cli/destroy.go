@@ -6,14 +6,15 @@ import (
 	"os"
 
 	E "github.com/IBM/fp-go/either"
+	"github.com/spf13/cobra"
+
 	"github.com/lewis/forge/internal/config"
 	"github.com/lewis/forge/internal/pipeline"
 	"github.com/lewis/forge/internal/terraform"
 	"github.com/lewis/forge/internal/ui"
-	"github.com/spf13/cobra"
 )
 
-// NewDestroyCmd creates the 'destroy' command
+// NewDestroyCmd creates the 'destroy' command.
 func NewDestroyCmd() *cobra.Command {
 	var autoApprove bool
 
@@ -70,7 +71,7 @@ Includes confirmation prompts to prevent accidental deletion.
 
   3. Confirm when prompted
 `,
-		Args:  cobra.NoArgs,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runDestroy(autoApprove)
 		},
@@ -81,7 +82,7 @@ Includes confirmation prompts to prevent accidental deletion.
 	return cmd
 }
 
-// runDestroy executes the destroy operation
+// runDestroy executes the destroy operation.
 func runDestroy(autoApprove bool) error {
 	out := ui.DefaultOutput()
 	prompter := ui.NewPrompter(os.Stdin, os.Stdout)
@@ -112,6 +113,7 @@ func runDestroy(autoApprove bool) error {
 			"You are about to PERMANENTLY DELETE all infrastructure",
 			projectRoot,
 		) {
+
 			out.Info("Destroy canceled")
 			return nil
 		}

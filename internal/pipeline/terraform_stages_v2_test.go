@@ -2,7 +2,7 @@ package pipeline
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestConventionTerraformInitV2 tests the event-based Terraform init stage
+// TestConventionTerraformInitV2 tests the event-based Terraform init stage.
 func TestConventionTerraformInitV2(t *testing.T) {
 	t.Run("initializes Terraform successfully with events", func(t *testing.T) {
 		called := false
@@ -23,7 +23,7 @@ func TestConventionTerraformInitV2(t *testing.T) {
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformInitV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result), "Should successfully initialize")
 		assert.True(t, called, "Init should be called")
@@ -52,13 +52,13 @@ func TestConventionTerraformInitV2(t *testing.T) {
 	t.Run("returns error when init fails", func(t *testing.T) {
 		exec := TerraformExecutor{
 			Init: func(ctx context.Context, dir string) error {
-				return fmt.Errorf("init failed")
+				return errors.New("init failed")
 			},
 		}
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformInitV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsLeft(result), "Should return error")
 
@@ -85,7 +85,7 @@ func TestConventionTerraformInitV2(t *testing.T) {
 		}
 
 		stage := ConventionTerraformInitV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -100,7 +100,7 @@ func TestConventionTerraformInitV2(t *testing.T) {
 	})
 }
 
-// TestConventionTerraformPlanV2 tests the event-based Terraform plan stage
+// TestConventionTerraformPlanV2 tests the event-based Terraform plan stage.
 func TestConventionTerraformPlanV2(t *testing.T) {
 	t.Run("plans infrastructure successfully without namespace", func(t *testing.T) {
 		called := false
@@ -114,7 +114,7 @@ func TestConventionTerraformPlanV2(t *testing.T) {
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformPlanV2(exec, "")
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 		assert.True(t, called, "PlanWithVars should be called")
@@ -150,7 +150,7 @@ func TestConventionTerraformPlanV2(t *testing.T) {
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformPlanV2(exec, "staging")
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -173,13 +173,13 @@ func TestConventionTerraformPlanV2(t *testing.T) {
 	t.Run("returns error when plan fails", func(t *testing.T) {
 		exec := TerraformExecutor{
 			PlanWithVars: func(ctx context.Context, dir string, vars map[string]string) (bool, error) {
-				return false, fmt.Errorf("plan failed")
+				return false, errors.New("plan failed")
 			},
 		}
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformPlanV2(exec, "")
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsLeft(result))
 
@@ -200,7 +200,7 @@ func TestConventionTerraformPlanV2(t *testing.T) {
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformPlanV2(exec, "")
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -221,7 +221,7 @@ func TestConventionTerraformPlanV2(t *testing.T) {
 	})
 }
 
-// TestConventionTerraformApplyV2 tests the event-based Terraform apply stage
+// TestConventionTerraformApplyV2 tests the event-based Terraform apply stage.
 func TestConventionTerraformApplyV2(t *testing.T) {
 	t.Run("executes apply successfully with auto-approve", func(t *testing.T) {
 		called := false
@@ -234,7 +234,7 @@ func TestConventionTerraformApplyV2(t *testing.T) {
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformApplyV2(exec, nil) // nil = auto-approve (no approval func)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 		assert.True(t, called, "Apply should be called")
@@ -271,13 +271,13 @@ func TestConventionTerraformApplyV2(t *testing.T) {
 	t.Run("returns error when apply fails", func(t *testing.T) {
 		exec := TerraformExecutor{
 			Apply: func(ctx context.Context, dir string) error {
-				return fmt.Errorf("apply failed")
+				return errors.New("apply failed")
 			},
 		}
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformApplyV2(exec, nil) // nil = auto-approve (no approval func)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsLeft(result))
 
@@ -306,7 +306,7 @@ func TestConventionTerraformApplyV2(t *testing.T) {
 		}
 
 		stage := ConventionTerraformApplyV2(exec, nil) // nil = auto-approve (no approval func)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -319,7 +319,7 @@ func TestConventionTerraformApplyV2(t *testing.T) {
 	})
 }
 
-// TestConventionTerraformOutputsV2 tests the event-based Terraform outputs stage
+// TestConventionTerraformOutputsV2 tests the event-based Terraform outputs stage.
 func TestConventionTerraformOutputsV2(t *testing.T) {
 	t.Run("captures outputs successfully", func(t *testing.T) {
 		expectedOutputs := map[string]interface{}{
@@ -335,7 +335,7 @@ func TestConventionTerraformOutputsV2(t *testing.T) {
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformOutputsV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -367,7 +367,7 @@ func TestConventionTerraformOutputsV2(t *testing.T) {
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformOutputsV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -389,13 +389,13 @@ func TestConventionTerraformOutputsV2(t *testing.T) {
 	t.Run("returns warning event when output retrieval fails", func(t *testing.T) {
 		exec := TerraformExecutor{
 			Output: func(ctx context.Context, dir string) (map[string]interface{}, error) {
-				return nil, fmt.Errorf("output failed")
+				return nil, errors.New("output failed")
 			},
 		}
 
 		state := State{ProjectDir: "/test/project"}
 		stage := ConventionTerraformOutputsV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		// Should succeed despite output failure (non-fatal)
 		require.True(t, E.IsRight(result))
@@ -435,7 +435,7 @@ func TestConventionTerraformOutputsV2(t *testing.T) {
 		}
 
 		stage := ConventionTerraformOutputsV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -451,7 +451,7 @@ func TestConventionTerraformOutputsV2(t *testing.T) {
 	})
 }
 
-// TestTerraformPipelineV2Integration tests full Terraform pipeline with events
+// TestTerraformPipelineV2Integration tests full Terraform pipeline with events.
 func TestTerraformPipelineV2Integration(t *testing.T) {
 	t.Run("full terraform deployment pipeline with event collection", func(t *testing.T) {
 		initCalled := false
@@ -490,7 +490,7 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 			Artifacts:  make(map[string]Artifact),
 		}
 
-		result := RunWithEvents(pipeline, context.Background(), initialState)
+		result := RunWithEvents(pipeline, t.Context(), initialState)
 
 		require.True(t, E.IsRight(result))
 		assert.True(t, initCalled, "Init should be called")
@@ -543,7 +543,7 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 
 		exec := TerraformExecutor{
 			Init: func(ctx context.Context, dir string) error {
-				return fmt.Errorf("init failed")
+				return errors.New("init failed")
 			},
 			PlanWithVars: func(ctx context.Context, dir string, vars map[string]string) (bool, error) {
 				planCalled = true
@@ -558,7 +558,7 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 
 		initialState := State{ProjectDir: "/test/project"}
 
-		result := RunWithEvents(pipeline, context.Background(), initialState)
+		result := RunWithEvents(pipeline, t.Context(), initialState)
 
 		require.True(t, E.IsLeft(result))
 		assert.False(t, planCalled, "Plan should not be called after init fails")

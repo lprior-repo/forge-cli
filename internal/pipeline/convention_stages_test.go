@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/discovery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/discovery"
 )
 
-// TestConventionScan tests the convention-based function scanning stage
+// TestConventionScan tests the convention-based function scanning stage.
 func TestConventionScan(t *testing.T) {
 	t.Run("scans and finds Go functions", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -20,7 +21,7 @@ func TestConventionScan(t *testing.T) {
 		// Create src/functions directory structure
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		apiDir := filepath.Join(functionsDir, "api")
-		require.NoError(t, os.MkdirAll(apiDir, 0755))
+		require.NoError(t, os.MkdirAll(apiDir, 0o755))
 
 		// Create main.go file to simulate Go function
 		mainGo := `package main
@@ -31,11 +32,11 @@ func main() {
 	fmt.Println("Hello")
 }
 `
-		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte(mainGo), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte(mainGo), 0o644))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScan()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result), "Should successfully scan functions")
 
@@ -56,17 +57,17 @@ func main() {
 
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		workerDir := filepath.Join(functionsDir, "worker")
-		require.NoError(t, os.MkdirAll(workerDir, 0755))
+		require.NoError(t, os.MkdirAll(workerDir, 0o755))
 
 		// Create app.py file to simulate Python function
 		appPy := `def lambda_handler(event, context):
     return {"statusCode": 200}
 `
-		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "app.py"), []byte(appPy), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "app.py"), []byte(appPy), 0o644))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScan()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -87,18 +88,18 @@ func main() {
 
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		apiDir := filepath.Join(functionsDir, "api")
-		require.NoError(t, os.MkdirAll(apiDir, 0755))
+		require.NoError(t, os.MkdirAll(apiDir, 0o755))
 
 		// Create index.js file to simulate Node function
 		indexJs := `exports.handler = async (event) => {
     return { statusCode: 200 };
 };
 `
-		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "index.js"), []byte(indexJs), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "index.js"), []byte(indexJs), 0o644))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScan()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -119,7 +120,7 @@ func main() {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScan()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result), "Should fail when src/functions not found")
 	})
@@ -129,11 +130,11 @@ func main() {
 
 		// Create empty src/functions directory
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScan()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result), "Should fail when no functions found")
 	})
@@ -145,22 +146,22 @@ func main() {
 
 		// Create Go function
 		apiDir := filepath.Join(functionsDir, "api")
-		require.NoError(t, os.MkdirAll(apiDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(apiDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte("package main"), 0o644))
 
 		// Create Python function
 		workerDir := filepath.Join(functionsDir, "worker")
-		require.NoError(t, os.MkdirAll(workerDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "app.py"), []byte("# python"), 0644))
+		require.NoError(t, os.MkdirAll(workerDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "app.py"), []byte("# python"), 0o644))
 
 		// Create Node.js function
 		webhookDir := filepath.Join(functionsDir, "webhook")
-		require.NoError(t, os.MkdirAll(webhookDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(webhookDir, "index.js"), []byte("// node"), 0644))
+		require.NoError(t, os.MkdirAll(webhookDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(webhookDir, "index.js"), []byte("// node"), 0o644))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScan()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -175,7 +176,7 @@ func main() {
 	})
 }
 
-// TestConventionStubs tests stub zip generation stage
+// TestConventionStubs tests stub zip generation stage.
 func TestConventionStubs(t *testing.T) {
 	t.Run("creates stub zips for functions", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -198,7 +199,7 @@ func TestConventionStubs(t *testing.T) {
 
 		// Create function directories
 		for _, fn := range functions {
-			require.NoError(t, os.MkdirAll(fn.Path, 0755))
+			require.NoError(t, os.MkdirAll(fn.Path, 0o755))
 		}
 
 		state := State{
@@ -207,7 +208,7 @@ func TestConventionStubs(t *testing.T) {
 		}
 
 		stage := ConventionStubs()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result), "Should successfully create stubs")
 
@@ -225,7 +226,7 @@ func TestConventionStubs(t *testing.T) {
 		}
 
 		stage := ConventionStubs()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result), "Should fail with invalid state")
 	})
@@ -237,13 +238,13 @@ func TestConventionStubs(t *testing.T) {
 		}
 
 		stage := ConventionStubs()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsRight(result), "Should succeed with empty function list")
 	})
 }
 
-// TestConventionBuild tests the build stage for discovered functions
+// TestConventionBuild tests the build stage for discovered functions.
 func TestConventionBuild(t *testing.T) {
 	t.Run("returns error when Config is not []discovery.Function", func(t *testing.T) {
 		state := State{
@@ -252,7 +253,7 @@ func TestConventionBuild(t *testing.T) {
 		}
 
 		stage := ConventionBuild()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result), "Should fail with invalid state")
 	})
@@ -275,7 +276,7 @@ func TestConventionBuild(t *testing.T) {
 		}
 
 		stage := ConventionBuild()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result), "Should fail with unsupported runtime")
 	})
@@ -287,18 +288,18 @@ func TestConventionBuild(t *testing.T) {
 		}
 
 		stage := ConventionBuild()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsRight(result), "Should succeed with no functions")
 	})
 }
 
-// TestConventionTerraformInit tests Terraform initialization
+// TestConventionTerraformInit tests Terraform initialization.
 func TestConventionTerraformInit(t *testing.T) {
 	t.Run("initializes Terraform successfully", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		var initCalled bool
 		var initDir string
@@ -313,7 +314,7 @@ func TestConventionTerraformInit(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformInit(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsRight(result), "Should successfully initialize")
 		assert.True(t, initCalled, "Should call terraform init")
@@ -331,18 +332,18 @@ func TestConventionTerraformInit(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformInit(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result), "Should fail when init fails")
 	})
 }
 
-// TestConventionTerraformPlan tests Terraform plan stage
+// TestConventionTerraformPlan tests Terraform plan stage.
 func TestConventionTerraformPlan(t *testing.T) {
 	t.Run("plans infrastructure successfully without namespace", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		var planCalled bool
 		var planDir string
@@ -359,7 +360,7 @@ func TestConventionTerraformPlan(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformPlan(exec, "")
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsRight(result), "Should successfully plan")
 		assert.True(t, planCalled, "Should call terraform plan")
@@ -370,7 +371,7 @@ func TestConventionTerraformPlan(t *testing.T) {
 	t.Run("plans infrastructure with namespace", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		var planVars map[string]string
 
@@ -383,7 +384,7 @@ func TestConventionTerraformPlan(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformPlan(exec, "staging")
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsRight(result), "Should successfully plan")
 		require.NotNil(t, planVars, "Should have vars with namespace")
@@ -401,7 +402,7 @@ func TestConventionTerraformPlan(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformPlan(exec, "")
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result), "Should fail when plan fails")
 	})
@@ -417,18 +418,18 @@ func TestConventionTerraformPlan(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformPlan(exec, "")
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsRight(result), "Should succeed with no changes")
 	})
 }
 
-// TestConventionTerraformApply tests Terraform apply stage
+// TestConventionTerraformApply tests Terraform apply stage.
 func TestConventionTerraformApply(t *testing.T) {
 	t.Run("applies infrastructure with auto-approve", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		var applyCalled bool
 		var applyDir string
@@ -443,7 +444,7 @@ func TestConventionTerraformApply(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformApply(exec, true) // auto-approve
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsRight(result), "Should successfully apply")
 		assert.True(t, applyCalled, "Should call terraform apply")
@@ -461,7 +462,7 @@ func TestConventionTerraformApply(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformApply(exec, true)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result), "Should fail when apply fails")
 	})
@@ -471,12 +472,12 @@ func TestConventionTerraformApply(t *testing.T) {
 	// The critical logic is covered by auto-approve=true tests above
 }
 
-// TestBuildFunctionHelper tests the buildFunction helper (private function)
+// TestBuildFunctionHelper tests the buildFunction helper (private function).
 func TestBuildFunctionHelper(t *testing.T) {
 	t.Run("builds function successfully with mock builder", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		buildDir := filepath.Join(tmpDir, ".forge", "build")
-		require.NoError(t, os.MkdirAll(buildDir, 0755))
+		require.NoError(t, os.MkdirAll(buildDir, 0o755))
 
 		// Create a mock registry with a working builder
 		registry := make(map[string]interface{})
@@ -497,12 +498,12 @@ func TestBuildFunctionHelper(t *testing.T) {
 	})
 }
 
-// TestConventionTerraformOutputs tests Terraform outputs capture
+// TestConventionTerraformOutputs tests Terraform outputs capture.
 func TestConventionTerraformOutputs(t *testing.T) {
 	t.Run("captures outputs successfully", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		expectedOutputs := map[string]interface{}{
 			"api_url":      "https://example.com",
@@ -522,7 +523,7 @@ func TestConventionTerraformOutputs(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformOutputs(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result), "Should successfully capture outputs")
 		assert.True(t, outputCalled, "Should call terraform output")
@@ -547,7 +548,7 @@ func TestConventionTerraformOutputs(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformOutputs(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		// Should succeed despite error (non-fatal)
 		assert.True(t, E.IsRight(result), "Should succeed with warning on output error")
@@ -567,7 +568,7 @@ func TestConventionTerraformOutputs(t *testing.T) {
 			Outputs:    nil, // Nil outputs
 		}
 		stage := ConventionTerraformOutputs(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 

@@ -475,14 +475,14 @@ func TestExtensionParameter(t *testing.T) {
 	})
 }
 
-// BenchmarkNewModule benchmarks module creation
+// BenchmarkNewModule benchmarks module creation.
 func BenchmarkNewModule(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_app")
 	}
 }
 
-// BenchmarkFluentAPI benchmarks fluent API calls
+// BenchmarkFluentAPI benchmarks fluent API calls.
 func BenchmarkFluentAPI(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_app").
@@ -492,7 +492,7 @@ func BenchmarkFluentAPI(b *testing.B) {
 	}
 }
 
-// BenchmarkWithEnvironment benchmarks environment addition
+// BenchmarkWithEnvironment benchmarks environment addition.
 func BenchmarkWithEnvironment(b *testing.B) {
 	module := NewModule("bench_app")
 	env := Environment{Name: "production"}

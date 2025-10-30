@@ -1,18 +1,18 @@
 package pipeline
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/discovery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/discovery"
 )
 
-// TestConventionScanV2 tests the event-based function scanning stage
+// TestConventionScanV2 tests the event-based function scanning stage.
 func TestConventionScanV2(t *testing.T) {
 	t.Run("scans and finds Go functions with events", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -20,7 +20,7 @@ func TestConventionScanV2(t *testing.T) {
 		// Create src/functions directory structure
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		apiDir := filepath.Join(functionsDir, "api")
-		require.NoError(t, os.MkdirAll(apiDir, 0755))
+		require.NoError(t, os.MkdirAll(apiDir, 0o755))
 
 		// Create main.go file
 		mainGo := `package main
@@ -31,11 +31,11 @@ func main() {
 	fmt.Println("Hello")
 }
 `
-		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte(mainGo), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte(mainGo), 0o644))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScanV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result), "Should successfully scan functions")
 
@@ -72,16 +72,16 @@ func main() {
 
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		workerDir := filepath.Join(functionsDir, "worker")
-		require.NoError(t, os.MkdirAll(workerDir, 0755))
+		require.NoError(t, os.MkdirAll(workerDir, 0o755))
 
 		appPy := `def lambda_handler(event, context):
     return {"statusCode": 200}
 `
-		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "app.py"), []byte(appPy), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "app.py"), []byte(appPy), 0o644))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScanV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -105,7 +105,7 @@ func main() {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScanV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsLeft(result), "Should return error")
 	})
@@ -115,11 +115,11 @@ func main() {
 
 		// Create empty src/functions directory
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScanV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsLeft(result), "Should return error for no functions")
 	})
@@ -131,22 +131,22 @@ func main() {
 
 		// Create Go function
 		apiDir := filepath.Join(functionsDir, "api")
-		require.NoError(t, os.MkdirAll(apiDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(apiDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte("package main"), 0o644))
 
 		// Create Python function
 		workerDir := filepath.Join(functionsDir, "worker")
-		require.NoError(t, os.MkdirAll(workerDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "app.py"), []byte("def handler(e, c): pass"), 0644))
+		require.NoError(t, os.MkdirAll(workerDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "app.py"), []byte("def handler(e, c): pass"), 0o644))
 
 		// Create Node.js function
 		webhookDir := filepath.Join(functionsDir, "webhook")
-		require.NoError(t, os.MkdirAll(webhookDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(webhookDir, "index.js"), []byte("exports.handler = () => {}"), 0644))
+		require.NoError(t, os.MkdirAll(webhookDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(webhookDir, "index.js"), []byte("exports.handler = () => {}"), 0o644))
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionScanV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -172,7 +172,7 @@ func main() {
 	})
 }
 
-// TestConventionStubsV2 tests the event-based stub zip creation stage
+// TestConventionStubsV2 tests the event-based stub zip creation stage.
 func TestConventionStubsV2(t *testing.T) {
 	t.Run("creates stub zips for functions with events", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -188,7 +188,7 @@ func TestConventionStubsV2(t *testing.T) {
 		}
 
 		stage := ConventionStubsV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result), "Should successfully create stubs")
 
@@ -225,7 +225,7 @@ func TestConventionStubsV2(t *testing.T) {
 		}
 
 		stage := ConventionStubsV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsLeft(result), "Should return error for invalid config")
 	})
@@ -237,7 +237,7 @@ func TestConventionStubsV2(t *testing.T) {
 		}
 
 		stage := ConventionStubsV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -251,7 +251,7 @@ func TestConventionStubsV2(t *testing.T) {
 	})
 }
 
-// TestConventionBuildV2 tests the event-based build stage
+// TestConventionBuildV2 tests the event-based build stage.
 func TestConventionBuildV2(t *testing.T) {
 	t.Run("returns error when Config is not []discovery.Function", func(t *testing.T) {
 		state := State{
@@ -260,7 +260,7 @@ func TestConventionBuildV2(t *testing.T) {
 		}
 
 		stage := ConventionBuildV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsLeft(result), "Should return error for invalid config")
 	})
@@ -279,7 +279,7 @@ func TestConventionBuildV2(t *testing.T) {
 		}
 
 		stage := ConventionBuildV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsLeft(result), "Should return error for unsupported runtime")
 	})
@@ -292,7 +292,7 @@ func TestConventionBuildV2(t *testing.T) {
 		}
 
 		stage := ConventionBuildV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -323,14 +323,14 @@ func TestConventionBuildV2(t *testing.T) {
 		}
 
 		stage := ConventionBuildV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		// Should fail, but would have generated initial events
 		require.True(t, E.IsLeft(result))
 	})
 }
 
-// TestRunWithEvents tests the event collection pipeline
+// TestRunWithEvents tests the event collection pipeline.
 func TestRunWithEvents(t *testing.T) {
 	t.Run("collects events from multiple stages", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -338,8 +338,8 @@ func TestRunWithEvents(t *testing.T) {
 		// Create test function structure
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		apiDir := filepath.Join(functionsDir, "api")
-		require.NoError(t, os.MkdirAll(apiDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(apiDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte("package main"), 0o644))
 
 		// Create pipeline with scan and stubs stages
 		pipeline := NewEventPipeline(
@@ -352,7 +352,7 @@ func TestRunWithEvents(t *testing.T) {
 			Artifacts:  make(map[string]Artifact),
 		}
 
-		result := RunWithEvents(pipeline, context.Background(), initialState)
+		result := RunWithEvents(pipeline, t.Context(), initialState)
 
 		require.True(t, E.IsRight(result), "Pipeline should succeed")
 
@@ -397,7 +397,7 @@ func TestRunWithEvents(t *testing.T) {
 			ProjectDir: tmpDir,
 		}
 
-		result := RunWithEvents(pipeline, context.Background(), initialState)
+		result := RunWithEvents(pipeline, t.Context(), initialState)
 
 		require.True(t, E.IsLeft(result), "Pipeline should fail")
 
@@ -411,8 +411,8 @@ func TestRunWithEvents(t *testing.T) {
 		// Create test structure
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		apiDir := filepath.Join(functionsDir, "api")
-		require.NoError(t, os.MkdirAll(apiDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(apiDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "main.go"), []byte("package main"), 0o644))
 
 		pipeline := NewEventPipeline(
 			ConventionScanV2(),  // Adds functions to Config
@@ -424,7 +424,7 @@ func TestRunWithEvents(t *testing.T) {
 			Artifacts:  make(map[string]Artifact),
 		}
 
-		result := RunWithEvents(pipeline, context.Background(), initialState)
+		result := RunWithEvents(pipeline, t.Context(), initialState)
 
 		require.True(t, E.IsRight(result))
 
@@ -444,7 +444,7 @@ func TestRunWithEvents(t *testing.T) {
 	})
 }
 
-// TestEventGeneration tests event creation and properties
+// TestEventGeneration tests event creation and properties.
 func TestEventGeneration(t *testing.T) {
 	t.Run("NewEvent creates event with correct properties", func(t *testing.T) {
 		event := NewEvent(EventLevelInfo, "test message")
@@ -456,7 +456,7 @@ func TestEventGeneration(t *testing.T) {
 
 	t.Run("NewEventWithData creates event with data", func(t *testing.T) {
 		data := map[string]interface{}{
-			"key": "value",
+			"key":   "value",
 			"count": 42,
 		}
 

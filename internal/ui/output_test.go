@@ -239,7 +239,7 @@ func TestOutputMultipleMessages(t *testing.T) {
 	})
 }
 
-// BenchmarkOutput tests performance of output operations
+// BenchmarkOutput tests performance of output operations.
 func BenchmarkOutputSuccess(b *testing.B) {
 	buf := &bytes.Buffer{}
 	out := NewOutput(buf)

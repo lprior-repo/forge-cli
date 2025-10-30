@@ -49,7 +49,6 @@ func TestTerraformValidation(t *testing.T) {
 
 		// Check if terraform files are formatted
 		output, err := terraform.RunTerraformCommandAndGetStdoutE(t, terraformOptions, "fmt", "-check", "-diff")
-
 		// fmt returns error if files need formatting
 		if err != nil {
 			t.Logf("Terraform files need formatting:\n%s", output)

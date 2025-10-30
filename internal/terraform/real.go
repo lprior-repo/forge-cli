@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-// makeInitFunc returns a closure that executes terraform init
+// makeInitFunc returns a closure that executes terraform init.
 func makeInitFunc(tfPath string) InitFunc {
 	return func(ctx context.Context, dir string, opts ...InitOption) error {
 		tf, err := tfexec.NewTerraform(dir, tfPath)
@@ -33,7 +33,7 @@ func makeInitFunc(tfPath string) InitFunc {
 	}
 }
 
-// makePlanFunc returns a closure that executes terraform plan
+// makePlanFunc returns a closure that executes terraform plan.
 func makePlanFunc(tfPath string) PlanFunc {
 	return func(ctx context.Context, dir string, opts ...PlanOption) (bool, error) {
 		tf, err := tfexec.NewTerraform(dir, tfPath)
@@ -58,7 +58,7 @@ func makePlanFunc(tfPath string) PlanFunc {
 	}
 }
 
-// makeApplyFunc returns a closure that executes terraform apply
+// makeApplyFunc returns a closure that executes terraform apply.
 func makeApplyFunc(tfPath string) ApplyFunc {
 	return func(ctx context.Context, dir string, opts ...ApplyOption) error {
 		tf, err := tfexec.NewTerraform(dir, tfPath)
@@ -86,7 +86,7 @@ func makeApplyFunc(tfPath string) ApplyFunc {
 	}
 }
 
-// makeDestroyFunc returns a closure that executes terraform destroy
+// makeDestroyFunc returns a closure that executes terraform destroy.
 func makeDestroyFunc(tfPath string) DestroyFunc {
 	return func(ctx context.Context, dir string, opts ...DestroyOption) error {
 		tf, err := tfexec.NewTerraform(dir, tfPath)
@@ -110,7 +110,7 @@ func makeDestroyFunc(tfPath string) DestroyFunc {
 	}
 }
 
-// makeOutputFunc returns a closure that retrieves terraform outputs
+// makeOutputFunc returns a closure that retrieves terraform outputs.
 func makeOutputFunc(tfPath string) OutputFunc {
 	return func(ctx context.Context, dir string) (map[string]interface{}, error) {
 		tf, err := tfexec.NewTerraform(dir, tfPath)
@@ -138,7 +138,7 @@ func makeOutputFunc(tfPath string) OutputFunc {
 	}
 }
 
-// makeValidateFunc returns a closure that validates terraform configuration
+// makeValidateFunc returns a closure that validates terraform configuration.
 func makeValidateFunc(tfPath string) ValidateFunc {
 	return func(ctx context.Context, dir string) error {
 		tf, err := tfexec.NewTerraform(dir, tfPath)

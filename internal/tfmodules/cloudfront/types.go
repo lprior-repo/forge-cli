@@ -140,7 +140,7 @@ type Module struct {
 	VPCOriginTimeouts map[string]string `json:"vpc_origin_timeouts,omitempty" hcl:"vpc_origin_timeouts,attr"`
 }
 
-// Origin represents a CloudFront origin
+// Origin represents a CloudFront origin.
 type Origin struct {
 	// DomainName is the DNS domain name of the origin (S3 bucket, ALB, etc.)
 	DomainName string `json:"domain_name" hcl:"domain_name,attr"`
@@ -152,10 +152,10 @@ type Origin struct {
 	OriginPath *string `json:"origin_path,omitempty" hcl:"origin_path,attr"`
 
 	// ConnectionAttempts is the number of connection attempts (1-3)
-	ConnectionAttempts *int `json:"connection_attempts,omitempty" hcl:"connection_attempts,attr" validate:"min=1,max=3"`
+	ConnectionAttempts *int `json:"connection_attempts,omitempty" validate:"min=1,max=3" hcl:"connection_attempts,attr"`
 
 	// ConnectionTimeout is the connection timeout in seconds (1-10)
-	ConnectionTimeout *int `json:"connection_timeout,omitempty" hcl:"connection_timeout,attr" validate:"min=1,max=10"`
+	ConnectionTimeout *int `json:"connection_timeout,omitempty" validate:"min=1,max=10" hcl:"connection_timeout,attr"`
 
 	// CustomOriginConfig for custom origins (non-S3)
 	CustomOriginConfig *CustomOriginConfig `json:"custom_origin_config,omitempty" hcl:"custom_origin_config,attr"`
@@ -170,7 +170,7 @@ type Origin struct {
 	OriginShield *OriginShield `json:"origin_shield,omitempty" hcl:"origin_shield,attr"`
 }
 
-// CustomOriginConfig represents custom origin settings
+// CustomOriginConfig represents custom origin settings.
 type CustomOriginConfig struct {
 	// HTTPPort for HTTP connections
 	HTTPPort int `json:"http_port" hcl:"http_port,attr"`
@@ -186,47 +186,47 @@ type CustomOriginConfig struct {
 	OriginSSLProtocols []string `json:"origin_ssl_protocols,omitempty" hcl:"origin_ssl_protocols,attr"`
 
 	// OriginReadTimeout in seconds (1-180)
-	OriginReadTimeout *int `json:"origin_read_timeout,omitempty" hcl:"origin_read_timeout,attr" validate:"min=1,max=180"`
+	OriginReadTimeout *int `json:"origin_read_timeout,omitempty" validate:"min=1,max=180" hcl:"origin_read_timeout,attr"`
 
 	// OriginKeepaliveTimeout in seconds (1-180)
-	OriginKeepaliveTimeout *int `json:"origin_keepalive_timeout,omitempty" hcl:"origin_keepalive_timeout,attr" validate:"min=1,max=180"`
+	OriginKeepaliveTimeout *int `json:"origin_keepalive_timeout,omitempty" validate:"min=1,max=180" hcl:"origin_keepalive_timeout,attr"`
 }
 
-// S3OriginConfig represents S3 origin settings
+// S3OriginConfig represents S3 origin settings.
 type S3OriginConfig struct {
 	// OriginAccessIdentity for legacy S3 access (e.g., "origin-access-identity/cloudfront/ABCDEFG1234567")
 	OriginAccessIdentity *string `json:"origin_access_identity,omitempty" hcl:"origin_access_identity,attr"`
 }
 
-// OriginCustomHeader represents a custom header to add to origin requests
+// OriginCustomHeader represents a custom header to add to origin requests.
 type OriginCustomHeader struct {
-	Name  string `json:"name" hcl:"name,attr"`
+	Name  string `json:"name"  hcl:"name,attr"`
 	Value string `json:"value" hcl:"value,attr"`
 }
 
-// OriginShield reduces load on your origin
+// OriginShield reduces load on your origin.
 type OriginShield struct {
-	Enabled            bool    `json:"enabled" hcl:"enabled,attr"`
+	Enabled            bool    `json:"enabled"                        hcl:"enabled,attr"`
 	OriginShieldRegion *string `json:"origin_shield_region,omitempty" hcl:"origin_shield_region,attr"`
 }
 
-// OriginGroup represents a failover origin group
+// OriginGroup represents a failover origin group.
 type OriginGroup struct {
-	OriginID         string   `json:"origin_id" hcl:"origin_id,attr"`
+	OriginID         string   `json:"origin_id"         hcl:"origin_id,attr"`
 	FailoverCriteria []int    `json:"failover_criteria" hcl:"failover_criteria,attr"`
-	Members          []string `json:"members" hcl:"members,attr"`
+	Members          []string `json:"members"           hcl:"members,attr"`
 }
 
-// OriginAccessControl represents origin access control (recommended over OAI)
+// OriginAccessControl represents origin access control (recommended over OAI).
 type OriginAccessControl struct {
-	Name             *string `json:"name,omitempty" hcl:"name,attr"`
-	Description      string  `json:"description" hcl:"description,attr"`
-	OriginType       string  `json:"origin_type" hcl:"origin_type,attr"`
-	SigningBehavior  string  `json:"signing_behavior" hcl:"signing_behavior,attr"`
-	SigningProtocol  string  `json:"signing_protocol" hcl:"signing_protocol,attr"`
+	Name            *string `json:"name,omitempty"   hcl:"name,attr"`
+	Description     string  `json:"description"      hcl:"description,attr"`
+	OriginType      string  `json:"origin_type"      hcl:"origin_type,attr"`
+	SigningBehavior string  `json:"signing_behavior" hcl:"signing_behavior,attr"`
+	SigningProtocol string  `json:"signing_protocol" hcl:"signing_protocol,attr"`
 }
 
-// CacheBehavior represents cache behavior configuration
+// CacheBehavior represents cache behavior configuration.
 type CacheBehavior struct {
 	// PathPattern for ordered cache behaviors (not used for default)
 	PathPattern *string `json:"path_pattern,omitempty" hcl:"path_pattern,attr"`
@@ -272,25 +272,25 @@ type CacheBehavior struct {
 	FunctionAssociations []FunctionAssociation `json:"function_associations,omitempty" hcl:"function_associations,attr"`
 
 	// MinTTL, DefaultTTL, MaxTTL for legacy cache settings (use cache policies instead)
-	MinTTL     *int `json:"min_ttl,omitempty" hcl:"min_ttl,attr"`
+	MinTTL     *int `json:"min_ttl,omitempty"     hcl:"min_ttl,attr"`
 	DefaultTTL *int `json:"default_ttl,omitempty" hcl:"default_ttl,attr"`
-	MaxTTL     *int `json:"max_ttl,omitempty" hcl:"max_ttl,attr"`
+	MaxTTL     *int `json:"max_ttl,omitempty"     hcl:"max_ttl,attr"`
 }
 
-// LambdaFunctionAssociation represents Lambda@Edge configuration
+// LambdaFunctionAssociation represents Lambda@Edge configuration.
 type LambdaFunctionAssociation struct {
-	EventType   string  `json:"event_type" hcl:"event_type,attr"`
-	LambdaARN   string  `json:"lambda_arn" hcl:"lambda_arn,attr"`
-	IncludeBody *bool   `json:"include_body,omitempty" hcl:"include_body,attr"`
+	EventType   string `json:"event_type"             hcl:"event_type,attr"`
+	LambdaARN   string `json:"lambda_arn"             hcl:"lambda_arn,attr"`
+	IncludeBody *bool  `json:"include_body,omitempty" hcl:"include_body,attr"`
 }
 
-// FunctionAssociation represents CloudFront Functions configuration
+// FunctionAssociation represents CloudFront Functions configuration.
 type FunctionAssociation struct {
-	EventType   string `json:"event_type" hcl:"event_type,attr"`
+	EventType   string `json:"event_type"   hcl:"event_type,attr"`
 	FunctionARN string `json:"function_arn" hcl:"function_arn,attr"`
 }
 
-// ViewerCertificate represents SSL/TLS certificate configuration
+// ViewerCertificate represents SSL/TLS certificate configuration.
 type ViewerCertificate struct {
 	// CloudFrontDefaultCertificate uses *.cloudfront.net certificate
 	CloudFrontDefaultCertificate *bool `json:"cloudfront_default_certificate,omitempty" hcl:"cloudfront_default_certificate,attr"`
@@ -310,7 +310,7 @@ type ViewerCertificate struct {
 	SSLSupportMethod *string `json:"ssl_support_method,omitempty" hcl:"ssl_support_method,attr"`
 }
 
-// GeoRestriction represents geographic access restrictions
+// GeoRestriction represents geographic access restrictions.
 type GeoRestriction struct {
 	// RestrictionType controls access by geography
 	// Valid values: "none" | "whitelist" | "blacklist"
@@ -320,7 +320,7 @@ type GeoRestriction struct {
 	Locations []string `json:"locations,omitempty" hcl:"locations,attr"`
 }
 
-// LoggingConfig represents access logging configuration
+// LoggingConfig represents access logging configuration.
 type LoggingConfig struct {
 	// Bucket is the S3 bucket for access logs
 	Bucket string `json:"bucket" hcl:"bucket,attr"`
@@ -332,31 +332,31 @@ type LoggingConfig struct {
 	Prefix *string `json:"prefix,omitempty" hcl:"prefix,attr"`
 }
 
-// CustomErrorResponse represents custom error page configuration
+// CustomErrorResponse represents custom error page configuration.
 type CustomErrorResponse struct {
-	ErrorCode          int     `json:"error_code" hcl:"error_code,attr"`
-	ResponseCode       *int    `json:"response_code,omitempty" hcl:"response_code,attr"`
-	ResponsePagePath   *string `json:"response_page_path,omitempty" hcl:"response_page_path,attr"`
+	ErrorCode          int     `json:"error_code"                      hcl:"error_code,attr"`
+	ResponseCode       *int    `json:"response_code,omitempty"         hcl:"response_code,attr"`
+	ResponsePagePath   *string `json:"response_page_path,omitempty"    hcl:"response_page_path,attr"`
 	ErrorCachingMinTTL *int    `json:"error_caching_min_ttl,omitempty" hcl:"error_caching_min_ttl,attr"`
 }
 
-// VPCOrigin represents VPC origin configuration
+// VPCOrigin represents VPC origin configuration.
 type VPCOrigin struct {
-	Name                 string            `json:"name" hcl:"name,attr"`
-	ARN                  string            `json:"arn" hcl:"arn,attr"`
-	HTTPPort             int               `json:"http_port" hcl:"http_port,attr"`
-	HTTPSPort            int               `json:"https_port" hcl:"https_port,attr"`
-	OriginProtocolPolicy string            `json:"origin_protocol_policy" hcl:"origin_protocol_policy,attr"`
-	OriginSSLProtocols   OriginSSLProtocols `json:"origin_ssl_protocols" hcl:"origin_ssl_protocols,attr"`
+	Name                 string             `json:"name"                   hcl:"name,attr"`
+	ARN                  string             `json:"arn"                    hcl:"arn,attr"`
+	HTTPPort             int                `json:"http_port"              hcl:"http_port,attr"`
+	HTTPSPort            int                `json:"https_port"             hcl:"https_port,attr"`
+	OriginProtocolPolicy string             `json:"origin_protocol_policy" hcl:"origin_protocol_policy,attr"`
+	OriginSSLProtocols   OriginSSLProtocols `json:"origin_ssl_protocols"   hcl:"origin_ssl_protocols,attr"`
 }
 
-// OriginSSLProtocols represents SSL protocol configuration
+// OriginSSLProtocols represents SSL protocol configuration.
 type OriginSSLProtocols struct {
-	Items    []string `json:"items" hcl:"items,attr"`
+	Items    []string `json:"items"    hcl:"items,attr"`
 	Quantity int      `json:"quantity" hcl:"quantity,attr"`
 }
 
-// NewModule creates a new CloudFront module with sensible defaults
+// NewModule creates a new CloudFront module with sensible defaults.
 func NewModule(comment string) *Module {
 	source := "terraform-aws-modules/cloudfront/aws"
 	version := "~> 3.0"
@@ -378,7 +378,7 @@ func NewModule(comment string) *Module {
 	}
 }
 
-// WithOrigin adds an origin configuration
+// WithOrigin adds an origin configuration.
 func (m *Module) WithOrigin(id string, origin Origin) *Module {
 	if m.Origin == nil {
 		m.Origin = make(map[string]Origin)
@@ -387,7 +387,7 @@ func (m *Module) WithOrigin(id string, origin Origin) *Module {
 	return m
 }
 
-// WithS3Origin adds an S3 bucket origin with access control
+// WithS3Origin adds an S3 bucket origin with access control.
 func (m *Module) WithS3Origin(id, bucketDomain, oaiID string) *Module {
 	origin := Origin{
 		DomainName: bucketDomain,
@@ -419,8 +419,8 @@ func (m *Module) WithCustomOrigin(id, domainName string, httpsOnly bool) *Module
 	return m.WithOrigin(id, origin)
 }
 
-// WithDefaultCacheBehavior configures the default cache behavior
-func (m *Module) WithDefaultCacheBehavior(originID string, viewerProtocol string) *Module {
+// WithDefaultCacheBehavior configures the default cache behavior.
+func (m *Module) WithDefaultCacheBehavior(originID, viewerProtocol string) *Module {
 	m.DefaultCacheBehavior = &CacheBehavior{
 		TargetOriginID:       originID,
 		ViewerProtocolPolicy: viewerProtocol,
@@ -430,8 +430,8 @@ func (m *Module) WithDefaultCacheBehavior(originID string, viewerProtocol string
 	return m
 }
 
-// WithCertificate configures ACM certificate for custom domains
-func (m *Module) WithCertificate(acmCertARN string, minTLSVersion string) *Module {
+// WithCertificate configures ACM certificate for custom domains.
+func (m *Module) WithCertificate(acmCertARN, minTLSVersion string) *Module {
 	sniOnly := "sni-only"
 	m.ViewerCertificate = &ViewerCertificate{
 		ACMCertificateARN:      &acmCertARN,
@@ -441,19 +441,19 @@ func (m *Module) WithCertificate(acmCertARN string, minTLSVersion string) *Modul
 	return m
 }
 
-// WithAliases adds custom domain names (CNAMEs)
+// WithAliases adds custom domain names (CNAMEs).
 func (m *Module) WithAliases(aliases ...string) *Module {
 	m.Aliases = aliases
 	return m
 }
 
-// WithPriceClass sets the price class for edge location coverage
+// WithPriceClass sets the price class for edge location coverage.
 func (m *Module) WithPriceClass(priceClass string) *Module {
 	m.PriceClass = &priceClass
 	return m
 }
 
-// WithLogging configures access logging to S3
+// WithLogging configures access logging to S3.
 func (m *Module) WithLogging(bucket, prefix string, includeCookies bool) *Module {
 	m.LoggingConfig = &LoggingConfig{
 		Bucket:         bucket,
@@ -463,7 +463,7 @@ func (m *Module) WithLogging(bucket, prefix string, includeCookies bool) *Module
 	return m
 }
 
-// WithGeoRestriction configures geographic restrictions
+// WithGeoRestriction configures geographic restrictions.
 func (m *Module) WithGeoRestriction(restrictionType string, locations []string) *Module {
 	m.GeoRestriction = &GeoRestriction{
 		RestrictionType: restrictionType,
@@ -472,13 +472,13 @@ func (m *Module) WithGeoRestriction(restrictionType string, locations []string) 
 	return m
 }
 
-// WithWAF associates a WAF web ACL
+// WithWAF associates a WAF web ACL.
 func (m *Module) WithWAF(webACLID string) *Module {
 	m.WebACLID = &webACLID
 	return m
 }
 
-// WithOriginAccessControl creates origin access control for S3
+// WithOriginAccessControl creates origin access control for S3.
 func (m *Module) WithOriginAccessControl(name, description string) *Module {
 	create := true
 	m.CreateOriginAccessControl = &create
@@ -497,7 +497,7 @@ func (m *Module) WithOriginAccessControl(name, description string) *Module {
 	return m
 }
 
-// WithLambdaEdge adds Lambda@Edge function to default cache behavior
+// WithLambdaEdge adds Lambda@Edge function to default cache behavior.
 func (m *Module) WithLambdaEdge(eventType, lambdaARN string) *Module {
 	if m.DefaultCacheBehavior == nil {
 		m.DefaultCacheBehavior = &CacheBehavior{}
@@ -513,7 +513,7 @@ func (m *Module) WithLambdaEdge(eventType, lambdaARN string) *Module {
 	return m
 }
 
-// WithTags adds tags to the distribution
+// WithTags adds tags to the distribution.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -524,7 +524,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Comment != nil {
 		return *m.Comment
@@ -532,7 +532,7 @@ func (m *Module) LocalName() string {
 	return "distribution"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

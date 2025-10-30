@@ -2,13 +2,14 @@ package lingon
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-// FunctionMetadata represents the optional function.forge.json file
+// FunctionMetadata represents the optional function.forge.json file.
 type FunctionMetadata struct {
 	HTTP struct {
 		Method string `json:"method"`
@@ -18,7 +19,7 @@ type FunctionMetadata struct {
 	Memory  int `json:"memory"`
 }
 
-// DiscoverFunctions scans src/handlers and returns function configs
+// DiscoverFunctions scans src/handlers and returns function configs.
 func DiscoverFunctions(projectRoot string) (map[string]FunctionConfig, error) {
 	srcDir := filepath.Join(projectRoot, "src")
 	handlersDir := filepath.Join(srcDir, "handlers")
@@ -63,7 +64,7 @@ func DiscoverFunctions(projectRoot string) (map[string]FunctionConfig, error) {
 			Runtime:     runtime,
 			Timeout:     30,
 			MemorySize:  256,
-			Description: fmt.Sprintf("%s Lambda function", name),
+			Description: name + " Lambda function",
 			Source: SourceConfig{
 				Path: filepath.Join("src", "handlers", name),
 			},
@@ -89,7 +90,7 @@ func DiscoverFunctions(projectRoot string) (map[string]FunctionConfig, error) {
 	return handlers, nil
 }
 
-// detectProjectRuntime detects the project's language from manifest files
+// detectProjectRuntime detects the project's language from manifest files.
 func detectProjectRuntime(srcDir string) (string, error) {
 	// Check for Go
 	if _, err := os.Stat(filepath.Join(srcDir, "go.mod")); err == nil {
@@ -114,10 +115,10 @@ func detectProjectRuntime(srcDir string) (string, error) {
 		return "java17", nil
 	}
 
-	return "", fmt.Errorf("could not detect project language (no go.mod, package.json, requirements.txt, or build files found)")
+	return "", errors.New("could not detect project language (no go.mod, package.json, requirements.txt, or build files found)")
 }
 
-// getHandlerFile returns the handler file name if it exists
+// getHandlerFile returns the handler file name if it exists.
 func getHandlerFile(dir, runtime string) string {
 	candidates := []string{}
 
@@ -141,7 +142,7 @@ func getHandlerFile(dir, runtime string) string {
 	return ""
 }
 
-// getHandlerName returns the default handler name for the runtime
+// getHandlerName returns the default handler name for the runtime.
 func getHandlerName(runtime string) string {
 	switch {
 	case strings.HasPrefix(runtime, "go") || runtime == "provided.al2023":
@@ -157,7 +158,7 @@ func getHandlerName(runtime string) string {
 	}
 }
 
-// loadFunctionMetadata reads and parses function.forge.json
+// loadFunctionMetadata reads and parses function.forge.json.
 func loadFunctionMetadata(path string) (*FunctionMetadata, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -172,7 +173,7 @@ func loadFunctionMetadata(path string) (*FunctionMetadata, error) {
 	return &metadata, nil
 }
 
-// applyMetadata applies the metadata to the function config
+// applyMetadata applies the metadata to the function config.
 func applyMetadata(config *FunctionConfig, metadata *FunctionMetadata, functionName string) {
 	// Apply timeout if specified
 	if metadata.Timeout > 0 {

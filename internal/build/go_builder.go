@@ -9,8 +9,8 @@ import (
 	E "github.com/IBM/fp-go/either"
 )
 
-// GoBuildSpec represents the pure specification for a Go build
-// PURE: No side effects, deterministic output from inputs
+// GoBuildSpec represents the pure specification for a Go build.
+// PURE: No side effects, deterministic output from inputs.
 type GoBuildSpec struct {
 	Command    []string
 	Env        []string
@@ -18,8 +18,8 @@ type GoBuildSpec struct {
 	OutputPath string
 }
 
-// GenerateGoBuildSpec creates a build specification from config
-// PURE: Calculation - same inputs always produce same outputs
+// GenerateGoBuildSpec creates a build specification from config.
+// PURE: Calculation - same inputs always produce same outputs.
 func GenerateGoBuildSpec(cfg Config) GoBuildSpec {
 	outputPath := cfg.OutputPath
 	if outputPath == "" {
@@ -55,8 +55,8 @@ func GenerateGoBuildSpec(cfg Config) GoBuildSpec {
 	}
 }
 
-// ExecuteGoBuildSpec executes a build specification using functional composition
-// ACTION: Performs I/O operations (file system, process execution)
+// ExecuteGoBuildSpec executes a build specification using functional composition.
+// ACTION: Performs I/O operations (file system, process execution).
 func ExecuteGoBuildSpec(ctx context.Context, spec GoBuildSpec) E.Either[error, Artifact] {
 	// Use E.Chain for railway-oriented programming
 	return E.Chain(func(_ struct{}) E.Either[error, Artifact] {
@@ -77,18 +77,17 @@ func ExecuteGoBuildSpec(ctx context.Context, spec GoBuildSpec) E.Either[error, A
 	})(ensureOutputDir(spec.OutputPath))
 }
 
-// ensureOutputDir creates output directory and returns unit Either
-// ACTION: I/O operation wrapped in Either monad
+// ensureOutputDir creates output directory and returns unit Either.
+// ACTION: I/O operation wrapped in Either monad.
 func ensureOutputDir(outputPath string) E.Either[error, struct{}] {
-	//nolint:gosec // G301: Lambda build directory permissions are intentionally permissive
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0754); err != nil {
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o754); err != nil { //nolint:mnd // Standard directory permission
 		return E.Left[struct{}](fmt.Errorf("failed to create output directory: %w", err))
 	}
 	return E.Right[error](struct{}{})
 }
 
-// ensureCommand executes build command and returns unit Either
-// ACTION: I/O operation wrapped in Either monad
+// ensureCommand executes build command and returns unit Either.
+// ACTION: I/O operation wrapped in Either monad.
 func ensureCommand(ctx context.Context, command, env []string, workDir string) E.Either[error, struct{}] {
 	if err := executeCommand(ctx, command, env, workDir); err != nil {
 		return E.Left[struct{}](err)
@@ -96,8 +95,8 @@ func ensureCommand(ctx context.Context, command, env []string, workDir string) E
 	return E.Right[error](struct{}{})
 }
 
-// ensureChecksum calculates file checksum and returns Either
-// ACTION: I/O operation wrapped in Either monad
+// ensureChecksum calculates file checksum and returns Either.
+// ACTION: I/O operation wrapped in Either monad.
 func ensureChecksum(path string) E.Either[error, string] {
 	checksum, err := calculateChecksum(path)
 	if err != nil {
@@ -106,8 +105,8 @@ func ensureChecksum(path string) E.Either[error, string] {
 	return E.Right[error](checksum)
 }
 
-// ensureFileSize gets file size and returns Either
-// ACTION: I/O operation wrapped in Either monad
+// ensureFileSize gets file size and returns Either.
+// ACTION: I/O operation wrapped in Either monad.
 func ensureFileSize(path string) E.Either[error, int64] {
 	size, err := getFileSize(path)
 	if err != nil {
@@ -116,9 +115,9 @@ func ensureFileSize(path string) E.Either[error, int64] {
 	return E.Right[error](size)
 }
 
-// GoBuild composes pure specification generation with impure execution
-// COMPOSITION: Pure core + Imperative shell
+// GoBuild composes pure specification generation with impure execution.
+// COMPOSITION: Pure core + Imperative shell.
 func GoBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
-	spec := GenerateGoBuildSpec(cfg)      // PURE: Calculation
+	spec := GenerateGoBuildSpec(cfg)     // PURE: Calculation
 	return ExecuteGoBuildSpec(ctx, spec) // ACTION: I/O
 }

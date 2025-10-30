@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCreateLambdaFunctionResourcesAliases tests Lambda alias creation
+// TestCreateLambdaFunctionResourcesAliases tests Lambda alias creation.
 func TestCreateLambdaFunctionResourcesAliases(t *testing.T) {
 	t.Run("creates Lambda aliases with version references", func(t *testing.T) {
 		config := FunctionConfig{
@@ -67,7 +67,7 @@ func TestCreateLambdaFunctionResourcesAliases(t *testing.T) {
 	})
 }
 
-// TestCreateLambdaFunctionResourcesEventSources tests event source mapping creation
+// TestCreateLambdaFunctionResourcesEventSources tests event source mapping creation.
 func TestCreateLambdaFunctionResourcesEventSources(t *testing.T) {
 	t.Run("creates DynamoDB stream event source mapping", func(t *testing.T) {
 		config := FunctionConfig{
@@ -173,7 +173,7 @@ func TestCreateLambdaFunctionResourcesEventSources(t *testing.T) {
 	})
 }
 
-// TestCreateLambdaFunctionResourcesEnhanced tests enhanced Lambda configurations
+// TestCreateLambdaFunctionResourcesEnhanced tests enhanced Lambda configurations.
 func TestCreateLambdaFunctionResourcesEnhanced(t *testing.T) {
 	t.Run("creates Lambda with VPC configuration", func(t *testing.T) {
 		config := FunctionConfig{
@@ -366,7 +366,7 @@ func TestCreateLambdaFunctionResourcesEnhanced(t *testing.T) {
 	})
 }
 
-// TestCreateAPIGatewayResourcesCORS tests CORS configuration
+// TestCreateAPIGatewayResourcesCORS tests CORS configuration.
 func TestCreateAPIGatewayResourcesCORS(t *testing.T) {
 	t.Run("creates API Gateway with CORS configuration", func(t *testing.T) {
 		config := APIGatewayConfig{
@@ -398,7 +398,7 @@ func TestCreateAPIGatewayResourcesCORS(t *testing.T) {
 	})
 }
 
-// TestCreateAPIGatewayResourcesAuthorizers tests authorizer configuration
+// TestCreateAPIGatewayResourcesAuthorizers tests authorizer configuration.
 func TestCreateAPIGatewayResourcesAuthorizers(t *testing.T) {
 	t.Run("creates API Gateway with JWT authorizer", func(t *testing.T) {
 		config := APIGatewayConfig{
@@ -473,7 +473,7 @@ func TestCreateAPIGatewayResourcesAuthorizers(t *testing.T) {
 	})
 }
 
-// TestCreateAPIGatewayResourcesThrottling tests throttling configuration
+// TestCreateAPIGatewayResourcesThrottling tests throttling configuration.
 func TestCreateAPIGatewayResourcesThrottling(t *testing.T) {
 	t.Run("creates API Gateway with default route throttling", func(t *testing.T) {
 		config := APIGatewayConfig{
@@ -502,7 +502,7 @@ func TestCreateAPIGatewayResourcesThrottling(t *testing.T) {
 	})
 }
 
-// TestCreateAPIGatewayResourcesAccessLogs tests access logging configuration
+// TestCreateAPIGatewayResourcesAccessLogs tests access logging configuration.
 func TestCreateAPIGatewayResourcesAccessLogs(t *testing.T) {
 	t.Run("creates API Gateway with access logs", func(t *testing.T) {
 		config := APIGatewayConfig{
@@ -531,7 +531,7 @@ func TestCreateAPIGatewayResourcesAccessLogs(t *testing.T) {
 	})
 }
 
-// TestCreateAPIGatewayResourcesPermissions tests Lambda permission creation
+// TestCreateAPIGatewayResourcesPermissions tests Lambda permission creation.
 func TestCreateAPIGatewayResourcesPermissions(t *testing.T) {
 	t.Run("creates Lambda permissions for API Gateway invocation", func(t *testing.T) {
 		config := APIGatewayConfig{

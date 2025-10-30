@@ -15,7 +15,7 @@ import (
 func TestNodeBuildSignature(t *testing.T) {
 	t.Run("NodeBuild matches BuildFunc signature", func(t *testing.T) {
 		// NodeBuild should be assignable to BuildFunc
-		var buildFunc BuildFunc = NodeBuild
+		buildFunc := NodeBuild
 
 		// Should compile and work with functional patterns
 		result := buildFunc(t.Context(), Config{
@@ -79,28 +79,28 @@ func TestNodeBuildComposition(t *testing.T) {
 		cachedBuild := WithCache(cache)(NodeBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = cachedBuild
+		buildFunc := cachedBuild
 		assert.NotNil(t, buildFunc)
 	})
 
 	t.Run("composes with WithLogging", func(t *testing.T) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		loggedBuild := WithLogging(logger)(NodeBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = loggedBuild
+		buildFunc := loggedBuild
 		assert.NotNil(t, buildFunc)
 	})
 
 	t.Run("composes with multiple decorators", func(t *testing.T) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(
@@ -109,7 +109,7 @@ func TestNodeBuildComposition(t *testing.T) {
 		)(NodeBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = composed
+		buildFunc := composed
 		assert.NotNil(t, buildFunc)
 	})
 }
@@ -156,7 +156,7 @@ func TestGenerateNodeBuildSpec(t *testing.T) {
 
 		spec := GenerateNodeBuildSpec(cfg, false, false)
 
-		assert.Equal(t, filepath.Join("/tmp/test", "lambda.zip"), spec.OutputPath)
+		assert.Equal(t, "/tmp/test/lambda.zip", spec.OutputPath)
 		assert.Equal(t, "/tmp/test", spec.SourceDir)
 		assert.False(t, spec.HasPackageJSON)
 		assert.False(t, spec.HasTypeScript)
@@ -198,7 +198,7 @@ func TestGenerateNodeBuildSpec(t *testing.T) {
 	})
 }
 
-// TestNodeBuildBasic tests basic Node.js build without dependencies
+// TestNodeBuildBasic tests basic Node.js build without dependencies.
 func TestNodeBuildBasic(t *testing.T) {
 	t.Run("builds simple Node.js function without package.json", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -228,14 +228,14 @@ func TestNodeBuildBasic(t *testing.T) {
 
 		// Extract artifact
 		artifact := E.Fold(
-			func(err error) Artifact { return Artifact{} },
+			func(_ error) Artifact { return Artifact{} },
 			func(a Artifact) Artifact { return a },
 		)(result)
 
 		// Verify artifact
 		assert.Equal(t, outputPath, artifact.Path)
 		assert.NotEmpty(t, artifact.Checksum, "Should have checksum")
-		assert.Greater(t, artifact.Size, int64(0), "Should have non-zero size")
+		assert.Positive(t, artifact.Size, "Should have non-zero size")
 
 		// Verify zip file exists
 		_, err = os.Stat(outputPath)
@@ -243,7 +243,7 @@ func TestNodeBuildBasic(t *testing.T) {
 	})
 }
 
-// TestNodeBuildWithPackageJson tests Node.js build with package.json
+// TestNodeBuildWithPackageJson tests Node.js build with package.json.
 func TestNodeBuildWithPackageJson(t *testing.T) {
 	// Skip if npm is not available
 	if _, err := exec.LookPath("npm"); err != nil {
@@ -297,7 +297,7 @@ func TestNodeBuildWithPackageJson(t *testing.T) {
 
 		// Verify artifact
 		artifact := E.Fold(
-			func(err error) Artifact { return Artifact{} },
+			func(_ error) Artifact { return Artifact{} },
 			func(a Artifact) Artifact { return a },
 		)(result)
 
@@ -467,7 +467,7 @@ func TestNodeBuildErrorHandling(t *testing.T) {
 			func(_ Artifact) error { return nil },
 		)(result)
 
-		assert.NotNil(t, buildErr)
+		require.Error(t, buildErr)
 		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
 
@@ -510,7 +510,7 @@ func TestNodeBuildErrorHandling(t *testing.T) {
 			func(_ Artifact) error { return nil },
 		)(result)
 
-		assert.NotNil(t, buildErr)
+		require.Error(t, buildErr)
 		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
 
@@ -602,8 +602,8 @@ func BenchmarkNodeBuildWithComposition(b *testing.B) {
 
 	b.Run("WithLogging", func(b *testing.B) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 		loggedBuild := WithLogging(logger)(NodeBuild)
 
@@ -616,8 +616,8 @@ func BenchmarkNodeBuildWithComposition(b *testing.B) {
 	b.Run("Composed", func(b *testing.B) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(

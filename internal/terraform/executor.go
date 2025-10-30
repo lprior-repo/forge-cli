@@ -4,15 +4,17 @@ import (
 	"context"
 )
 
-// Function types for terraform operations
-type InitFunc func(ctx context.Context, dir string, opts ...InitOption) error
-type PlanFunc func(ctx context.Context, dir string, opts ...PlanOption) (bool, error)
-type ApplyFunc func(ctx context.Context, dir string, opts ...ApplyOption) error
-type DestroyFunc func(ctx context.Context, dir string, opts ...DestroyOption) error
-type OutputFunc func(ctx context.Context, dir string) (map[string]interface{}, error)
-type ValidateFunc func(ctx context.Context, dir string) error
+// Function types for terraform operations.
+type (
+	InitFunc     func(ctx context.Context, dir string, opts ...InitOption) error
+	PlanFunc     func(ctx context.Context, dir string, opts ...PlanOption) (bool, error)
+	ApplyFunc    func(ctx context.Context, dir string, opts ...ApplyOption) error
+	DestroyFunc  func(ctx context.Context, dir string, opts ...DestroyOption) error
+	OutputFunc   func(ctx context.Context, dir string) (map[string]interface{}, error)
+	ValidateFunc func(ctx context.Context, dir string) error
+)
 
-// Executor is a collection of terraform operation functions
+// Executor is a collection of terraform operation functions.
 type Executor struct {
 	Init     InitFunc
 	Plan     PlanFunc
@@ -22,7 +24,7 @@ type Executor struct {
 	Validate ValidateFunc
 }
 
-// NewExecutor creates a real terraform executor using terraform-exec
+// NewExecutor creates a real terraform executor using terraform-exec.
 func NewExecutor(tfPath string) Executor {
 	return Executor{
 		Init:     makeInitFunc(tfPath),
@@ -34,7 +36,7 @@ func NewExecutor(tfPath string) Executor {
 	}
 }
 
-// NewMockExecutor creates a mock executor for testing
+// NewMockExecutor creates a mock executor for testing.
 func NewMockExecutor() Executor {
 	return Executor{
 		Init: func(ctx context.Context, dir string, opts ...InitOption) error {

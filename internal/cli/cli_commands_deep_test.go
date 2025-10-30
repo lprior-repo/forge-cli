@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/generators"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/generators"
 )
 
-// TestRunBuildEdgeCases tests uncovered paths in runBuild
+// TestRunBuildEdgeCases tests uncovered paths in runBuild.
 func TestRunBuildEdgeCases(t *testing.T) {
 	t.Run("handles no functions found gracefully", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -21,7 +22,7 @@ func TestRunBuildEdgeCases(t *testing.T) {
 
 		// Create empty functions directory
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		os.Chdir(tmpDir)
 
@@ -40,11 +41,11 @@ func TestRunBuildEdgeCases(t *testing.T) {
 
 		// Create a simple Go function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "test")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(functionsDir, "main.go"),
 			[]byte("package main\n\nfunc main() {}\n"),
-			0644,
+			0o644,
 		))
 
 		os.Chdir(tmpDir)
@@ -56,7 +57,7 @@ func TestRunBuildEdgeCases(t *testing.T) {
 	})
 }
 
-// TestRunDeployEdgeCases tests uncovered paths in runDeploy
+// TestRunDeployEdgeCases tests uncovered paths in runDeploy.
 func TestRunDeployEdgeCases(t *testing.T) {
 	t.Run("validates namespace format", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -65,7 +66,7 @@ func TestRunDeployEdgeCases(t *testing.T) {
 
 		// Create minimal structure
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		os.Chdir(tmpDir)
 
@@ -85,11 +86,11 @@ func TestRunDeployEdgeCases(t *testing.T) {
 
 		// Create functions but no infra
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(functionsDir, "main.go"),
 			[]byte("package main\n\nfunc main() {}\n"),
-			0644,
+			0o644,
 		))
 
 		os.Chdir(tmpDir)
@@ -101,7 +102,7 @@ func TestRunDeployEdgeCases(t *testing.T) {
 	})
 }
 
-// TestRunDestroyEdgeCases tests uncovered paths in runDestroy
+// TestRunDestroyEdgeCases tests uncovered paths in runDestroy.
 func TestRunDestroyEdgeCases(t *testing.T) {
 	t.Run("handles missing infra directory for destroy", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -122,11 +123,11 @@ func TestRunDestroyEdgeCases(t *testing.T) {
 
 		// Create minimal infra
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(infraDir, "main.tf"),
 			[]byte("# Terraform config\n"),
-			0644,
+			0o644,
 		))
 
 		os.Chdir(tmpDir)
@@ -154,12 +155,12 @@ func TestRunDestroyEdgeCases(t *testing.T) {
 	})
 }
 
-// TestWriteGeneratedFiles tests file writing edge cases
+// TestWriteGeneratedFiles tests file writing edge cases.
 func TestWriteGeneratedFilesEdgeCases(t *testing.T) {
 	t.Run("handles empty file list", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Empty files list should succeed
 		code := generators.GeneratedCode{Files: []generators.FileToWrite{}}
@@ -170,11 +171,11 @@ func TestWriteGeneratedFilesEdgeCases(t *testing.T) {
 	t.Run("skips existing files in create mode", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Create existing file
 		testFile := filepath.Join(infraDir, "test.tf")
-		require.NoError(t, os.WriteFile(testFile, []byte("existing"), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte("existing"), 0o644))
 
 		// Attempt to write with create mode should skip
 		code := generators.GeneratedCode{
@@ -196,11 +197,11 @@ func TestWriteGeneratedFilesEdgeCases(t *testing.T) {
 	t.Run("appends to existing files in append mode", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Create existing file
 		testFile := filepath.Join(infraDir, "outputs.tf")
-		require.NoError(t, os.WriteFile(testFile, []byte("# Existing\n"), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte("# Existing\n"), 0o644))
 
 		// Append to file
 		code := generators.GeneratedCode{
@@ -220,7 +221,7 @@ func TestWriteGeneratedFilesEdgeCases(t *testing.T) {
 	})
 }
 
-// TestDiscoverProjectStateEdgeCases tests project state discovery
+// TestDiscoverProjectStateEdgeCases tests project state discovery.
 func TestDiscoverProjectStateEdgeCases(t *testing.T) {
 	t.Run("handles empty project", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -240,11 +241,11 @@ func TestDiscoverProjectStateEdgeCases(t *testing.T) {
 
 		// Create a function
 		funcDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(funcDir, 0755))
+		require.NoError(t, os.MkdirAll(funcDir, 0o755))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(funcDir, "main.go"),
 			[]byte("package main\n\nfunc main() {}\n"),
-			0644,
+			0o644,
 		))
 
 		result := discoverProjectState(tmpDir)
@@ -262,11 +263,11 @@ func TestDiscoverProjectStateEdgeCases(t *testing.T) {
 
 		// Create infra directory with terraform files
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(infraDir, "main.tf"),
 			[]byte("# Terraform\n"),
-			0644,
+			0o644,
 		))
 
 		result := discoverProjectState(tmpDir)
@@ -274,7 +275,7 @@ func TestDiscoverProjectStateEdgeCases(t *testing.T) {
 	})
 }
 
-// TestProvisionStateBackendEdgeCases tests state backend provisioning
+// TestProvisionStateBackendEdgeCases tests state backend provisioning.
 func TestProvisionStateBackendEdgeCases(t *testing.T) {
 	t.Skip("Requires AWS credentials - integration test")
 
@@ -287,7 +288,7 @@ func TestProvisionStateBackendEdgeCases(t *testing.T) {
 	})
 }
 
-// TestNewCommandFlags tests command flag handling
+// TestNewCommandFlags tests command flag handling.
 func TestNewCommandFlags(t *testing.T) {
 	t.Run("build command exists", func(t *testing.T) {
 		cmd := NewBuildCmd()
@@ -314,7 +315,7 @@ func TestNewCommandFlags(t *testing.T) {
 	})
 }
 
-// TestCommandOutput tests command output formatting
+// TestCommandOutput tests command output formatting.
 func TestCommandOutput(t *testing.T) {
 	t.Run("commands write to stdout", func(t *testing.T) {
 		// Capture stdout
@@ -340,16 +341,16 @@ func TestCommandOutput(t *testing.T) {
 	})
 }
 
-// TestFunctionDiscovery tests function discovery edge cases
+// TestFunctionDiscovery tests function discovery edge cases.
 func TestFunctionDiscoveryIntegration(t *testing.T) {
 	t.Run("discovers Go functions via discoverProjectState", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		funcDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(funcDir, 0755))
+		require.NoError(t, os.MkdirAll(funcDir, 0o755))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(funcDir, "main.go"),
 			[]byte("package main\n\nfunc main() {}\n"),
-			0644,
+			0o644,
 		))
 
 		result := discoverProjectState(tmpDir)
@@ -365,11 +366,11 @@ func TestFunctionDiscoveryIntegration(t *testing.T) {
 	t.Run("discovers Python functions via discoverProjectState", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		funcDir := filepath.Join(tmpDir, "src", "functions", "worker")
-		require.NoError(t, os.MkdirAll(funcDir, 0755))
+		require.NoError(t, os.MkdirAll(funcDir, 0o755))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(funcDir, "handler.py"),
 			[]byte("def lambda_handler(event, context):\n    pass\n"),
-			0644,
+			0o644,
 		))
 
 		result := discoverProjectState(tmpDir)
@@ -385,11 +386,11 @@ func TestFunctionDiscoveryIntegration(t *testing.T) {
 	t.Run("discovers Node.js functions via discoverProjectState", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		funcDir := filepath.Join(tmpDir, "src", "functions", "processor")
-		require.NoError(t, os.MkdirAll(funcDir, 0755))
+		require.NoError(t, os.MkdirAll(funcDir, 0o755))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(funcDir, "index.js"),
 			[]byte("exports.handler = async (event) => { };\n"),
-			0644,
+			0o644,
 		))
 
 		result := discoverProjectState(tmpDir)

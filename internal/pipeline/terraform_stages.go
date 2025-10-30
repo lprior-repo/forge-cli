@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	E "github.com/IBM/fp-go/either"
+
 	"github.com/lewis/forge/internal/terraform"
 )
 
-// TerraformInit creates a stage that initializes terraform in the project directory
+// TerraformInit creates a stage that initializes terraform in the project directory.
 func TerraformInit(exec terraform.Executor) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		if err := exec.Init(ctx, s.ProjectDir); err != nil {
@@ -19,7 +20,7 @@ func TerraformInit(exec terraform.Executor) Stage {
 	}
 }
 
-// TerraformPlan creates a stage that plans terraform in the project directory
+// TerraformPlan creates a stage that plans terraform in the project directory.
 func TerraformPlan(exec terraform.Executor) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		hasChanges, err := exec.Plan(ctx, s.ProjectDir)
@@ -35,7 +36,7 @@ func TerraformPlan(exec terraform.Executor) Stage {
 	}
 }
 
-// TerraformApply creates a stage that applies terraform in the project directory
+// TerraformApply creates a stage that applies terraform in the project directory.
 func TerraformApply(exec terraform.Executor, autoApprove bool) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		opts := []terraform.ApplyOption{
@@ -52,7 +53,7 @@ func TerraformApply(exec terraform.Executor, autoApprove bool) Stage {
 	}
 }
 
-// TerraformDestroy creates a stage that destroys terraform infrastructure
+// TerraformDestroy creates a stage that destroys terraform infrastructure.
 func TerraformDestroy(exec terraform.Executor, autoApprove bool) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		opts := []terraform.DestroyOption{
@@ -67,7 +68,7 @@ func TerraformDestroy(exec terraform.Executor, autoApprove bool) Stage {
 	}
 }
 
-// CaptureOutputs captures terraform outputs from the project directory
+// CaptureOutputs captures terraform outputs from the project directory.
 func CaptureOutputs(exec terraform.Executor) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		if s.Outputs == nil {

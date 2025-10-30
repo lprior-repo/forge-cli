@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestExitError tests ExitError error formatting
+// TestExitError tests ExitError error formatting.
 func TestExitError(t *testing.T) {
 	t.Run("Error method formats correctly", func(t *testing.T) {
 		err := &ExitError{
@@ -27,11 +27,11 @@ func TestExitError(t *testing.T) {
 		}
 
 		unwrapped := err.Unwrap()
-		assert.NotNil(t, unwrapped)
+		assert.Error(t, unwrapped)
 	})
 }
 
-// TestStateLockError tests StateLockError
+// TestStateLockError tests StateLockError.
 func TestStateLockError(t *testing.T) {
 	t.Run("Error method includes lock ID", func(t *testing.T) {
 		err := &StateLockError{
@@ -45,7 +45,7 @@ func TestStateLockError(t *testing.T) {
 	})
 }
 
-// TestNoChangesError tests NoChangesError
+// TestNoChangesError tests NoChangesError.
 func TestNoChangesError(t *testing.T) {
 	t.Run("Error method returns correct message", func(t *testing.T) {
 		err := &NoChangesError{}
@@ -53,7 +53,7 @@ func TestNoChangesError(t *testing.T) {
 	})
 }
 
-// TestValidationError tests ValidationError
+// TestValidationError tests ValidationError.
 func TestValidationError(t *testing.T) {
 	t.Run("Error with file and line", func(t *testing.T) {
 		err := &ValidationError{
@@ -100,7 +100,7 @@ func TestValidationError(t *testing.T) {
 	})
 }
 
-// TestParseTerraformError tests error parsing logic
+// TestParseTerraformError tests error parsing logic.
 func TestParseTerraformError(t *testing.T) {
 	t.Run("Detects state lock error with Error locking state", func(t *testing.T) {
 		stderr := `Error locking state: some message
@@ -177,7 +177,7 @@ details`
 	})
 }
 
-// TestExtractLockID tests lock ID extraction
+// TestExtractLockID tests lock ID extraction.
 func TestExtractLockID(t *testing.T) {
 	t.Run("Extracts lock ID correctly", func(t *testing.T) {
 		stderr := `Error locking state

@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lewis/forge/internal/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/terraform"
 )
 
-// TestProjectStructure tests project structure validation
+// TestProjectStructure tests project structure validation.
 func TestProjectStructure(t *testing.T) {
 	t.Run("validates forge.hcl format", func(t *testing.T) {
 		// Create temp directory with forge.hcl
@@ -21,7 +22,7 @@ func TestProjectStructure(t *testing.T) {
   name   = "test-project"
   region = "us-east-1"
 }`
-		err := os.WriteFile(filepath.Join(tmpDir, "forge.hcl"), []byte(forgeHCL), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "forge.hcl"), []byte(forgeHCL), 0o644)
 		require.NoError(t, err)
 
 		// Verify file exists
@@ -32,7 +33,7 @@ func TestProjectStructure(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		// Create a stack directory
-		err := os.MkdirAll(filepath.Join(tmpDir, "stacks/api"), 0755)
+		err := os.MkdirAll(filepath.Join(tmpDir, "stacks/api"), 0o755)
 		require.NoError(t, err)
 
 		// Create stack.forge.hcl with correct block syntax
@@ -41,7 +42,7 @@ func TestProjectStructure(t *testing.T) {
   runtime     = "go1.x"
   description = "API stack"
 }`
-		err = os.WriteFile(filepath.Join(tmpDir, "stacks/api/stack.forge.hcl"), []byte(stackHCL), 0644)
+		err = os.WriteFile(filepath.Join(tmpDir, "stacks/api/stack.forge.hcl"), []byte(stackHCL), 0o644)
 		require.NoError(t, err)
 
 		// Verify files exist
@@ -50,7 +51,7 @@ func TestProjectStructure(t *testing.T) {
 	})
 }
 
-// TestDeployCommand tests deploy command creation and flags
+// TestDeployCommand tests deploy command creation and flags.
 func TestDeployCommand(t *testing.T) {
 	t.Run("has correct flags", func(t *testing.T) {
 		cmd := NewDeployCmd()
@@ -95,7 +96,7 @@ func TestDeployCommand(t *testing.T) {
 	})
 }
 
-// TestDestroyCommand tests destroy command creation and flags
+// TestDestroyCommand tests destroy command creation and flags.
 func TestDestroyCommand(t *testing.T) {
 	t.Run("has auto-approve flag", func(t *testing.T) {
 		cmd := NewDestroyCmd()
@@ -136,7 +137,7 @@ func TestDestroyCommand(t *testing.T) {
 	})
 }
 
-// TestRunDeployErrorCases tests error handling in runDeploy
+// TestRunDeployErrorCases tests error handling in runDeploy.
 func TestRunDeployErrorCases(t *testing.T) {
 	t.Run("fails when no forge.hcl exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -161,7 +162,7 @@ func TestRunDeployErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create infra directory for Terraform files
-		err = os.MkdirAll("infra", 0755)
+		err = os.MkdirAll("infra", 0o755)
 		require.NoError(t, err)
 
 		// Try to deploy with no functions (convention-based expects src/functions/)
@@ -179,18 +180,18 @@ func TestRunDeployErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create infra directory
-		err = os.MkdirAll("infra", 0755)
+		err = os.MkdirAll("infra", 0o755)
 		require.NoError(t, err)
 
 		// Create a function directory (convention-based expects src/functions/)
-		err = os.MkdirAll("src/functions/api", 0755)
+		err = os.MkdirAll("src/functions/api", 0o755)
 		require.NoError(t, err)
 
 		// Create main.go to satisfy Go runtime detection
 		mainGo := `package main
 
 func main() {}`
-		err = os.WriteFile("src/functions/api/main.go", []byte(mainGo), 0644)
+		err = os.WriteFile("src/functions/api/main.go", []byte(mainGo), 0o644)
 		require.NoError(t, err)
 
 		// Try to deploy with namespace (exercises namespace parameter path)
@@ -200,7 +201,7 @@ func main() {}`
 	})
 }
 
-// TestRunDestroyErrorCases tests error handling in runDestroy
+// TestRunDestroyErrorCases tests error handling in runDestroy.
 func TestRunDestroyErrorCases(t *testing.T) {
 	t.Run("fails when no forge.hcl exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -217,7 +218,7 @@ func TestRunDestroyErrorCases(t *testing.T) {
 	})
 }
 
-// TestExecuteFunction tests the Execute function
+// TestExecuteFunction tests the Execute function.
 func TestExecuteFunction(t *testing.T) {
 	t.Run("Execute creates root command", func(t *testing.T) {
 		// Execute function should not panic
@@ -230,7 +231,7 @@ func TestExecuteFunction(t *testing.T) {
 	})
 }
 
-// TestFindTerraformPathFunction tests terraform path detection
+// TestFindTerraformPathFunction tests terraform path detection.
 func TestFindTerraformPathFunction(t *testing.T) {
 	t.Run("finds terraform in PATH", func(t *testing.T) {
 		path := findTerraformPath()
@@ -239,7 +240,7 @@ func TestFindTerraformPathFunction(t *testing.T) {
 	})
 }
 
-// TestNewCommandFlagsIntegration tests NewNewCmd flag handling in integration tests
+// TestNewCommandFlagsIntegration tests NewNewCmd flag handling in integration tests.
 func TestNewCommandFlagsIntegration(t *testing.T) {
 	t.Run("stack flag is optional", func(t *testing.T) {
 		cmd := NewNewCmd()
@@ -266,7 +267,7 @@ func TestNewCommandFlagsIntegration(t *testing.T) {
 	})
 }
 
-// TestCreateProjectErrorCases tests error handling in createProject
+// TestCreateProjectErrorCases tests error handling in createProject.
 func TestCreateProjectErrorCases(t *testing.T) {
 	t.Run("fails when directory already exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -277,7 +278,7 @@ func TestCreateProjectErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create the project directory first
-		err = os.MkdirAll("test-project", 0755)
+		err = os.MkdirAll("test-project", 0o755)
 		require.NoError(t, err)
 
 		// Try to create project in same location
@@ -287,7 +288,7 @@ func TestCreateProjectErrorCases(t *testing.T) {
 	})
 }
 
-// TestCreateStackErrorCases tests error handling in createStack
+// TestCreateStackErrorCases tests error handling in createStack.
 func TestCreateStackErrorCases(t *testing.T) {
 	t.Run("fails when not in forge project", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -304,7 +305,7 @@ func TestCreateStackErrorCases(t *testing.T) {
 	})
 }
 
-// TestRunDeployWithMultipleFunctions tests deploying multiple Lambda functions
+// TestRunDeployWithMultipleFunctions tests deploying multiple Lambda functions.
 func TestRunDeployWithMultipleFunctions(t *testing.T) {
 	t.Run("deploys multiple functions via convention-based discovery", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -315,19 +316,19 @@ func TestRunDeployWithMultipleFunctions(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create infra directory
-		err = os.MkdirAll("infra", 0755)
+		err = os.MkdirAll("infra", 0o755)
 		require.NoError(t, err)
 
 		// Create multiple function directories (convention-based expects src/functions/)
 		for _, funcName := range []string{"api", "worker"} {
-			err = os.MkdirAll(filepath.Join("src/functions", funcName), 0755)
+			err = os.MkdirAll(filepath.Join("src/functions", funcName), 0o755)
 			require.NoError(t, err)
 
 			// Create main.go for Go runtime detection
 			mainGo := `package main
 
 func main() {}`
-			err = os.WriteFile(filepath.Join("src/functions", funcName, "main.go"), []byte(mainGo), 0644)
+			err = os.WriteFile(filepath.Join("src/functions", funcName, "main.go"), []byte(mainGo), 0o644)
 			require.NoError(t, err)
 		}
 
@@ -338,7 +339,7 @@ func main() {}`
 	})
 }
 
-// TestRunDeployWithAutoApprove tests auto-approve flag
+// TestRunDeployWithAutoApprove tests auto-approve flag.
 func TestRunDeployWithAutoApprove(t *testing.T) {
 	t.Run("deploys with auto-approve flag", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -349,18 +350,18 @@ func TestRunDeployWithAutoApprove(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create infra directory
-		err = os.MkdirAll("infra", 0755)
+		err = os.MkdirAll("infra", 0o755)
 		require.NoError(t, err)
 
 		// Create a function directory
-		err = os.MkdirAll("src/functions/api", 0755)
+		err = os.MkdirAll("src/functions/api", 0o755)
 		require.NoError(t, err)
 
 		// Create main.go
 		mainGo := `package main
 
 func main() {}`
-		err = os.WriteFile("src/functions/api/main.go", []byte(mainGo), 0644)
+		err = os.WriteFile("src/functions/api/main.go", []byte(mainGo), 0o644)
 		require.NoError(t, err)
 
 		// Try to deploy with auto-approve (exercises auto-approve parameter)
@@ -370,7 +371,7 @@ func main() {}`
 	})
 }
 
-// TestRunDestroyWithMultipleStacks tests destroying multiple stacks
+// TestRunDestroyWithMultipleStacks tests destroying multiple stacks.
 func TestRunDestroyWithMultipleStacks(t *testing.T) {
 	t.Run("prints multiple stack names when destroying all", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -385,12 +386,12 @@ func TestRunDestroyWithMultipleStacks(t *testing.T) {
   name   = "test-project"
   region = "us-east-1"
 }`
-		err = os.WriteFile("forge.hcl", []byte(forgeHCL), 0644)
+		err = os.WriteFile("forge.hcl", []byte(forgeHCL), 0o644)
 		require.NoError(t, err)
 
 		// Create two stacks
 		for _, stackName := range []string{"api", "worker"} {
-			err = os.MkdirAll(stackName, 0755)
+			err = os.MkdirAll(stackName, 0o755)
 			require.NoError(t, err)
 
 			stackHCL := `stack {
@@ -398,7 +399,7 @@ func TestRunDestroyWithMultipleStacks(t *testing.T) {
   runtime     = "provided.al2023"
   description = "` + stackName + ` stack"
 }`
-			err = os.WriteFile(filepath.Join(stackName, "stack.forge.hcl"), []byte(stackHCL), 0644)
+			err = os.WriteFile(filepath.Join(stackName, "stack.forge.hcl"), []byte(stackHCL), 0o644)
 			require.NoError(t, err)
 		}
 
@@ -409,7 +410,7 @@ func TestRunDestroyWithMultipleStacks(t *testing.T) {
 	})
 }
 
-// TestAdaptTerraformExecutor tests the functional adapter
+// TestAdaptTerraformExecutor tests the functional adapter.
 func TestAdaptTerraformExecutor(t *testing.T) {
 	t.Run("functional adapter creates struct with function fields", func(t *testing.T) {
 		// Test pure functional adaptation - NO OOP, NO METHODS!
@@ -426,7 +427,7 @@ func TestAdaptTerraformExecutor(t *testing.T) {
 	})
 }
 
-// TestNewDeployCommandExecution tests deploy command execution paths
+// TestNewDeployCommandExecution tests deploy command execution paths.
 func TestNewDeployCommandExecution(t *testing.T) {
 	t.Run("command has RunE function", func(t *testing.T) {
 		cmd := NewDeployCmd()
@@ -439,7 +440,7 @@ func TestNewDeployCommandExecution(t *testing.T) {
 	})
 }
 
-// TestNewDestroyCommandExecution tests destroy command execution paths
+// TestNewDestroyCommandExecution tests destroy command execution paths.
 func TestNewDestroyCommandExecution(t *testing.T) {
 	t.Run("command has RunE function", func(t *testing.T) {
 		cmd := NewDestroyCmd()
@@ -452,7 +453,7 @@ func TestNewDestroyCommandExecution(t *testing.T) {
 	})
 }
 
-// TestCommandIntegration tests command integration
+// TestCommandIntegration tests command integration.
 func TestCommandIntegration(t *testing.T) {
 	t.Run("root command has all subcommands", func(t *testing.T) {
 		if testing.Short() {

@@ -2,14 +2,14 @@ package pipeline
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
 	O "github.com/IBM/fp-go/option"
 )
 
-// State carries data through the pipeline
+// State carries data through the pipeline.
 type State struct {
 	ProjectDir string
 	Artifacts  map[string]Artifact
@@ -17,43 +17,40 @@ type State struct {
 	Config     interface{}
 }
 
-// Artifact represents a built artifact
+// Artifact represents a built artifact.
 type Artifact struct {
 	Path     string
 	Checksum string
 	Size     int64
 }
 
-// Stage is a function that transforms state
-// Uses Either monad for error handling
+// Uses Either monad for error handling.
 type Stage func(context.Context, State) E.Either[error, State]
 
-// EventStage is a function that transforms state and returns events
-// Uses Either monad for error handling and returns StageResult with events
+// Uses Either monad for error handling and returns StageResult with events.
 type EventStage func(context.Context, State) E.Either[error, StageResult]
 
-// Pipeline composes stages functionally
+// Pipeline composes stages functionally.
 type Pipeline struct {
 	stages []Stage
 }
 
-// EventPipeline composes event-based stages
+// EventPipeline composes event-based stages.
 type EventPipeline struct {
 	stages []EventStage
 }
 
-// New creates a new pipeline from stages
+// New creates a new pipeline from stages.
 func New(stages ...Stage) Pipeline {
 	return Pipeline{stages: stages}
 }
 
-// NewEventPipeline creates a new event-based pipeline from stages
+// NewEventPipeline creates a new event-based pipeline from stages.
 func NewEventPipeline(stages ...EventStage) EventPipeline {
 	return EventPipeline{stages: stages}
 }
 
-// Run executes all stages in order using functional composition
-// Pure function approach - pipeline is immutable data
+// Pure function approach - pipeline is immutable data.
 func Run(p Pipeline, ctx context.Context, initial State) E.Either[error, State] {
 	// Start with initial state wrapped in Right (success)
 	result := E.Right[error](initial)
@@ -67,7 +64,7 @@ func Run(p Pipeline, ctx context.Context, initial State) E.Either[error, State] 
 		// Extract state and run next stage
 		opt := E.ToOption(result)
 		if O.IsNone(opt) {
-			return E.Left[State](fmt.Errorf("unexpected None in pipeline"))
+			return E.Left[State](errors.New("unexpected None in pipeline"))
 		}
 
 		state := O.GetOrElse(func() State { return State{} })(opt)
@@ -77,8 +74,7 @@ func Run(p Pipeline, ctx context.Context, initial State) E.Either[error, State] 
 	return result
 }
 
-// RunWithEvents executes all event stages and collects events
-// PURE: Functional composition of event stages with event collection
+// PURE: Functional composition of event stages with event collection.
 func RunWithEvents(p EventPipeline, ctx context.Context, initial State) E.Either[error, StageResult] {
 	// Start with empty events and initial state
 	allEvents := []StageEvent{}
@@ -118,7 +114,7 @@ func RunWithEvents(p EventPipeline, ctx context.Context, initial State) E.Either
 	})
 }
 
-// Chain composes multiple pipelines into one
+// Chain composes multiple pipelines into one.
 func Chain(pipelines ...Pipeline) Pipeline {
 	var stages []Stage
 	for _, p := range pipelines {
@@ -127,10 +123,7 @@ func Chain(pipelines ...Pipeline) Pipeline {
 	return Pipeline{stages: stages}
 }
 
-// Sequential runs stages sequentially with state accumulation
-// Each stage receives the state from the previous stage
-// Short-circuits on first error (railway-oriented programming)
-// NOTE: Future enhancement - true parallel execution with goroutines (see Parallel)
+// NOTE: Future enhancement - true parallel execution with goroutines (see Parallel).
 func Sequential(stages ...Stage) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		// Use A.Reduce for functional sequential composition

@@ -1,18 +1,18 @@
 package s3_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/generators"
-	"github.com/lewis/forge/internal/generators/s3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/generators"
+	"github.com/lewis/forge/internal/generators/s3"
 )
 
-// Helper function to extract Right value from Either
+// Helper function to extract Right value from Either.
 func extractConfig(result E.Either[error, generators.ResourceConfig]) generators.ResourceConfig {
 	return E.Fold(
 		func(error) generators.ResourceConfig { return generators.ResourceConfig{} },
@@ -20,7 +20,7 @@ func extractConfig(result E.Either[error, generators.ResourceConfig]) generators
 	)(result)
 }
 
-// Helper function to extract error from Either
+// Helper function to extract error from Either.
 func extractError(result E.Either[error, generators.ResourceConfig]) error {
 	return E.Fold(
 		func(e error) error { return e },
@@ -28,7 +28,7 @@ func extractError(result E.Either[error, generators.ResourceConfig]) error {
 	)(result)
 }
 
-// Helper function to extract generated code
+// Helper function to extract generated code.
 func extractCode(result E.Either[error, generators.GeneratedCode]) generators.GeneratedCode {
 	return E.Fold(
 		func(error) generators.GeneratedCode { return generators.GeneratedCode{} },
@@ -36,7 +36,7 @@ func extractCode(result E.Either[error, generators.GeneratedCode]) generators.Ge
 	)(result)
 }
 
-// Helper function to extract error from GeneratedCode Either
+// Helper function to extract error from GeneratedCode Either.
 func extractCodeError(result E.Either[error, generators.GeneratedCode]) error {
 	return E.Fold(
 		func(e error) error { return e },
@@ -44,7 +44,7 @@ func extractCodeError(result E.Either[error, generators.GeneratedCode]) error {
 	)(result)
 }
 
-// Helper function to find file by path
+// Helper function to find file by path.
 func findFile(files []generators.FileToWrite, path string) *generators.FileToWrite {
 	for i := range files {
 		if files[i].Path == path {
@@ -54,16 +54,16 @@ func findFile(files []generators.FileToWrite, path string) *generators.FileToWri
 	return nil
 }
 
-// TestNew verifies generator creation
+// TestNew verifies generator creation.
 func TestNew(t *testing.T) {
 	gen := s3.New()
 	assert.NotNil(t, gen)
 }
 
-// TestPrompt_Standalone tests standalone bucket configuration
+// TestPrompt_Standalone tests standalone bucket configuration.
 func TestPrompt_Standalone(t *testing.T) {
 	gen := s3.New()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	intent := generators.ResourceIntent{
 		Type:      generators.ResourceS3,
@@ -96,10 +96,10 @@ func TestPrompt_Standalone(t *testing.T) {
 	assert.Equal(t, false, config.Variables["enable_event_notification"])
 }
 
-// TestPrompt_WithLambdaIntegration tests Lambda integration
+// TestPrompt_WithLambdaIntegration tests Lambda integration.
 func TestPrompt_WithLambdaIntegration(t *testing.T) {
 	gen := s3.New()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	intent := generators.ResourceIntent{
 		Type:      generators.ResourceS3,
@@ -145,10 +145,10 @@ func TestPrompt_WithLambdaIntegration(t *testing.T) {
 	assert.Equal(t, "module.uploads_bucket.s3_bucket_id", config.Integration.EnvVars["UPLOADS_BUCKET_BUCKET_NAME"])
 }
 
-// TestPrompt_FunctionNotFound tests error when target function doesn't exist
+// TestPrompt_FunctionNotFound tests error when target function doesn't exist.
 func TestPrompt_FunctionNotFound(t *testing.T) {
 	gen := s3.New()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	intent := generators.ResourceIntent{
 		Type:      generators.ResourceS3,
@@ -169,7 +169,7 @@ func TestPrompt_FunctionNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
-// TestValidate tests configuration validation
+// TestValidate tests configuration validation.
 func TestValidate(t *testing.T) {
 	gen := s3.New()
 
@@ -293,7 +293,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-// TestGenerate_ModuleMode tests module-based generation
+// TestGenerate_ModuleMode tests module-based generation.
 func TestGenerate_ModuleMode(t *testing.T) {
 	gen := s3.New()
 
@@ -349,7 +349,7 @@ func TestGenerate_ModuleMode(t *testing.T) {
 	assert.Contains(t, outputsFile.Content, "module.uploads_bucket.s3_bucket_arn")
 }
 
-// TestGenerate_RawMode tests raw resource generation
+// TestGenerate_RawMode tests raw resource generation.
 func TestGenerate_RawMode(t *testing.T) {
 	gen := s3.New()
 
@@ -399,7 +399,7 @@ func TestGenerate_RawMode(t *testing.T) {
 	assert.Contains(t, outputsFile.Content, "aws_s3_bucket.uploads_bucket.arn")
 }
 
-// TestGenerate_WithIntegration tests Lambda integration generation
+// TestGenerate_WithIntegration tests Lambda integration generation.
 func TestGenerate_WithIntegration(t *testing.T) {
 	gen := s3.New()
 
@@ -476,7 +476,7 @@ func TestGenerate_WithIntegration(t *testing.T) {
 	assert.Contains(t, lambdaFile.Content, "UPLOADS_BUCKET_BUCKET_NAME")
 }
 
-// TestGenerate_InvalidConfig tests generation with invalid config
+// TestGenerate_InvalidConfig tests generation with invalid config.
 func TestGenerate_InvalidConfig(t *testing.T) {
 	gen := s3.New()
 
@@ -495,7 +495,7 @@ func TestGenerate_InvalidConfig(t *testing.T) {
 	assert.Contains(t, err.Error(), "bucket name is required")
 }
 
-// TestSanitizeName tests name sanitization
+// TestSanitizeName tests name sanitization.
 func TestSanitizeName(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -542,7 +542,7 @@ func TestSanitizeName(t *testing.T) {
 	}
 }
 
-// TestNamespaceSupport tests namespace variable usage
+// TestNamespaceSupport tests namespace variable usage.
 func TestNamespaceSupport(t *testing.T) {
 	gen := s3.New()
 
@@ -575,7 +575,7 @@ func TestNamespaceSupport(t *testing.T) {
 	assert.Contains(t, s3File.Content, `bucket = "${var.namespace}uploads-bucket"`)
 }
 
-// TestGeneratedCodeFormat tests that generated code is well-formatted
+// TestGeneratedCodeFormat tests that generated code is well-formatted.
 func TestGeneratedCodeFormat(t *testing.T) {
 	gen := s3.New()
 
@@ -624,7 +624,7 @@ func TestGeneratedCodeFormat(t *testing.T) {
 	}
 }
 
-// TestRawResourceWithIntegration tests raw resource mode with Lambda integration
+// TestRawResourceWithIntegration tests raw resource mode with Lambda integration.
 func TestRawResourceWithIntegration(t *testing.T) {
 	gen := s3.New()
 
@@ -677,7 +677,7 @@ func TestRawResourceWithIntegration(t *testing.T) {
 	assert.Contains(t, lambdaFile.Content, "bucket = aws_s3_bucket.uploads_bucket.id")
 }
 
-// TestForceDestroyConfiguration tests force_destroy settings
+// TestForceDestroyConfiguration tests force_destroy settings.
 func TestForceDestroyConfiguration(t *testing.T) {
 	gen := s3.New()
 
@@ -725,15 +725,15 @@ func TestForceDestroyConfiguration(t *testing.T) {
 	}
 }
 
-// TestVersioningConfiguration tests versioning settings
+// TestVersioningConfiguration tests versioning settings.
 func TestVersioningConfiguration(t *testing.T) {
 	gen := s3.New()
 
 	tests := []struct {
-		name               string
-		versioningEnabled  bool
-		expectedInModule   string
-		expectedInRaw      bool
+		name              string
+		versioningEnabled bool
+		expectedInModule  string
+		expectedInRaw     bool
 	}{
 		{
 			name:              "with versioning",

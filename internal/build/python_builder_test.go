@@ -16,7 +16,7 @@ import (
 func TestPythonBuildSignature(t *testing.T) {
 	t.Run("PythonBuild matches BuildFunc signature", func(t *testing.T) {
 		// PythonBuild should be assignable to BuildFunc
-		var buildFunc BuildFunc = PythonBuild
+		buildFunc := PythonBuild
 
 		// Should compile and work with functional patterns
 		result := buildFunc(t.Context(), Config{
@@ -80,28 +80,28 @@ func TestPythonBuildComposition(t *testing.T) {
 		cachedBuild := WithCache(cache)(PythonBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = cachedBuild
+		buildFunc := cachedBuild
 		assert.NotNil(t, buildFunc)
 	})
 
 	t.Run("composes with WithLogging", func(t *testing.T) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		loggedBuild := WithLogging(logger)(PythonBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = loggedBuild
+		buildFunc := loggedBuild
 		assert.NotNil(t, buildFunc)
 	})
 
 	t.Run("composes with multiple decorators", func(t *testing.T) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(
@@ -110,7 +110,7 @@ func TestPythonBuildComposition(t *testing.T) {
 		)(PythonBuild)
 
 		// Should still be a BuildFunc
-		var buildFunc BuildFunc = composed
+		buildFunc := composed
 		assert.NotNil(t, buildFunc)
 	})
 }
@@ -224,14 +224,14 @@ func TestPythonBuildBasic(t *testing.T) {
 
 		// Extract artifact
 		artifact := E.Fold(
-			func(err error) Artifact { return Artifact{} },
+			func(_ error) Artifact { return Artifact{} },
 			func(a Artifact) Artifact { return a },
 		)(result)
 
 		// Verify artifact
 		assert.Equal(t, outputPath, artifact.Path)
 		assert.NotEmpty(t, artifact.Checksum, "Should have checksum")
-		assert.Greater(t, artifact.Size, int64(0), "Should have non-zero size")
+		assert.Positive(t, artifact.Size, "Should have non-zero size")
 
 		// Verify zip file exists
 		_, err = os.Stat(outputPath)
@@ -239,7 +239,7 @@ func TestPythonBuildBasic(t *testing.T) {
 	})
 }
 
-// TestPythonBuildWithRequirements tests Python build with requirements.txt
+// TestPythonBuildWithRequirements tests Python build with requirements.txt.
 func TestPythonBuildWithRequirements(t *testing.T) {
 	// Skip if neither pip nor uv is available
 	if _, err := exec.LookPath("pip"); err != nil {
@@ -288,7 +288,7 @@ func TestPythonBuildWithRequirements(t *testing.T) {
 
 		// Verify artifact
 		artifact := E.Fold(
-			func(err error) Artifact { return Artifact{} },
+			func(_ error) Artifact { return Artifact{} },
 			func(a Artifact) Artifact { return a },
 		)(result)
 
@@ -399,14 +399,14 @@ func TestPythonBuildErrorHandling(t *testing.T) {
 			func(_ Artifact) error { return nil },
 		)(result)
 
-		assert.NotNil(t, buildErr)
+		assert.Error(t, buildErr)
 		// Error should mention command failure (from executeCommand)
 		errMsg := buildErr.Error()
 		t.Logf("Actual error message: %s", errMsg)
 		assert.True(t,
 			strings.Contains(errMsg, "command failed") ||
-			strings.Contains(errMsg, "pip install failed") ||
-			strings.Contains(errMsg, "uv pip install failed"),
+				strings.Contains(errMsg, "pip install failed") ||
+				strings.Contains(errMsg, "uv pip install failed"),
 			"Error should mention command/pip/uv install failure. Got: %s", errMsg,
 		)
 	})
@@ -532,8 +532,8 @@ func BenchmarkPythonBuildWithComposition(b *testing.B) {
 
 	b.Run("WithLogging", func(b *testing.B) {
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 		loggedBuild := WithLogging(logger)(PythonBuild)
 
@@ -546,8 +546,8 @@ func BenchmarkPythonBuildWithComposition(b *testing.B) {
 	b.Run("Composed", func(b *testing.B) {
 		cache := NewMemoryCache()
 		logger := &mockLogger{
-			infoFn:  func(msg string, args ...interface{}) {},
-			errorFn: func(msg string, args ...interface{}) {},
+			infoFn:  func(_ string, _ ...interface{}) {},
+			errorFn: func(_ string, _ ...interface{}) {},
 		}
 
 		composed := Compose(

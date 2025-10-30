@@ -5,17 +5,17 @@ import (
 	"strings"
 )
 
-// BackendConfig represents Terraform backend configuration (immutable data)
+// BackendConfig represents Terraform backend configuration (immutable data).
 type BackendConfig struct {
-	Bucket         string
-	Key            string
-	Region         string
-	DynamoDBTable  string
-	Encrypt        bool
-	EnableLocking  bool
+	Bucket        string
+	Key           string
+	Region        string
+	DynamoDBTable string
+	Encrypt       bool
+	EnableLocking bool
 }
 
-// S3BucketSpec represents S3 bucket configuration (immutable data)
+// S3BucketSpec represents S3 bucket configuration (immutable data).
 type S3BucketSpec struct {
 	Name          string
 	Region        string
@@ -23,24 +23,23 @@ type S3BucketSpec struct {
 	Tags          map[string]string
 }
 
-// DynamoDBTableSpec represents DynamoDB table configuration (immutable data)
+// DynamoDBTableSpec represents DynamoDB table configuration (immutable data).
 type DynamoDBTableSpec struct {
-	Name           string
-	Region         string
-	BillingMode    string
-	HashKey        string
-	Tags           map[string]string
+	Name        string
+	Region      string
+	BillingMode string
+	HashKey     string
+	Tags        map[string]string
 }
 
-// StateResources represents complete state backend resources (immutable data)
+// StateResources represents complete state backend resources (immutable data).
 type StateResources struct {
 	S3Bucket      S3BucketSpec
 	DynamoDBTable DynamoDBTableSpec
 	BackendConfig BackendConfig
 }
 
-// GenerateStateBucketName creates a bucket name from project name (PURE)
-// Pattern: forge-state-{project}-{hash}
+// Pattern: forge-state-{project}-{hash}.
 func GenerateStateBucketName(projectName string) string {
 	// Normalize project name for S3 bucket naming rules
 	normalized := strings.ToLower(projectName)
@@ -48,28 +47,25 @@ func GenerateStateBucketName(projectName string) string {
 
 	// S3 buckets must be globally unique, so we'll add a suffix
 	// For now, just use the project name - user can customize if needed
-	return fmt.Sprintf("forge-state-%s", normalized)
+	return "forge-state-" + normalized
 }
 
-// GenerateLockTableName creates a DynamoDB table name from project name (PURE)
-// Pattern: forge-locks-{project}
+// Pattern: forge-locks-{project}.
 func GenerateLockTableName(projectName string) string {
 	normalized := strings.ToLower(projectName)
 	normalized = strings.ReplaceAll(normalized, "-", "_")
-	return fmt.Sprintf("forge_locks_%s", normalized)
+	return "forge_locks_" + normalized
 }
 
-// GenerateStateKey creates a namespace-aware state key (PURE)
-// With namespace: {namespace}/terraform.tfstate
-// Without namespace: terraform.tfstate
+// Without namespace: terraform.tfstate.
 func GenerateStateKey(namespace string) string {
 	if namespace != "" {
-		return fmt.Sprintf("%s/terraform.tfstate", namespace)
+		return namespace + "/terraform.tfstate"
 	}
 	return "terraform.tfstate"
 }
 
-// GenerateS3BucketSpec creates S3 bucket specification (PURE calculation)
+// GenerateS3BucketSpec creates S3 bucket specification (PURE calculation).
 func GenerateS3BucketSpec(projectName, region string) S3BucketSpec {
 	bucketName := GenerateStateBucketName(projectName)
 
@@ -78,14 +74,14 @@ func GenerateS3BucketSpec(projectName, region string) S3BucketSpec {
 		Region:        region,
 		EnableLogging: false, // Can be enabled in future
 		Tags: map[string]string{
-			"Project":    projectName,
-			"ManagedBy":  "forge",
-			"Purpose":    "terraform-state",
+			"Project":   projectName,
+			"ManagedBy": "forge",
+			"Purpose":   "terraform-state",
 		},
 	}
 }
 
-// GenerateDynamoDBTableSpec creates DynamoDB table specification (PURE calculation)
+// GenerateDynamoDBTableSpec creates DynamoDB table specification (PURE calculation).
 func GenerateDynamoDBTableSpec(projectName, region string) DynamoDBTableSpec {
 	tableName := GenerateLockTableName(projectName)
 
@@ -102,7 +98,7 @@ func GenerateDynamoDBTableSpec(projectName, region string) DynamoDBTableSpec {
 	}
 }
 
-// GenerateBackendConfig creates backend configuration (PURE calculation)
+// GenerateBackendConfig creates backend configuration (PURE calculation).
 func GenerateBackendConfig(projectName, region, namespace string) BackendConfig {
 	bucketName := GenerateStateBucketName(projectName)
 	tableName := GenerateLockTableName(projectName)
@@ -118,8 +114,7 @@ func GenerateBackendConfig(projectName, region, namespace string) BackendConfig 
 	}
 }
 
-// GenerateStateResources creates complete state backend specification (PURE calculation)
-// This is the main entry point for generating state backend configuration
+// This is the main entry point for generating state backend configuration.
 func GenerateStateResources(projectName, region, namespace string) StateResources {
 	return StateResources{
 		S3Bucket:      GenerateS3BucketSpec(projectName, region),
@@ -128,7 +123,7 @@ func GenerateStateResources(projectName, region, namespace string) StateResource
 	}
 }
 
-// RenderBackendTF generates backend.tf content (PURE calculation)
+// RenderBackendTF generates backend.tf content (PURE calculation).
 func RenderBackendTF(config BackendConfig) string {
 	var sb strings.Builder
 
@@ -152,8 +147,7 @@ func RenderBackendTF(config BackendConfig) string {
 	return sb.String()
 }
 
-// RenderS3BucketTF generates Terraform code for S3 bucket (PURE calculation)
-// This creates a temporary .tf file that can be applied to provision the bucket
+// This creates a temporary .tf file that can be applied to provision the bucket.
 func RenderS3BucketTF(spec S3BucketSpec) string {
 	var sb strings.Builder
 
@@ -199,7 +193,7 @@ func RenderS3BucketTF(spec S3BucketSpec) string {
 	return sb.String()
 }
 
-// RenderDynamoDBTableTF generates Terraform code for DynamoDB table (PURE calculation)
+// RenderDynamoDBTableTF generates Terraform code for DynamoDB table (PURE calculation).
 func RenderDynamoDBTableTF(spec DynamoDBTableSpec) string {
 	var sb strings.Builder
 
@@ -225,8 +219,7 @@ func RenderDynamoDBTableTF(spec DynamoDBTableSpec) string {
 	return sb.String()
 }
 
-// RenderStateBootstrapTF generates complete bootstrap Terraform (PURE calculation)
-// This combines S3 bucket + DynamoDB table into a single .tf file for provisioning
+// This combines S3 bucket + DynamoDB table into a single .tf file for provisioning.
 func RenderStateBootstrapTF(resources StateResources) string {
 	var sb strings.Builder
 

@@ -113,7 +113,7 @@ type Module struct {
 	Timeouts map[string]string `json:"sfn_state_machine_timeouts,omitempty" hcl:"sfn_state_machine_timeouts,attr"`
 }
 
-// EncryptionConfiguration represents encryption settings
+// EncryptionConfiguration represents encryption settings.
 type EncryptionConfiguration struct {
 	// Type is the encryption type
 	// Valid values: "AWS_OWNED_KEY" | "CUSTOMER_MANAGED_KMS_KEY"
@@ -126,7 +126,7 @@ type EncryptionConfiguration struct {
 	KMSDataKeyReusePeriodSeconds *int `json:"kms_data_key_reuse_period_seconds,omitempty" hcl:"kms_data_key_reuse_period_seconds,attr"`
 }
 
-// LoggingConfiguration represents logging settings
+// LoggingConfiguration represents logging settings.
 type LoggingConfiguration struct {
 	// Level is the logging level
 	// Valid values: "ALL" | "ERROR" | "FATAL" | "OFF"
@@ -139,13 +139,13 @@ type LoggingConfiguration struct {
 	LogDestination *string `json:"log_destination,omitempty" hcl:"log_destination,attr"`
 }
 
-// TracingConfiguration represents X-Ray tracing settings
+// TracingConfiguration represents X-Ray tracing settings.
 type TracingConfiguration struct {
 	// Enabled indicates if X-Ray tracing is enabled
 	Enabled *bool `json:"enabled,omitempty" hcl:"enabled,attr"`
 }
 
-// PolicyStatement represents an IAM policy statement
+// PolicyStatement represents an IAM policy statement.
 type PolicyStatement struct {
 	// Effect is Allow or Deny
 	Effect *string `json:"effect,omitempty" hcl:"effect,attr"`
@@ -157,7 +157,7 @@ type PolicyStatement struct {
 	Resources []string `json:"resources,omitempty" hcl:"resources,attr"`
 }
 
-// NewModule creates a new Step Functions module with sensible defaults
+// NewModule creates a new Step Functions module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/step-functions/aws"
 	version := "~> 4.0"
@@ -182,20 +182,20 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithDefinition sets the state machine definition
+// WithDefinition sets the state machine definition.
 func (m *Module) WithDefinition(definition string) *Module {
 	m.Definition = &definition
 	return m
 }
 
-// WithExpressType configures as Express workflow
+// WithExpressType configures as Express workflow.
 func (m *Module) WithExpressType() *Module {
 	expressType := "EXPRESS"
 	m.Type = &expressType
 	return m
 }
 
-// WithLogging configures CloudWatch Logs
+// WithLogging configures CloudWatch Logs.
 func (m *Module) WithLogging(level string, includeExecutionData bool) *Module {
 	m.LoggingConfiguration = &LoggingConfiguration{
 		Level:                &level,
@@ -206,7 +206,7 @@ func (m *Module) WithLogging(level string, includeExecutionData bool) *Module {
 	return m
 }
 
-// WithTracing enables X-Ray tracing
+// WithTracing enables X-Ray tracing.
 func (m *Module) WithTracing() *Module {
 	enabled := true
 	m.TracingConfiguration = &TracingConfiguration{
@@ -217,7 +217,7 @@ func (m *Module) WithTracing() *Module {
 	return m
 }
 
-// WithEncryption configures KMS encryption
+// WithEncryption configures KMS encryption.
 func (m *Module) WithEncryption(kmsKeyID string, reusePeriod int) *Module {
 	encType := "CUSTOMER_MANAGED_KMS_KEY"
 	m.EncryptionConfiguration = &EncryptionConfiguration{
@@ -228,7 +228,7 @@ func (m *Module) WithEncryption(kmsKeyID string, reusePeriod int) *Module {
 	return m
 }
 
-// WithLambdaIntegration configures Lambda function permissions
+// WithLambdaIntegration configures Lambda function permissions.
 func (m *Module) WithLambdaIntegration(lambdaARNs ...string) *Module {
 	attachLambda := true
 	m.AttachPolicyForLambda = &attachLambda
@@ -236,7 +236,7 @@ func (m *Module) WithLambdaIntegration(lambdaARNs ...string) *Module {
 	return m
 }
 
-// WithTags adds tags to the state machine
+// WithTags adds tags to the state machine.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -247,7 +247,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -255,7 +255,7 @@ func (m *Module) LocalName() string {
 	return "state_machine"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

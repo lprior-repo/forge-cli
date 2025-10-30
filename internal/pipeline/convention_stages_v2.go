@@ -2,17 +2,18 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 
 	E "github.com/IBM/fp-go/either"
 	O "github.com/IBM/fp-go/option"
+
 	"github.com/lewis/forge/internal/build"
 	"github.com/lewis/forge/internal/discovery"
 )
 
-// ConventionScanV2 creates an event-based stage that scans for functions
-// PURE: Returns events as data instead of printing to console
+// PURE: Returns events as data instead of printing to console.
 func ConventionScanV2() EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		// Pure functional call - no OOP
@@ -22,7 +23,7 @@ func ConventionScanV2() EventStage {
 		}
 
 		if len(functions) == 0 {
-			return E.Left[StageResult](fmt.Errorf("no functions found in src/functions/"))
+			return E.Left[StageResult](errors.New("no functions found in src/functions/"))
 		}
 
 		// Build events (pure data)
@@ -51,13 +52,13 @@ func ConventionScanV2() EventStage {
 	}
 }
 
-// ConventionStubsV2 creates an event-based stage that generates stub zip files
+// ConventionStubsV2 creates an event-based stage that generates stub zip files.
 func ConventionStubsV2() EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		// Extract functions from state
 		functions, ok := s.Config.([]discovery.Function)
 		if !ok {
-			return E.Left[StageResult](fmt.Errorf("invalid state: functions not found"))
+			return E.Left[StageResult](errors.New("invalid state: functions not found"))
 		}
 
 		buildDir := filepath.Join(s.ProjectDir, ".forge", "build")
@@ -80,13 +81,13 @@ func ConventionStubsV2() EventStage {
 	}
 }
 
-// ConventionBuildV2 creates an event-based stage that builds all discovered functions
+// ConventionBuildV2 creates an event-based stage that builds all discovered functions.
 func ConventionBuildV2() EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		// Extract functions from state
 		functions, ok := s.Config.([]discovery.Function)
 		if !ok {
-			return E.Left[StageResult](fmt.Errorf("invalid state: functions not found"))
+			return E.Left[StageResult](errors.New("invalid state: functions not found"))
 		}
 
 		registry := build.NewRegistry()

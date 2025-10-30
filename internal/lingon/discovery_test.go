@@ -18,13 +18,13 @@ func TestDiscoverFunctions(t *testing.T) {
 		handlersDir := filepath.Join(srcDir, "handlers")
 		helloDir := filepath.Join(handlersDir, "hello")
 
-		require.NoError(t, os.MkdirAll(helloDir, 0755))
+		require.NoError(t, os.MkdirAll(helloDir, 0o755))
 
 		// Create go.mod
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "go.mod"), []byte("module test"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "go.mod"), []byte("module test"), 0o644))
 
 		// Create handler
-		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "main.go"), []byte("package main"), 0o644))
 
 		functions, err := DiscoverFunctions(tmpDir)
 
@@ -41,13 +41,13 @@ func TestDiscoverFunctions(t *testing.T) {
 		handlersDir := filepath.Join(srcDir, "handlers")
 		apiDir := filepath.Join(handlersDir, "api")
 
-		require.NoError(t, os.MkdirAll(apiDir, 0755))
+		require.NoError(t, os.MkdirAll(apiDir, 0o755))
 
 		// Create package.json
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0o644))
 
 		// Create handler
-		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "index.js"), []byte("exports.handler = async () => {}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(apiDir, "index.js"), []byte("exports.handler = async () => {}"), 0o644))
 
 		functions, err := DiscoverFunctions(tmpDir)
 
@@ -64,13 +64,13 @@ func TestDiscoverFunctions(t *testing.T) {
 		handlersDir := filepath.Join(srcDir, "handlers")
 		workerDir := filepath.Join(handlersDir, "worker")
 
-		require.NoError(t, os.MkdirAll(workerDir, 0755))
+		require.NoError(t, os.MkdirAll(workerDir, 0o755))
 
 		// Create requirements.txt
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "requirements.txt"), []byte("boto3"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "requirements.txt"), []byte("boto3"), 0o644))
 
 		// Create handler
-		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "main.py"), []byte("def handler(event, context): pass"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(workerDir, "main.py"), []byte("def handler(event, context): pass"), 0o644))
 
 		functions, err := DiscoverFunctions(tmpDir)
 
@@ -87,13 +87,13 @@ func TestDiscoverFunctions(t *testing.T) {
 		handlersDir := filepath.Join(srcDir, "handlers")
 		javaDir := filepath.Join(handlersDir, "process")
 
-		require.NoError(t, os.MkdirAll(javaDir, 0755))
+		require.NoError(t, os.MkdirAll(javaDir, 0o755))
 
 		// Create pom.xml
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "pom.xml"), []byte("<project></project>"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "pom.xml"), []byte("<project></project>"), 0o644))
 
 		// Create handler
-		require.NoError(t, os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte("public class Handler {}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte("public class Handler {}"), 0o644))
 
 		functions, err := DiscoverFunctions(tmpDir)
 
@@ -110,13 +110,13 @@ func TestDiscoverFunctions(t *testing.T) {
 		handlersDir := filepath.Join(srcDir, "handlers")
 		javaDir := filepath.Join(handlersDir, "gradle-fn")
 
-		require.NoError(t, os.MkdirAll(javaDir, 0755))
+		require.NoError(t, os.MkdirAll(javaDir, 0o755))
 
 		// Create build.gradle
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "build.gradle"), []byte("plugins { id 'java' }"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "build.gradle"), []byte("plugins { id 'java' }"), 0o644))
 
 		// Create handler
-		require.NoError(t, os.WriteFile(filepath.Join(javaDir, "Main.java"), []byte("public class Main {}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(javaDir, "Main.java"), []byte("public class Main {}"), 0o644))
 
 		functions, err := DiscoverFunctions(tmpDir)
 
@@ -131,14 +131,14 @@ func TestDiscoverFunctions(t *testing.T) {
 		srcDir := filepath.Join(tmpDir, "src")
 		handlersDir := filepath.Join(srcDir, "handlers")
 
-		require.NoError(t, os.MkdirAll(handlersDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0644))
+		require.NoError(t, os.MkdirAll(handlersDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0o644))
 
 		// Create multiple handlers
 		for _, name := range []string{"api", "worker", "processor"} {
 			dir := filepath.Join(handlersDir, name)
-			require.NoError(t, os.MkdirAll(dir, 0755))
-			require.NoError(t, os.WriteFile(filepath.Join(dir, "index.js"), []byte("exports.handler = async () => {}"), 0644))
+			require.NoError(t, os.MkdirAll(dir, 0o755))
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "index.js"), []byte("exports.handler = async () => {}"), 0o644))
 		}
 
 		functions, err := DiscoverFunctions(tmpDir)
@@ -156,9 +156,9 @@ func TestDiscoverFunctions(t *testing.T) {
 		handlersDir := filepath.Join(srcDir, "handlers")
 		helloDir := filepath.Join(handlersDir, "hello")
 
-		require.NoError(t, os.MkdirAll(helloDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "index.js"), []byte("exports.handler = async () => {}"), 0644))
+		require.NoError(t, os.MkdirAll(helloDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "index.js"), []byte("exports.handler = async () => {}"), 0o644))
 
 		// Create metadata file
 		metadata := FunctionMetadata{
@@ -170,7 +170,7 @@ func TestDiscoverFunctions(t *testing.T) {
 
 		metadataJSON, err := json.Marshal(metadata)
 		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "function.forge.json"), metadataJSON, 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "function.forge.json"), metadataJSON, 0o644))
 
 		functions, err := DiscoverFunctions(tmpDir)
 
@@ -190,12 +190,12 @@ func TestDiscoverFunctions(t *testing.T) {
 		emptyDir := filepath.Join(handlersDir, "empty")
 		validDir := filepath.Join(handlersDir, "valid")
 
-		require.NoError(t, os.MkdirAll(emptyDir, 0755))
-		require.NoError(t, os.MkdirAll(validDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0644))
+		require.NoError(t, os.MkdirAll(emptyDir, 0o755))
+		require.NoError(t, os.MkdirAll(validDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0o644))
 
 		// Only create handler in valid directory
-		require.NoError(t, os.WriteFile(filepath.Join(validDir, "index.js"), []byte("exports.handler = async () => {}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(validDir, "index.js"), []byte("exports.handler = async () => {}"), 0o644))
 
 		functions, err := DiscoverFunctions(tmpDir)
 
@@ -219,7 +219,7 @@ func TestDiscoverFunctions(t *testing.T) {
 		srcDir := filepath.Join(tmpDir, "src")
 		handlersDir := filepath.Join(srcDir, "handlers")
 
-		require.NoError(t, os.MkdirAll(handlersDir, 0755))
+		require.NoError(t, os.MkdirAll(handlersDir, 0o755))
 
 		_, err := DiscoverFunctions(tmpDir)
 
@@ -232,8 +232,8 @@ func TestDiscoverFunctions(t *testing.T) {
 		srcDir := filepath.Join(tmpDir, "src")
 		handlersDir := filepath.Join(srcDir, "handlers")
 
-		require.NoError(t, os.MkdirAll(handlersDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0644))
+		require.NoError(t, os.MkdirAll(handlersDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0o644))
 
 		_, err := DiscoverFunctions(tmpDir)
 
@@ -247,12 +247,12 @@ func TestDiscoverFunctions(t *testing.T) {
 		handlersDir := filepath.Join(srcDir, "handlers")
 		helloDir := filepath.Join(handlersDir, "hello")
 
-		require.NoError(t, os.MkdirAll(helloDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "index.js"), []byte("exports.handler = async () => {}"), 0644))
+		require.NoError(t, os.MkdirAll(helloDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(srcDir, "package.json"), []byte("{}"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "index.js"), []byte("exports.handler = async () => {}"), 0o644))
 
 		// Create invalid JSON metadata
-		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "function.forge.json"), []byte("{ invalid json }"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(helloDir, "function.forge.json"), []byte("{ invalid json }"), 0o644))
 
 		_, err := DiscoverFunctions(tmpDir)
 
@@ -264,7 +264,7 @@ func TestDiscoverFunctions(t *testing.T) {
 func TestDetectProjectRuntime(t *testing.T) {
 	t.Run("detects Go runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test"), 0o644))
 
 		runtime, err := detectProjectRuntime(tmpDir)
 
@@ -274,7 +274,7 @@ func TestDetectProjectRuntime(t *testing.T) {
 
 	t.Run("detects Node.js runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte("{}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte("{}"), 0o644))
 
 		runtime, err := detectProjectRuntime(tmpDir)
 
@@ -284,7 +284,7 @@ func TestDetectProjectRuntime(t *testing.T) {
 
 	t.Run("detects Python runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "requirements.txt"), []byte("boto3"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "requirements.txt"), []byte("boto3"), 0o644))
 
 		runtime, err := detectProjectRuntime(tmpDir)
 
@@ -294,7 +294,7 @@ func TestDetectProjectRuntime(t *testing.T) {
 
 	t.Run("detects Java runtime with pom.xml", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "pom.xml"), []byte("<project></project>"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "pom.xml"), []byte("<project></project>"), 0o644))
 
 		runtime, err := detectProjectRuntime(tmpDir)
 
@@ -304,7 +304,7 @@ func TestDetectProjectRuntime(t *testing.T) {
 
 	t.Run("detects Java runtime with build.gradle", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "build.gradle"), []byte("plugins { id 'java' }"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "build.gradle"), []byte("plugins { id 'java' }"), 0o644))
 
 		runtime, err := detectProjectRuntime(tmpDir)
 
@@ -324,8 +324,8 @@ func TestDetectProjectRuntime(t *testing.T) {
 	t.Run("prefers Go over other runtimes", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		// Create multiple manifest files
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test"), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte("{}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte("{}"), 0o644))
 
 		runtime, err := detectProjectRuntime(tmpDir)
 
@@ -337,7 +337,7 @@ func TestDetectProjectRuntime(t *testing.T) {
 func TestGetHandlerFile(t *testing.T) {
 	t.Run("finds main.go for Go runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main"), 0o644))
 
 		handlerFile := getHandlerFile(tmpDir, "provided.al2023")
 
@@ -346,7 +346,7 @@ func TestGetHandlerFile(t *testing.T) {
 
 	t.Run("finds index.js for Node.js runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.js"), []byte("exports.handler = async () => {}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.js"), []byte("exports.handler = async () => {}"), 0o644))
 
 		handlerFile := getHandlerFile(tmpDir, "nodejs20.x")
 
@@ -355,7 +355,7 @@ func TestGetHandlerFile(t *testing.T) {
 
 	t.Run("finds index.ts for TypeScript", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.ts"), []byte("export const handler = async () => {}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.ts"), []byte("export const handler = async () => {}"), 0o644))
 
 		handlerFile := getHandlerFile(tmpDir, "nodejs20.x")
 
@@ -364,7 +364,7 @@ func TestGetHandlerFile(t *testing.T) {
 
 	t.Run("finds main.py for Python runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "main.py"), []byte("def handler(event, context): pass"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "main.py"), []byte("def handler(event, context): pass"), 0o644))
 
 		handlerFile := getHandlerFile(tmpDir, "python3.11")
 
@@ -373,7 +373,7 @@ func TestGetHandlerFile(t *testing.T) {
 
 	t.Run("finds Handler.java for Java runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "Handler.java"), []byte("public class Handler {}"), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "Handler.java"), []byte("public class Handler {}"), 0o644))
 
 		handlerFile := getHandlerFile(tmpDir, "java17")
 
@@ -390,8 +390,8 @@ func TestGetHandlerFile(t *testing.T) {
 
 	t.Run("prefers index.js over handler.js for Node.js", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.js"), []byte(""), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "handler.js"), []byte(""), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.js"), []byte(""), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "handler.js"), []byte(""), 0o644))
 
 		handlerFile := getHandlerFile(tmpDir, "nodejs20.x")
 
@@ -437,7 +437,7 @@ func TestLoadFunctionMetadata(t *testing.T) {
 
 		data, err := json.Marshal(metadata)
 		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(metadataPath, data, 0644))
+		require.NoError(t, os.WriteFile(metadataPath, data, 0o644))
 
 		loaded, err := loadFunctionMetadata(metadataPath)
 
@@ -452,7 +452,7 @@ func TestLoadFunctionMetadata(t *testing.T) {
 		tmpDir := t.TempDir()
 		metadataPath := filepath.Join(tmpDir, "function.forge.json")
 
-		require.NoError(t, os.WriteFile(metadataPath, []byte("{ invalid }"), 0644))
+		require.NoError(t, os.WriteFile(metadataPath, []byte("{ invalid }"), 0o644))
 
 		_, err := loadFunctionMetadata(metadataPath)
 

@@ -7,61 +7,59 @@ import (
 	"strings"
 )
 
-// ProjectOptions configures project generation
+// ProjectOptions configures project generation.
 type ProjectOptions struct {
 	Name   string
 	Region string
 }
 
-// StackOptions configures stack generation
+// StackOptions configures stack generation.
 type StackOptions struct {
 	Name        string
 	Runtime     string
 	Description string
 }
 
-// GenerateProject creates a new forge project structure
-// Pure function - no methods, takes projectRoot as parameter
+// Pure function - no methods, takes projectRoot as parameter.
 func GenerateProject(projectRoot string, opts *ProjectOptions) error {
 	// Create project directory
-	if err := os.MkdirAll(projectRoot, 0755); err != nil {
+	if err := os.MkdirAll(projectRoot, 0o755); err != nil {
 		return fmt.Errorf("failed to create project directory: %w", err)
 	}
 
 	// Generate forge.hcl
 	forgeHCL := generateForgeHCL(opts)
-	if err := os.WriteFile(filepath.Join(projectRoot, "forge.hcl"), []byte(forgeHCL), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectRoot, "forge.hcl"), []byte(forgeHCL), 0o644); err != nil {
 		return fmt.Errorf("failed to write forge.hcl: %w", err)
 	}
 
 	// Generate .gitignore
 	gitignore := generateGitignore()
-	if err := os.WriteFile(filepath.Join(projectRoot, ".gitignore"), []byte(gitignore), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectRoot, ".gitignore"), []byte(gitignore), 0o644); err != nil {
 		return fmt.Errorf("failed to write .gitignore: %w", err)
 	}
 
 	// Generate README.md
 	readme := generateReadme(opts)
-	if err := os.WriteFile(filepath.Join(projectRoot, "README.md"), []byte(readme), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectRoot, "README.md"), []byte(readme), 0o644); err != nil {
 		return fmt.Errorf("failed to write README.md: %w", err)
 	}
 
 	return nil
 }
 
-// GenerateStack creates a new stack with the specified runtime
-// Pure function - no methods, takes projectRoot as parameter
+// Pure function - no methods, takes projectRoot as parameter.
 func GenerateStack(projectRoot string, opts *StackOptions) error {
 	stackDir := filepath.Join(projectRoot, opts.Name)
 
 	// Create stack directory
-	if err := os.MkdirAll(stackDir, 0755); err != nil {
+	if err := os.MkdirAll(stackDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create stack directory: %w", err)
 	}
 
 	// Generate stack.forge.hcl
 	stackHCL := generateStackHCL(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "stack.forge.hcl"), []byte(stackHCL), 0o644); err != nil {
 		return fmt.Errorf("failed to write stack.forge.hcl: %w", err)
 	}
 
@@ -80,102 +78,98 @@ func GenerateStack(projectRoot string, opts *StackOptions) error {
 	}
 }
 
-// generateGoStack creates Go-specific files
-// Pure function - no methods
+// Pure function - no methods.
 func generateGoStack(stackDir string, opts *StackOptions) error {
 	// Generate main.go
 	mainGo := generateGoMain(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "main.go"), []byte(mainGo), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "main.go"), []byte(mainGo), 0o644); err != nil {
 		return fmt.Errorf("failed to write main.go: %w", err)
 	}
 
 	// Generate go.mod
 	goMod := generateGoMod(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "go.mod"), []byte(goMod), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 		return fmt.Errorf("failed to write go.mod: %w", err)
 	}
 
 	// Generate main.tf
 	mainTF := generateGoTerraform(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "main.tf"), []byte(mainTF), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "main.tf"), []byte(mainTF), 0o644); err != nil {
 		return fmt.Errorf("failed to write main.tf: %w", err)
 	}
 
 	return nil
 }
 
-// generatePythonStack creates Python-specific files
-// Pure function - no methods
+// Pure function - no methods.
 func generatePythonStack(stackDir string, opts *StackOptions) error {
 	// Generate handler.py
 	handler := generatePythonHandler(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "handler.py"), []byte(handler), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "handler.py"), []byte(handler), 0o644); err != nil {
 		return fmt.Errorf("failed to write handler.py: %w", err)
 	}
 
 	// Generate requirements.txt
 	requirements := generateRequirementsTxt()
-	if err := os.WriteFile(filepath.Join(stackDir, "requirements.txt"), []byte(requirements), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "requirements.txt"), []byte(requirements), 0o644); err != nil {
 		return fmt.Errorf("failed to write requirements.txt: %w", err)
 	}
 
 	// Generate main.tf
 	mainTF := generatePythonTerraform(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "main.tf"), []byte(mainTF), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "main.tf"), []byte(mainTF), 0o644); err != nil {
 		return fmt.Errorf("failed to write main.tf: %w", err)
 	}
 
 	return nil
 }
 
-// generateNodeStack creates Node.js-specific files
-// Pure function - no methods
+// Pure function - no methods.
 func generateNodeStack(stackDir string, opts *StackOptions) error {
 	// Generate index.js
 	index := generateNodeIndex(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "index.js"), []byte(index), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "index.js"), []byte(index), 0o644); err != nil {
 		return fmt.Errorf("failed to write index.js: %w", err)
 	}
 
 	// Generate package.json
 	pkg := generatePackageJson(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "package.json"), []byte(pkg), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "package.json"), []byte(pkg), 0o644); err != nil {
 		return fmt.Errorf("failed to write package.json: %w", err)
 	}
 
 	// Generate main.tf
 	mainTF := generateNodeTerraform(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "main.tf"), []byte(mainTF), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "main.tf"), []byte(mainTF), 0o644); err != nil {
 		return fmt.Errorf("failed to write main.tf: %w", err)
 	}
 
 	return nil
 }
 
-// generateJavaStack creates Java-specific files
-// Pure function - no methods
+// Pure function - no methods.
 func generateJavaStack(stackDir string, opts *StackOptions) error {
 	// Create Java directory structure
 	javaDir := filepath.Join(stackDir, "src", "main", "java", "com", "example")
-	if err := os.MkdirAll(javaDir, 0755); err != nil {
+	if err := os.MkdirAll(javaDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create Java source directory: %w", err)
 	}
 
 	// Generate Handler.java
 	handler := generateJavaHandler(opts)
-	if err := os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte(handler), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(javaDir, "Handler.java"), []byte(handler), 0o644); err != nil {
 		return fmt.Errorf("failed to write Handler.java: %w", err)
 	}
 
 	// Generate pom.xml
 	pom := generatePomXml(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "pom.xml"), []byte(pom), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "pom.xml"), []byte(pom), 0o644); err != nil {
 		return fmt.Errorf("failed to write pom.xml: %w", err)
 	}
 
 	// Generate main.tf
 	mainTF := generateJavaTerraform(opts)
-	if err := os.WriteFile(filepath.Join(stackDir, "main.tf"), []byte(mainTF), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(stackDir, "main.tf"), []byte(mainTF), 0o644); err != nil {
 		return fmt.Errorf("failed to write main.tf: %w", err)
 	}
 
@@ -235,7 +229,7 @@ forge deploy
 func generateStackHCL(opts *StackOptions) string {
 	desc := opts.Description
 	if desc == "" {
-		desc = fmt.Sprintf("%s stack", opts.Name)
+		desc = opts.Name + " stack"
 	}
 	return fmt.Sprintf(`stack {
   name        = "%s"

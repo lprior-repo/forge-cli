@@ -11,7 +11,7 @@ import (
 	"github.com/lewis/forge/internal/tfmodules/sqs"
 )
 
-// TestExampleSQSModule demonstrates using type-safe SQS module
+// TestExampleSQSModule demonstrates using type-safe SQS module.
 func TestExampleSQSModule(t *testing.T) {
 	t.Skip("Documentation example - not a real test")
 	// Create an SQS queue with type safety
@@ -41,7 +41,7 @@ func TestExampleSQSModule(t *testing.T) {
 	// Reference: module.orders_queue.queue_arn
 }
 
-// TestExampleStack demonstrates composing multiple modules
+// TestExampleStack demonstrates composing multiple modules.
 func TestExampleStack(t *testing.T) {
 	t.Skip("Documentation example - not a real test")
 	// Create a stack
@@ -71,7 +71,7 @@ func TestExampleStack(t *testing.T) {
 	// Stack my-app has 2 modules
 }
 
-// TestExampleModuleOutputs demonstrates using module outputs in other resources
+// TestExampleModuleOutputs demonstrates using module outputs in other resources.
 func TestExampleModuleOutputs(t *testing.T) {
 	t.Skip("Documentation example - not a real test")
 	// Create SQS queue
@@ -90,7 +90,7 @@ func TestExampleModuleOutputs(t *testing.T) {
 	// Queue ARN reference: module.orders_queue.queue_arn
 }
 
-// TestModuleTypeSystem demonstrates compile-time type safety
+// TestModuleTypeSystem demonstrates compile-time type safety.
 func TestModuleTypeSystem(t *testing.T) {
 	// All configuration is strongly typed
 	queue := sqs.NewModule("test_queue")
@@ -118,7 +118,7 @@ func TestModuleTypeSystem(t *testing.T) {
 	}
 }
 
-// TestModuleBuilderPattern demonstrates fluent API
+// TestModuleBuilderPattern demonstrates fluent API.
 func TestModuleBuilderPattern(t *testing.T) {
 	// Fluent API for common configurations
 	queue := sqs.NewModule("my_queue").
@@ -144,7 +144,7 @@ func TestModuleBuilderPattern(t *testing.T) {
 	}
 }
 
-// TestModuleDefaults demonstrates sensible defaults
+// TestModuleDefaults demonstrates sensible defaults.
 func TestModuleDefaults(t *testing.T) {
 	queue := sqs.NewModule("test_queue")
 
@@ -171,7 +171,7 @@ func TestModuleDefaults(t *testing.T) {
 	}
 }
 
-// BenchmarkModuleCreation benchmarks module creation
+// BenchmarkModuleCreation benchmarks module creation.
 func BenchmarkModuleCreation(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		queue := sqs.NewModule("bench_queue")
@@ -180,7 +180,7 @@ func BenchmarkModuleCreation(b *testing.B) {
 	}
 }
 
-// TestExampleModuleComparison shows Lingon-style vs map[string]interface{}
+// TestExampleModuleComparison shows Lingon-style vs map[string]interface{}.
 func TestExampleModuleComparison(t *testing.T) {
 	t.Skip("Documentation example - not a real test")
 	// Old approach (Phase 1): map[string]interface{}
@@ -214,7 +214,7 @@ func TestExampleModuleComparison(t *testing.T) {
 	// Queue configured: orders_queue
 }
 
-// TestExampleDynamoDBModule demonstrates using type-safe DynamoDB module
+// TestExampleDynamoDBModule demonstrates using type-safe DynamoDB module.
 func TestExampleDynamoDBModule(t *testing.T) {
 	t.Skip("Documentation example - not a real test")
 	// Create a DynamoDB table with type safety
@@ -249,7 +249,7 @@ func TestExampleDynamoDBModule(t *testing.T) {
 	fmt.Printf("Stream ARN: %s\n", streamARN.Ref())
 }
 
-// TestExampleSNSModule demonstrates using type-safe SNS module
+// TestExampleSNSModule demonstrates using type-safe SNS module.
 func TestExampleSNSModule(t *testing.T) {
 	t.Skip("Documentation example - not a real test")
 	// Create an SNS topic with type safety
@@ -274,7 +274,7 @@ func TestExampleSNSModule(t *testing.T) {
 	fmt.Printf("Topic ARN: %s\n", topicARN.Ref())
 }
 
-// TestExampleS3Module demonstrates using type-safe S3 module
+// TestExampleS3Module demonstrates using type-safe S3 module.
 func TestExampleS3Module(t *testing.T) {
 	t.Skip("Documentation example - not a real test")
 	// Create an S3 bucket with type safety
@@ -305,7 +305,7 @@ func TestExampleS3Module(t *testing.T) {
 	fmt.Printf("Bucket ARN: %s\n", bucketARN.Ref())
 }
 
-// TestExampleMultiResourceStack demonstrates composing different resource types
+// TestExampleMultiResourceStack demonstrates composing different resource types.
 func TestExampleMultiResourceStack(t *testing.T) {
 	t.Skip("Documentation example - not a real test")
 	// Create a complete serverless stack

@@ -1,18 +1,18 @@
 package sns_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/generators"
-	"github.com/lewis/forge/internal/generators/sns"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/generators"
+	"github.com/lewis/forge/internal/generators/sns"
 )
 
-// Helper function to extract Right value from Either
+// Helper function to extract Right value from Either.
 func extractConfig(result E.Either[error, generators.ResourceConfig]) generators.ResourceConfig {
 	return E.Fold(
 		func(error) generators.ResourceConfig { return generators.ResourceConfig{} },
@@ -20,7 +20,7 @@ func extractConfig(result E.Either[error, generators.ResourceConfig]) generators
 	)(result)
 }
 
-// Helper function to extract error from Either
+// Helper function to extract error from Either.
 func extractError(result E.Either[error, generators.ResourceConfig]) error {
 	return E.Fold(
 		func(e error) error { return e },
@@ -28,7 +28,7 @@ func extractError(result E.Either[error, generators.ResourceConfig]) error {
 	)(result)
 }
 
-// Helper function to extract generated code
+// Helper function to extract generated code.
 func extractCode(result E.Either[error, generators.GeneratedCode]) generators.GeneratedCode {
 	return E.Fold(
 		func(error) generators.GeneratedCode { return generators.GeneratedCode{} },
@@ -36,7 +36,7 @@ func extractCode(result E.Either[error, generators.GeneratedCode]) generators.Ge
 	)(result)
 }
 
-// Helper function to extract error from GeneratedCode Either
+// Helper function to extract error from GeneratedCode Either.
 func extractCodeError(result E.Either[error, generators.GeneratedCode]) error {
 	return E.Fold(
 		func(e error) error { return e },
@@ -44,7 +44,7 @@ func extractCodeError(result E.Either[error, generators.GeneratedCode]) error {
 	)(result)
 }
 
-// Helper function to find file by path
+// Helper function to find file by path.
 func findFile(files []generators.FileToWrite, path string) *generators.FileToWrite {
 	for i := range files {
 		if files[i].Path == path {
@@ -54,16 +54,16 @@ func findFile(files []generators.FileToWrite, path string) *generators.FileToWri
 	return nil
 }
 
-// TestNew verifies generator creation
+// TestNew verifies generator creation.
 func TestNew(t *testing.T) {
 	gen := sns.New()
 	assert.NotNil(t, gen)
 }
 
-// TestPrompt_Standalone tests standalone topic configuration
+// TestPrompt_Standalone tests standalone topic configuration.
 func TestPrompt_Standalone(t *testing.T) {
 	gen := sns.New()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	intent := generators.ResourceIntent{
 		Type:      generators.ResourceSNS,
@@ -92,10 +92,10 @@ func TestPrompt_Standalone(t *testing.T) {
 	assert.Equal(t, "", config.Variables["kms_master_key_id"])
 }
 
-// TestPrompt_WithLambdaIntegration tests Lambda integration
+// TestPrompt_WithLambdaIntegration tests Lambda integration.
 func TestPrompt_WithLambdaIntegration(t *testing.T) {
 	gen := sns.New()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	intent := generators.ResourceIntent{
 		Type:      generators.ResourceSNS,
@@ -136,10 +136,10 @@ func TestPrompt_WithLambdaIntegration(t *testing.T) {
 	assert.Equal(t, "module.notifications.topic_arn", config.Integration.EnvVars["NOTIFICATIONS_TOPIC_ARN"])
 }
 
-// TestPrompt_FunctionNotFound tests error when target function doesn't exist
+// TestPrompt_FunctionNotFound tests error when target function doesn't exist.
 func TestPrompt_FunctionNotFound(t *testing.T) {
 	gen := sns.New()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	intent := generators.ResourceIntent{
 		Type:      generators.ResourceSNS,
@@ -160,7 +160,7 @@ func TestPrompt_FunctionNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
-// TestValidate tests configuration validation
+// TestValidate tests configuration validation.
 func TestValidate(t *testing.T) {
 	gen := sns.New()
 
@@ -244,7 +244,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-// TestGenerate_ModuleMode tests module-based generation
+// TestGenerate_ModuleMode tests module-based generation.
 func TestGenerate_ModuleMode(t *testing.T) {
 	gen := sns.New()
 
@@ -292,7 +292,7 @@ func TestGenerate_ModuleMode(t *testing.T) {
 	assert.Contains(t, outputsFile.Content, "module.notifications.topic_id")
 }
 
-// TestGenerate_RawMode tests raw resource generation
+// TestGenerate_RawMode tests raw resource generation.
 func TestGenerate_RawMode(t *testing.T) {
 	gen := sns.New()
 
@@ -331,7 +331,7 @@ func TestGenerate_RawMode(t *testing.T) {
 	assert.Contains(t, outputsFile.Content, "aws_sns_topic.notifications.id")
 }
 
-// TestGenerate_FIFOTopic tests FIFO topic generation
+// TestGenerate_FIFOTopic tests FIFO topic generation.
 func TestGenerate_FIFOTopic(t *testing.T) {
 	gen := sns.New()
 
@@ -362,7 +362,7 @@ func TestGenerate_FIFOTopic(t *testing.T) {
 	assert.Contains(t, snsFile.Content, "content_based_deduplication = true")
 }
 
-// TestGenerate_WithIntegration tests Lambda integration generation
+// TestGenerate_WithIntegration tests Lambda integration generation.
 func TestGenerate_WithIntegration(t *testing.T) {
 	gen := sns.New()
 
@@ -426,7 +426,7 @@ func TestGenerate_WithIntegration(t *testing.T) {
 	assert.Contains(t, lambdaFile.Content, "NOTIFICATIONS_TOPIC_ARN")
 }
 
-// TestGenerate_InvalidConfig tests generation with invalid config
+// TestGenerate_InvalidConfig tests generation with invalid config.
 func TestGenerate_InvalidConfig(t *testing.T) {
 	gen := sns.New()
 
@@ -445,7 +445,7 @@ func TestGenerate_InvalidConfig(t *testing.T) {
 	assert.Contains(t, err.Error(), "topic name is required")
 }
 
-// TestSanitizeName tests name sanitization
+// TestSanitizeName tests name sanitization.
 func TestSanitizeName(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -489,7 +489,7 @@ func TestSanitizeName(t *testing.T) {
 	}
 }
 
-// TestNamespaceSupport tests namespace variable usage
+// TestNamespaceSupport tests namespace variable usage.
 func TestNamespaceSupport(t *testing.T) {
 	gen := sns.New()
 
@@ -518,7 +518,7 @@ func TestNamespaceSupport(t *testing.T) {
 	assert.Contains(t, snsFile.Content, `name = "${var.namespace}notifications"`)
 }
 
-// TestGeneratedCodeFormat tests that generated code is well-formatted
+// TestGeneratedCodeFormat tests that generated code is well-formatted.
 func TestGeneratedCodeFormat(t *testing.T) {
 	gen := sns.New()
 
@@ -563,7 +563,7 @@ func TestGeneratedCodeFormat(t *testing.T) {
 	}
 }
 
-// TestRawResourceWithIntegration tests raw resource mode with Lambda integration
+// TestRawResourceWithIntegration tests raw resource mode with Lambda integration.
 func TestRawResourceWithIntegration(t *testing.T) {
 	gen := sns.New()
 

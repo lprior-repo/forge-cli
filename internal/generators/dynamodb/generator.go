@@ -4,22 +4,24 @@ package dynamodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	E "github.com/IBM/fp-go/either"
+
 	"github.com/lewis/forge/internal/generators"
 )
 
-// Generator implements generators.Generator for DynamoDB tables
+// Generator implements generators.Generator for DynamoDB tables.
 type Generator struct{}
 
-// New creates a new DynamoDB generator
+// New creates a new DynamoDB generator.
 func New() *Generator {
 	return &Generator{}
 }
 
-// Prompt gathers configuration from user (I/O ACTION)
+// Prompt gathers configuration from user (I/O ACTION).
 func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent, state generators.ProjectState) E.Either[error, generators.ResourceConfig] {
 	// For MVP, use sensible defaults
 	// In Phase 3, this will launch interactive TUI
@@ -29,13 +31,13 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 		Name:   intent.Name,
 		Module: intent.UseModule,
 		Variables: map[string]interface{}{
-			"hash_key":         "id",
-			"range_key":        "",
-			"billing_mode":     "PAY_PER_REQUEST", // On-demand pricing
-			"stream_enabled":   false,
-			"stream_view_type": "",
-			"ttl_enabled":      false,
-			"ttl_attribute":    "",
+			"hash_key":               "id",
+			"range_key":              "",
+			"billing_mode":           "PAY_PER_REQUEST", // On-demand pricing
+			"stream_enabled":         false,
+			"stream_view_type":       "",
+			"ttl_enabled":            false,
+			"ttl_attribute":          "",
 			"point_in_time_recovery": true,
 			"attributes": []map[string]string{
 				{"name": "id", "type": "S"}, // String type by default
@@ -100,7 +102,7 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 	return E.Right[error](config)
 }
 
-// Generate creates Terraform code from configuration (PURE CALCULATION)
+// Generate creates Terraform code from configuration (PURE CALCULATION).
 func (g *Generator) Generate(config generators.ResourceConfig, state generators.ProjectState) E.Either[error, generators.GeneratedCode] {
 	// Validate first, then chain generation - automatic error short-circuiting
 	return E.Chain(func(validConfig generators.ResourceConfig) E.Either[error, generators.GeneratedCode] {
@@ -144,17 +146,17 @@ func (g *Generator) Generate(config generators.ResourceConfig, state generators.
 	})(g.Validate(config))
 }
 
-// Validate checks if configuration is valid (PURE CALCULATION)
+// Validate checks if configuration is valid (PURE CALCULATION).
 func (g *Generator) Validate(config generators.ResourceConfig) E.Either[error, generators.ResourceConfig] {
 	if config.Name == "" {
 		return E.Left[generators.ResourceConfig](
-			fmt.Errorf("table name is required"),
+			errors.New("table name is required"),
 		)
 	}
 
 	if !isValidName(config.Name) {
 		return E.Left[generators.ResourceConfig](
-			fmt.Errorf("table name must be alphanumeric with hyphens/underscores"),
+			errors.New("table name must be alphanumeric with hyphens/underscores"),
 		)
 	}
 
@@ -162,27 +164,27 @@ func (g *Generator) Validate(config generators.ResourceConfig) E.Either[error, g
 	hashKey, ok := config.Variables["hash_key"].(string)
 	if !ok || hashKey == "" {
 		return E.Left[generators.ResourceConfig](
-			fmt.Errorf("hash_key is required"),
+			errors.New("hash_key is required"),
 		)
 	}
 
 	return E.Right[error](config)
 }
 
-// generateModuleCode creates Terraform module code (PURE)
+// generateModuleCode creates Terraform module code (PURE).
 func generateModuleCode(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 	tableName := config.Name
 
-	hashKey := config.Variables["hash_key"].(string)
+	hashKey, _ := config.Variables["hash_key"].(string)
 	rangeKey, _ := config.Variables["range_key"].(string)
-	billingMode := config.Variables["billing_mode"].(string)
-	streamEnabled := config.Variables["stream_enabled"].(bool)
+	billingMode, _ := config.Variables["billing_mode"].(string)
+	streamEnabled, _ := config.Variables["stream_enabled"].(bool)
 	streamViewType, _ := config.Variables["stream_view_type"].(string)
-	ttlEnabled := config.Variables["ttl_enabled"].(bool)
+	ttlEnabled, _ := config.Variables["ttl_enabled"].(bool)
 	ttlAttribute, _ := config.Variables["ttl_attribute"].(string)
-	pointInTimeRecovery := config.Variables["point_in_time_recovery"].(bool)
-	attributes := config.Variables["attributes"].([]map[string]string)
+	pointInTimeRecovery, _ := config.Variables["point_in_time_recovery"].(bool)
+	attributes, _ := config.Variables["attributes"].([]map[string]string)
 
 	var parts []string
 
@@ -245,17 +247,17 @@ func generateModuleCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateRawResourceCode creates raw Terraform resource code (PURE)
+// generateRawResourceCode creates raw Terraform resource code (PURE).
 func generateRawResourceCode(config generators.ResourceConfig) string {
 	resourceName := sanitizeName(config.Name)
 	tableName := config.Name
 
-	hashKey := config.Variables["hash_key"].(string)
+	hashKey, _ := config.Variables["hash_key"].(string)
 	rangeKey, _ := config.Variables["range_key"].(string)
-	billingMode := config.Variables["billing_mode"].(string)
-	streamEnabled := config.Variables["stream_enabled"].(bool)
+	billingMode, _ := config.Variables["billing_mode"].(string)
+	streamEnabled, _ := config.Variables["stream_enabled"].(bool)
 	streamViewType, _ := config.Variables["stream_view_type"].(string)
-	attributes := config.Variables["attributes"].([]map[string]string)
+	attributes, _ := config.Variables["attributes"].([]map[string]string)
 
 	var parts []string
 
@@ -299,7 +301,7 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateOutputs creates Terraform outputs (PURE)
+// generateOutputs creates Terraform outputs (PURE).
 func generateOutputs(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 
@@ -353,7 +355,7 @@ func generateOutputs(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateIntegrationCode creates Lambda event source mapping (PURE)
+// generateIntegrationCode creates Lambda event source mapping (PURE).
 func generateIntegrationCode(config generators.ResourceConfig) string {
 	if config.Integration == nil {
 		return ""
@@ -366,10 +368,10 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 	var parts []string
 
 	// Event source mapping for DynamoDB Streams
-	parts = append(parts, fmt.Sprintf("# DynamoDB Streams event source mapping for %s", config.Name))
+	parts = append(parts, "# DynamoDB Streams event source mapping for "+config.Name)
 	parts = append(parts, fmt.Sprintf("resource \"aws_lambda_event_source_mapping\" \"%s_%s\" {",
 		functionName, tableName))
-	parts = append(parts, fmt.Sprintf("  event_source_arn = %s", eventSource.ARNExpression))
+	parts = append(parts, "  event_source_arn = "+eventSource.ARNExpression)
 	parts = append(parts, fmt.Sprintf("  function_name    = aws_lambda_function.%s.arn", functionName))
 	parts = append(parts, "")
 	parts = append(parts, "  starting_position = \"LATEST\"")
@@ -409,7 +411,7 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 
 		// Handle resource references
 		resourceRef := perm.Resources[0]
-		parts = append(parts, fmt.Sprintf("        Resource = %s", resourceRef))
+		parts = append(parts, "        Resource = "+resourceRef)
 
 		parts = append(parts, "      }")
 		parts = append(parts, "    ]")
@@ -420,13 +422,13 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// sanitizeName converts a name to a valid Terraform identifier (PURE)
+// sanitizeName converts a name to a valid Terraform identifier (PURE).
 func sanitizeName(name string) string {
 	// Replace hyphens with underscores for Terraform identifiers
 	return strings.ReplaceAll(name, "-", "_")
 }
 
-// isValidName checks if a name is valid (PURE)
+// isValidName checks if a name is valid (PURE).
 func isValidName(name string) bool {
 	if len(name) == 0 {
 		return false
@@ -435,6 +437,7 @@ func isValidName(name string) bool {
 	for _, r := range name {
 		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
 			(r >= '0' && r <= '9') || r == '-' || r == '_') {
+
 			return false
 		}
 	}

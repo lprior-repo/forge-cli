@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Test helpers - pure functions for testing
+// Test helpers - pure functions for testing.
 func successStage(name string) Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
 		if s.Outputs == nil {
@@ -81,7 +81,7 @@ func TestNew(t *testing.T) {
 func TestRun(t *testing.T) {
 	t.Run("executes empty pipeline successfully", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		p := New()
 		initial := State{ProjectDir: "/test"}
 
@@ -97,7 +97,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("executes single stage successfully", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		p := New(successStage("build"))
 		initial := State{ProjectDir: "/project"}
 
@@ -113,7 +113,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("executes multiple stages in order", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		p := New(
 			successStage("scan"),
 			successStage("build"),
@@ -135,7 +135,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("short-circuits on first error", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		p := New(
 			successStage("scan"),
 			errorStage("build failed"),
@@ -158,7 +158,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("propagates state through stages", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		p := New(
 			addArtifactStage("lambda", "/build/lambda.zip"),
 			successStage("deploy"),
@@ -179,7 +179,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("handles error in first stage", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		p := New(
 			errorStage("scan failed"),
 			successStage("build"),
@@ -201,7 +201,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("handles error in last stage", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		p := New(
 			successStage("scan"),
 			successStage("build"),
@@ -263,7 +263,7 @@ func TestChain(t *testing.T) {
 		assert.Len(t, chained.stages, 4)
 
 		// Verify execution order
-		ctx := context.Background()
+		ctx := t.Context()
 		initial := State{ProjectDir: "/project"}
 		result := Run(chained, ctx, initial)
 
@@ -294,7 +294,7 @@ func TestChain(t *testing.T) {
 func TestParallel(t *testing.T) {
 	t.Run("executes no stages successfully", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		parallel := Parallel()
 		initial := State{ProjectDir: "/project"}
 
@@ -307,7 +307,7 @@ func TestParallel(t *testing.T) {
 
 	t.Run("executes single stage successfully", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		parallel := Parallel(successStage("build"))
 		initial := State{ProjectDir: "/project"}
 
@@ -323,7 +323,7 @@ func TestParallel(t *testing.T) {
 
 	t.Run("executes multiple stages", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		parallel := Parallel(
 			successStage("lint"),
 			successStage("test"),
@@ -345,7 +345,7 @@ func TestParallel(t *testing.T) {
 
 	t.Run("stops on first error", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		parallel := Parallel(
 			successStage("lint"),
 			errorStage("test failed"),
@@ -368,7 +368,7 @@ func TestParallel(t *testing.T) {
 
 	t.Run("accumulates state from all stages", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		parallel := Parallel(
 			addArtifactStage("api", "/build/api.zip"),
 			addArtifactStage("worker", "/build/worker.zip"),
@@ -387,11 +387,11 @@ func TestParallel(t *testing.T) {
 	})
 }
 
-// Integration test combining New, Run, Chain, and Parallel
+// Integration test combining New, Run, Chain, and Parallel.
 func TestPipelineIntegration(t *testing.T) {
 	t.Run("complex pipeline with chaining and parallel stages", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Build phase
 		buildPipeline := New(
@@ -431,7 +431,7 @@ func TestPipelineIntegration(t *testing.T) {
 
 	t.Run("pipeline fails and stops at error stage", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 
 		pipeline := New(
 			successStage("scan"),

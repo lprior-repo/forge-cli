@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,15 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestForgeWorkflowEndToEnd tests the complete Forge workflow:.
-// 1. Build Forge CLI binary
-// 2. Use Forge to generate a Python Lambda project
-// 3. Use Forge to build the Lambda
-// 4. Use Forge to deploy to AWS
-// 5. Test API Gateway endpoints
-// 6. Test Lambda invocation
-// 7. Test DynamoDB integration
-// 8. Clean up all resources
+// 8. Clean up all resources.
 func TestForgeWorkflowEndToEnd(t *testing.T) {
 	// Skip in short mode - this is a comprehensive test
 	if testing.Short() {
@@ -44,7 +37,7 @@ func TestForgeWorkflowEndToEnd(t *testing.T) {
 
 	// Generate unique namespace for this test
 	uniqueID := random.UniqueId()
-	namespace := fmt.Sprintf("forge-e2e-%s", strings.ToLower(uniqueID))
+	namespace := "forge-e2e-" + strings.ToLower(uniqueID)
 	t.Logf("Using namespace: %s", namespace)
 
 	// Create temporary directory for test project
@@ -57,11 +50,11 @@ func TestForgeWorkflowEndToEnd(t *testing.T) {
 
 	// Create project directory with proper Forge structure
 	projectDir := filepath.Join(testDir, "test-lambda-project")
-	require.NoError(t, os.MkdirAll(projectDir, 0755), "Failed to create project directory")
+	require.NoError(t, os.MkdirAll(projectDir, 0o755), "Failed to create project directory")
 
 	// Create src/functions/api directory for Python Lambda
 	functionsDir := filepath.Join(projectDir, "src", "functions", "api")
-	require.NoError(t, os.MkdirAll(functionsDir, 0755), "Failed to create functions directory")
+	require.NoError(t, os.MkdirAll(functionsDir, 0o755), "Failed to create functions directory")
 
 	// Create a simple Python Lambda that Forge can discover
 	createSimplePythonLambda(t, functionsDir)
@@ -78,7 +71,7 @@ func TestForgeWorkflowEndToEnd(t *testing.T) {
 
 	// Create infra directory
 	infraDir := filepath.Join(projectDir, "infra")
-	require.NoError(t, os.MkdirAll(infraDir, 0755))
+	require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 	// Create simple Terraform files that work with Forge
 	createForgeTerraformFiles(t, infraDir)
@@ -90,7 +83,7 @@ func TestForgeWorkflowEndToEnd(t *testing.T) {
 		NoColor:      true,
 		Vars: map[string]interface{}{
 			"namespace":    namespace,
-			"service_name": fmt.Sprintf("forge-test-%s", namespace),
+			"service_name": "forge-test-" + namespace,
 			"environment":  "test",
 		},
 		MaxRetries:         3,
@@ -197,7 +190,7 @@ func deployWithForge(t *testing.T, forgeBinary, projectDir, namespace string) st
 	// Set environment variable for namespace
 	cmd := exec.Command(forgeBinary, "deploy", "--auto-approve", "--namespace", namespace)
 	cmd.Dir = projectDir
-	cmd.Env = append(os.Environ(), fmt.Sprintf("TF_VAR_namespace=%s", namespace))
+	cmd.Env = append(os.Environ(), "TF_VAR_namespace="+namespace)
 
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Forge deploy failed: %s", string(output))
@@ -214,7 +207,7 @@ func testAPIGatewayEndpoints(t *testing.T, apiEndpoint string) {
 	}
 
 	t.Run("GET /health returns http.StatusOK", func(t *testing.T) {
-		url := fmt.Sprintf("%s/health", apiEndpoint)
+		url := apiEndpoint + "/health"
 
 		var resp *http.Response
 		var err error
@@ -258,7 +251,7 @@ func testAPIGatewayEndpoints(t *testing.T, apiEndpoint string) {
 
 			// Check if body is empty
 			if len(body) == 0 {
-				return "", fmt.Errorf("response body is empty")
+				return "", errors.New("response body is empty")
 			}
 
 			var response map[string]interface{}
@@ -275,7 +268,7 @@ func testAPIGatewayEndpoints(t *testing.T, apiEndpoint string) {
 	})
 
 	t.Run("POST /items creates item", func(t *testing.T) {
-		url := fmt.Sprintf("%s/items", apiEndpoint)
+		url := apiEndpoint + "/items"
 
 		payload := map[string]interface{}{
 			"name":        "test-item",
@@ -364,7 +357,7 @@ func testLambdaInvocation(t *testing.T, region, functionName string) {
 }
 
 // testDynamoDBIntegration tests DynamoDB table integration.
-func testDynamoDBIntegration(t *testing.T, region, tableName, apiEndpoint string) {
+func testDynamoDBIntegration(t *testing.T, _ string, tableName, apiEndpoint string) {
 	t.Helper()
 
 	t.Run("DynamoDB table exists and is active", func(t *testing.T) {
@@ -380,7 +373,7 @@ func testDynamoDBIntegration(t *testing.T, region, tableName, apiEndpoint string
 		client := &http.Client{Timeout: 10 * time.Second}
 
 		// Create item via API
-		url := fmt.Sprintf("%s/items", apiEndpoint)
+		url := apiEndpoint + "/items"
 		itemID := fmt.Sprintf("test-item-%d", time.Now().Unix())
 
 		payload := map[string]interface{}{
@@ -422,7 +415,7 @@ func testEndToEndFlows(t *testing.T, apiEndpoint string) {
 		require.NoError(t, err)
 
 		resp, err := client.Post(
-			fmt.Sprintf("%s/items", apiEndpoint),
+			apiEndpoint+"/items",
 			"application/json",
 			strings.NewReader(string(createBytes)),
 		)
@@ -438,7 +431,7 @@ func testEndToEndFlows(t *testing.T, apiEndpoint string) {
 	t.Run("Error handling", func(t *testing.T) {
 		// Test invalid payload
 		resp, err := client.Post(
-			fmt.Sprintf("%s/items", apiEndpoint),
+			apiEndpoint+"/items",
 			"application/json",
 			strings.NewReader("invalid json{"),
 		)
@@ -456,6 +449,7 @@ func isAWSConfigured() bool {
 	// Check environment variables
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" ||
 		os.Getenv("AWS_PROFILE") != "" {
+
 		return true
 	}
 
@@ -598,12 +592,12 @@ def lambda_handler(event, context):
 
 	// Write the Lambda handler
 	handlerPath := filepath.Join(dir, "app.py")
-	err := os.WriteFile(handlerPath, []byte(lambdaCode), 0644)
+	err := os.WriteFile(handlerPath, []byte(lambdaCode), 0o644)
 	require.NoError(t, err, "Failed to create Lambda handler")
 
 	// Create requirements.txt (empty for this simple example)
 	reqPath := filepath.Join(dir, "requirements.txt")
-	err = os.WriteFile(reqPath, []byte("# No external dependencies\n"), 0644)
+	err = os.WriteFile(reqPath, []byte("# No external dependencies\n"), 0o644)
 	require.NoError(t, err, "Failed to create requirements.txt")
 }
 
@@ -810,7 +804,7 @@ output "table_name" {
 
 	for filename, content := range files {
 		path := filepath.Join(infraDir, filename)
-		err := os.WriteFile(path, []byte(content), 0644)
+		err := os.WriteFile(path, []byte(content), 0o644)
 		require.NoError(t, err, "Failed to create %s", filename)
 	}
 }

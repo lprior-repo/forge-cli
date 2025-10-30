@@ -174,7 +174,7 @@ type Module struct {
 	Timeouts map[string]string `json:"timeouts,omitempty" hcl:"timeouts,attr"`
 }
 
-// Attribute represents a DynamoDB table attribute
+// Attribute represents a DynamoDB table attribute.
 type Attribute struct {
 	// Name of the attribute
 	Name string `json:"name" hcl:"name,attr"`
@@ -183,7 +183,7 @@ type Attribute struct {
 	Type string `json:"type" hcl:"type,attr"`
 }
 
-// GlobalSecondaryIndex represents a GSI configuration
+// GlobalSecondaryIndex represents a GSI configuration.
 type GlobalSecondaryIndex struct {
 	// Name of the GSI
 	Name string `json:"name" hcl:"name,attr"`
@@ -207,7 +207,7 @@ type GlobalSecondaryIndex struct {
 	ReadCapacity *int `json:"read_capacity,omitempty" hcl:"read_capacity,attr"`
 }
 
-// LocalSecondaryIndex represents an LSI configuration
+// LocalSecondaryIndex represents an LSI configuration.
 type LocalSecondaryIndex struct {
 	// Name of the LSI
 	Name string `json:"name" hcl:"name,attr"`
@@ -222,7 +222,7 @@ type LocalSecondaryIndex struct {
 	NonKeyAttributes []string `json:"non_key_attributes,omitempty" hcl:"non_key_attributes,attr"`
 }
 
-// ReplicaRegion represents a global table replica configuration
+// ReplicaRegion represents a global table replica configuration.
 type ReplicaRegion struct {
 	// RegionName for the replica
 	RegionName string `json:"region_name" hcl:"region_name,attr"`
@@ -237,7 +237,7 @@ type ReplicaRegion struct {
 	PointInTimeRecoveryEnabled *bool `json:"point_in_time_recovery,omitempty" hcl:"point_in_time_recovery,attr"`
 }
 
-// NewModule creates a new DynamoDB module with sensible defaults
+// NewModule creates a new DynamoDB module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/dynamodb-table/aws"
 	version := "~> 4.0"
@@ -264,21 +264,21 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithHashKey sets the partition key
+// WithHashKey sets the partition key.
 func (m *Module) WithHashKey(name, attrType string) *Module {
 	m.HashKey = &name
 	m.Attributes = append(m.Attributes, Attribute{Name: name, Type: attrType})
 	return m
 }
 
-// WithRangeKey sets the sort key
+// WithRangeKey sets the sort key.
 func (m *Module) WithRangeKey(name, attrType string) *Module {
 	m.RangeKey = &name
 	m.Attributes = append(m.Attributes, Attribute{Name: name, Type: attrType})
 	return m
 }
 
-// WithStreams enables DynamoDB Streams
+// WithStreams enables DynamoDB Streams.
 func (m *Module) WithStreams(viewType string) *Module {
 	enabled := true
 	m.StreamEnabled = &enabled
@@ -286,13 +286,13 @@ func (m *Module) WithStreams(viewType string) *Module {
 	return m
 }
 
-// WithGSI adds a Global Secondary Index
+// WithGSI adds a Global Secondary Index.
 func (m *Module) WithGSI(gsi GlobalSecondaryIndex) *Module {
 	m.GlobalSecondaryIndexes = append(m.GlobalSecondaryIndexes, gsi)
 	return m
 }
 
-// WithTTL enables Time To Live
+// WithTTL enables Time To Live.
 func (m *Module) WithTTL(attributeName string) *Module {
 	enabled := true
 	m.TTLEnabled = &enabled
@@ -300,7 +300,7 @@ func (m *Module) WithTTL(attributeName string) *Module {
 	return m
 }
 
-// WithEncryption configures KMS encryption
+// WithEncryption configures KMS encryption.
 func (m *Module) WithEncryption(kmsKeyARN string) *Module {
 	enabled := true
 	m.ServerSideEncryptionEnabled = &enabled
@@ -308,7 +308,7 @@ func (m *Module) WithEncryption(kmsKeyARN string) *Module {
 	return m
 }
 
-// WithProvisioned configures PROVISIONED billing mode
+// WithProvisioned configures PROVISIONED billing mode.
 func (m *Module) WithProvisioned(readCapacity, writeCapacity int) *Module {
 	mode := "PROVISIONED"
 	m.BillingMode = &mode
@@ -317,7 +317,7 @@ func (m *Module) WithProvisioned(readCapacity, writeCapacity int) *Module {
 	return m
 }
 
-// WithTags adds tags to the table
+// WithTags adds tags to the table.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -328,7 +328,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -336,7 +336,7 @@ func (m *Module) LocalName() string {
 	return "dynamodb_table"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

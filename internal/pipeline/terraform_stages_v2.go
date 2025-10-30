@@ -2,14 +2,14 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 
 	E "github.com/IBM/fp-go/either"
 )
 
-// ConventionTerraformInitV2 creates an event-based stage that initializes Terraform
-// PURE: Returns events as data instead of printing to console
+// PURE: Returns events as data instead of printing to console.
 func ConventionTerraformInitV2(exec TerraformExecutor) EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		infraDir := filepath.Join(s.ProjectDir, "infra")
@@ -33,8 +33,7 @@ func ConventionTerraformInitV2(exec TerraformExecutor) EventStage {
 	}
 }
 
-// ConventionTerraformPlanV2 creates an event-based stage that plans infrastructure
-// PURE: Returns events as data instead of printing to console
+// PURE: Returns events as data instead of printing to console.
 func ConventionTerraformPlanV2(exec TerraformExecutor, namespace string) EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		infraDir := filepath.Join(s.ProjectDir, "infra")
@@ -50,7 +49,7 @@ func ConventionTerraformPlanV2(exec TerraformExecutor, namespace string) EventSt
 			vars = map[string]string{
 				"namespace": namespace + "-",
 			}
-			events = append(events, NewEvent(EventLevelInfo, fmt.Sprintf("Deploying to namespace: %s", namespace)))
+			events = append(events, NewEvent(EventLevelInfo, "Deploying to namespace: "+namespace))
 		}
 
 		// Execute terraform plan (I/O)
@@ -72,13 +71,10 @@ func ConventionTerraformPlanV2(exec TerraformExecutor, namespace string) EventSt
 	}
 }
 
-// ApprovalFunc is a function that asks for user approval
-// Returns true if approved, false if canceled
+// Returns true if approved, false if canceled.
 type ApprovalFunc func() bool
 
-// ConventionTerraformApplyV2 creates an event-based stage that applies infrastructure
-// PURE: Returns events as data instead of printing to console
-// Takes an approval function to maintain purity - I/O happens at edges
+// Takes an approval function to maintain purity - I/O happens at edges.
 func ConventionTerraformApplyV2(exec TerraformExecutor, approvalFunc ApprovalFunc) EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		// Build events
@@ -86,7 +82,7 @@ func ConventionTerraformApplyV2(exec TerraformExecutor, approvalFunc ApprovalFun
 
 		// Request approval through function parameter (I/O at edge)
 		if approvalFunc != nil && !approvalFunc() {
-			return E.Left[StageResult](fmt.Errorf("deployment canceled by user"))
+			return E.Left[StageResult](errors.New("deployment canceled by user"))
 		}
 
 		events = append(events, NewEvent(EventLevelInfo, "==> Applying infrastructure changes..."))
@@ -107,8 +103,7 @@ func ConventionTerraformApplyV2(exec TerraformExecutor, approvalFunc ApprovalFun
 	}
 }
 
-// ConventionTerraformOutputsV2 creates an event-based stage that captures Terraform outputs
-// PURE: Returns events as data instead of printing to console
+// PURE: Returns events as data instead of printing to console.
 func ConventionTerraformOutputsV2(exec TerraformExecutor) EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		infraDir := filepath.Join(s.ProjectDir, "infra")

@@ -219,7 +219,7 @@ type Module struct {
 	SecretsManagerAllowedActions []string `json:"secrets_manager_allowed_actions,omitempty" hcl:"secrets_manager_allowed_actions,attr"`
 }
 
-// AuthenticationProvider represents an additional authentication provider
+// AuthenticationProvider represents an additional authentication provider.
 type AuthenticationProvider struct {
 	// AuthenticationType is the auth type
 	// Valid values: "API_KEY" | "AWS_IAM" | "AMAZON_COGNITO_USER_POOLS" | "OPENID_CONNECT" | "AWS_LAMBDA"
@@ -235,7 +235,7 @@ type AuthenticationProvider struct {
 	UserPoolConfig map[string]string `json:"user_pool_config,omitempty" hcl:"user_pool_config,attr"`
 }
 
-// DataSource represents an AppSync data source
+// DataSource represents an AppSync data source.
 type DataSource struct {
 	// Type is the data source type
 	// Valid values: "AWS_LAMBDA" | "AMAZON_DYNAMODB" | "AMAZON_ELASTICSEARCH" | "AMAZON_OPENSEARCH_SERVICE" |
@@ -270,78 +270,78 @@ type DataSource struct {
 	EventBridgeConfig *EventBridgeConfig `json:"eventbridge_config,omitempty" hcl:"eventbridge_config,attr"`
 }
 
-// LambdaConfig represents Lambda data source configuration
+// LambdaConfig represents Lambda data source configuration.
 type LambdaConfig struct {
 	FunctionARN string `json:"function_arn" hcl:"function_arn,attr"`
 }
 
-// DynamoDBConfig represents DynamoDB data source configuration
+// DynamoDBConfig represents DynamoDB data source configuration.
 type DynamoDBConfig struct {
-	TableName             string  `json:"table_name" hcl:"table_name,attr"`
-	Region                *string `json:"region,omitempty" hcl:"region,attr"`
-	UseCallerCredentials  *bool   `json:"use_caller_credentials,omitempty" hcl:"use_caller_credentials,attr"`
-	Versioned             *bool   `json:"versioned,omitempty" hcl:"versioned,attr"`
-	DeltaSyncConfig       *DeltaSyncConfig `json:"delta_sync_config,omitempty" hcl:"delta_sync_config,attr"`
+	TableName            string           `json:"table_name"                       hcl:"table_name,attr"`
+	Region               *string          `json:"region,omitempty"                 hcl:"region,attr"`
+	UseCallerCredentials *bool            `json:"use_caller_credentials,omitempty" hcl:"use_caller_credentials,attr"`
+	Versioned            *bool            `json:"versioned,omitempty"              hcl:"versioned,attr"`
+	DeltaSyncConfig      *DeltaSyncConfig `json:"delta_sync_config,omitempty"      hcl:"delta_sync_config,attr"`
 }
 
-// DeltaSyncConfig for DynamoDB delta sync
+// DeltaSyncConfig for DynamoDB delta sync.
 type DeltaSyncConfig struct {
-	DeltaSyncTableName       string  `json:"delta_sync_table_name" hcl:"delta_sync_table_name,attr"`
-	DeltaSyncTableTTL        *int    `json:"delta_sync_table_ttl,omitempty" hcl:"delta_sync_table_ttl,attr"`
-	BaseTableTTL             *int    `json:"base_table_ttl,omitempty" hcl:"base_table_ttl,attr"`
+	DeltaSyncTableName string `json:"delta_sync_table_name"          hcl:"delta_sync_table_name,attr"`
+	DeltaSyncTableTTL  *int   `json:"delta_sync_table_ttl,omitempty" hcl:"delta_sync_table_ttl,attr"`
+	BaseTableTTL       *int   `json:"base_table_ttl,omitempty"       hcl:"base_table_ttl,attr"`
 }
 
-// ElasticsearchConfig represents Elasticsearch data source configuration
+// ElasticsearchConfig represents Elasticsearch data source configuration.
 type ElasticsearchConfig struct {
-	Endpoint string  `json:"endpoint" hcl:"endpoint,attr"`
+	Endpoint string  `json:"endpoint"         hcl:"endpoint,attr"`
 	Region   *string `json:"region,omitempty" hcl:"region,attr"`
 }
 
-// OpenSearchServiceConfig represents OpenSearch data source configuration
+// OpenSearchServiceConfig represents OpenSearch data source configuration.
 type OpenSearchServiceConfig struct {
-	Endpoint string  `json:"endpoint" hcl:"endpoint,attr"`
+	Endpoint string  `json:"endpoint"         hcl:"endpoint,attr"`
 	Region   *string `json:"region,omitempty" hcl:"region,attr"`
 }
 
-// HTTPConfig represents HTTP data source configuration
+// HTTPConfig represents HTTP data source configuration.
 type HTTPConfig struct {
-	Endpoint           string          `json:"endpoint" hcl:"endpoint,attr"`
+	Endpoint            string               `json:"endpoint"                       hcl:"endpoint,attr"`
 	AuthorizationConfig *AuthorizationConfig `json:"authorization_config,omitempty" hcl:"authorization_config,attr"`
 }
 
-// AuthorizationConfig for HTTP endpoints
+// AuthorizationConfig for HTTP endpoints.
 type AuthorizationConfig struct {
-	AuthorizationType string            `json:"authorization_type" hcl:"authorization_type,attr"`
-	AWSIAMConfig      *AWSIAMConfig     `json:"aws_iam_config,omitempty" hcl:"aws_iam_config,attr"`
+	AuthorizationType string        `json:"authorization_type"       hcl:"authorization_type,attr"`
+	AWSIAMConfig      *AWSIAMConfig `json:"aws_iam_config,omitempty" hcl:"aws_iam_config,attr"`
 }
 
-// AWSIAMConfig for HTTP authorization
+// AWSIAMConfig for HTTP authorization.
 type AWSIAMConfig struct {
-	SigningRegion      string  `json:"signing_region" hcl:"signing_region,attr"`
-	SigningServiceName string  `json:"signing_service_name" hcl:"signing_service_name,attr"`
+	SigningRegion      string `json:"signing_region"       hcl:"signing_region,attr"`
+	SigningServiceName string `json:"signing_service_name" hcl:"signing_service_name,attr"`
 }
 
-// RelationalDatabaseConfig represents RDS data source configuration
+// RelationalDatabaseConfig represents RDS data source configuration.
 type RelationalDatabaseConfig struct {
-	HTTPEndpointConfig   *HTTPEndpointConfig   `json:"http_endpoint_config,omitempty" hcl:"http_endpoint_config,attr"`
-	SourceType           *string               `json:"source_type,omitempty" hcl:"source_type,attr"`
+	HTTPEndpointConfig *HTTPEndpointConfig `json:"http_endpoint_config,omitempty" hcl:"http_endpoint_config,attr"`
+	SourceType         *string             `json:"source_type,omitempty"          hcl:"source_type,attr"`
 }
 
-// HTTPEndpointConfig for RDS Data API
+// HTTPEndpointConfig for RDS Data API.
 type HTTPEndpointConfig struct {
-	DBClusterIdentifier string  `json:"db_cluster_identifier" hcl:"db_cluster_identifier,attr"`
-	AWSSecretStoreARN   string  `json:"aws_secret_store_arn" hcl:"aws_secret_store_arn,attr"`
+	DBClusterIdentifier string  `json:"db_cluster_identifier"   hcl:"db_cluster_identifier,attr"`
+	AWSSecretStoreARN   string  `json:"aws_secret_store_arn"    hcl:"aws_secret_store_arn,attr"`
 	DatabaseName        *string `json:"database_name,omitempty" hcl:"database_name,attr"`
-	Region              *string `json:"region,omitempty" hcl:"region,attr"`
-	Schema              *string `json:"schema,omitempty" hcl:"schema,attr"`
+	Region              *string `json:"region,omitempty"        hcl:"region,attr"`
+	Schema              *string `json:"schema,omitempty"        hcl:"schema,attr"`
 }
 
-// EventBridgeConfig represents EventBridge data source configuration
+// EventBridgeConfig represents EventBridge data source configuration.
 type EventBridgeConfig struct {
 	EventBusARN string `json:"event_bus_arn" hcl:"event_bus_arn,attr"`
 }
 
-// Resolver represents a GraphQL resolver
+// Resolver represents a GraphQL resolver.
 type Resolver struct {
 	// Type is the GraphQL type (Query, Mutation, Subscription, or custom type)
 	Type string `json:"type" hcl:"type,attr"`
@@ -378,24 +378,24 @@ type Resolver struct {
 	MaxBatchSize *int `json:"max_batch_size,omitempty" hcl:"max_batch_size,attr"`
 }
 
-// PipelineConfig for pipeline resolvers
+// PipelineConfig for pipeline resolvers.
 type PipelineConfig struct {
 	Functions []string `json:"functions" hcl:"functions,attr"`
 }
 
-// CachingConfig for resolver caching
+// CachingConfig for resolver caching.
 type CachingConfig struct {
-	TTL            *int     `json:"ttl,omitempty" hcl:"ttl,attr"`
-	CachingKeys    []string `json:"caching_keys,omitempty" hcl:"caching_keys,attr"`
+	TTL         *int     `json:"ttl,omitempty"          hcl:"ttl,attr"`
+	CachingKeys []string `json:"caching_keys,omitempty" hcl:"caching_keys,attr"`
 }
 
-// Runtime for JavaScript resolvers
+// Runtime for JavaScript resolvers.
 type Runtime struct {
-	Name            string `json:"name" hcl:"name,attr"`
-	RuntimeVersion  string `json:"runtime_version" hcl:"runtime_version,attr"`
+	Name           string `json:"name"            hcl:"name,attr"`
+	RuntimeVersion string `json:"runtime_version" hcl:"runtime_version,attr"`
 }
 
-// Function represents a pipeline function
+// Function represents a pipeline function.
 type Function struct {
 	// DataSource is the data source name
 	DataSource string `json:"data_source" hcl:"data_source,attr"`
@@ -419,7 +419,7 @@ type Function struct {
 	MaxBatchSize *int `json:"max_batch_size,omitempty" hcl:"max_batch_size,attr"`
 }
 
-// NewModule creates a new AppSync module with sensible defaults
+// NewModule creates a new AppSync module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/appsync/aws"
 	version := "~> 2.0"
@@ -441,13 +441,13 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithSchema sets the GraphQL schema
+// WithSchema sets the GraphQL schema.
 func (m *Module) WithSchema(schema string) *Module {
 	m.Schema = &schema
 	return m
 }
 
-// WithCognitoAuth configures Cognito User Pool authentication
+// WithCognitoAuth configures Cognito User Pool authentication.
 func (m *Module) WithCognitoAuth(userPoolID, awsRegion string) *Module {
 	authType := "AMAZON_COGNITO_USER_POOLS"
 	m.AuthenticationType = &authType
@@ -459,14 +459,14 @@ func (m *Module) WithCognitoAuth(userPoolID, awsRegion string) *Module {
 	return m
 }
 
-// WithIAMAuth configures AWS IAM authentication
+// WithIAMAuth configures AWS IAM authentication.
 func (m *Module) WithIAMAuth() *Module {
 	authType := "AWS_IAM"
 	m.AuthenticationType = &authType
 	return m
 }
 
-// WithLambdaAuth configures Lambda authorizer
+// WithLambdaAuth configures Lambda authorizer.
 func (m *Module) WithLambdaAuth(authorizerURI string, ttl int) *Module {
 	authType := "AWS_LAMBDA"
 	m.AuthenticationType = &authType
@@ -477,7 +477,7 @@ func (m *Module) WithLambdaAuth(authorizerURI string, ttl int) *Module {
 	return m
 }
 
-// WithLogging enables CloudWatch logging
+// WithLogging enables CloudWatch logging.
 func (m *Module) WithLogging(logLevel string, excludeVerbose bool) *Module {
 	enabled := true
 	m.LoggingEnabled = &enabled
@@ -486,14 +486,14 @@ func (m *Module) WithLogging(logLevel string, excludeVerbose bool) *Module {
 	return m
 }
 
-// WithXRayTracing enables X-Ray tracing
+// WithXRayTracing enables X-Ray tracing.
 func (m *Module) WithXRayTracing() *Module {
 	enabled := true
 	m.XRayEnabled = &enabled
 	return m
 }
 
-// WithCaching enables API caching
+// WithCaching enables API caching.
 func (m *Module) WithCaching(cacheType string, ttl int, atRestEncryption, transitEncryption bool) *Module {
 	enabled := true
 	m.CachingEnabled = &enabled
@@ -504,7 +504,7 @@ func (m *Module) WithCaching(cacheType string, ttl int, atRestEncryption, transi
 	return m
 }
 
-// WithDomainName associates a custom domain
+// WithDomainName associates a custom domain.
 func (m *Module) WithDomainName(domainName, certificateARN string) *Module {
 	enabled := true
 	m.DomainNameAssociationEnabled = &enabled
@@ -513,7 +513,7 @@ func (m *Module) WithDomainName(domainName, certificateARN string) *Module {
 	return m
 }
 
-// WithAPIKey adds an API key
+// WithAPIKey adds an API key.
 func (m *Module) WithAPIKey(name, description string) *Module {
 	if m.APIKeys == nil {
 		m.APIKeys = make(map[string]string)
@@ -522,7 +522,7 @@ func (m *Module) WithAPIKey(name, description string) *Module {
 	return m
 }
 
-// WithDataSource adds a data source
+// WithDataSource adds a data source.
 func (m *Module) WithDataSource(name string, ds DataSource) *Module {
 	if m.DataSources == nil {
 		m.DataSources = make(map[string]DataSource)
@@ -531,7 +531,7 @@ func (m *Module) WithDataSource(name string, ds DataSource) *Module {
 	return m
 }
 
-// WithLambdaDataSource adds a Lambda data source
+// WithLambdaDataSource adds a Lambda data source.
 func (m *Module) WithLambdaDataSource(name, functionARN string) *Module {
 	ds := DataSource{
 		Type: "AWS_LAMBDA",
@@ -542,7 +542,7 @@ func (m *Module) WithLambdaDataSource(name, functionARN string) *Module {
 	return m.WithDataSource(name, ds)
 }
 
-// WithDynamoDBDataSource adds a DynamoDB data source
+// WithDynamoDBDataSource adds a DynamoDB data source.
 func (m *Module) WithDynamoDBDataSource(name, tableName string) *Module {
 	ds := DataSource{
 		Type: "AMAZON_DYNAMODB",
@@ -553,7 +553,7 @@ func (m *Module) WithDynamoDBDataSource(name, tableName string) *Module {
 	return m.WithDataSource(name, ds)
 }
 
-// WithResolver adds a resolver
+// WithResolver adds a resolver.
 func (m *Module) WithResolver(name string, resolver Resolver) *Module {
 	if m.Resolvers == nil {
 		m.Resolvers = make(map[string]Resolver)
@@ -562,7 +562,7 @@ func (m *Module) WithResolver(name string, resolver Resolver) *Module {
 	return m
 }
 
-// WithFunction adds a pipeline function
+// WithFunction adds a pipeline function.
 func (m *Module) WithFunction(name string, fn Function) *Module {
 	if m.Functions == nil {
 		m.Functions = make(map[string]Function)
@@ -571,7 +571,7 @@ func (m *Module) WithFunction(name string, fn Function) *Module {
 	return m
 }
 
-// WithTags adds tags to the GraphQL API
+// WithTags adds tags to the GraphQL API.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -582,7 +582,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -590,7 +590,7 @@ func (m *Module) LocalName() string {
 	return "graphql_api"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

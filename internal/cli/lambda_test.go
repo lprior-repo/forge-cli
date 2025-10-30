@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestNewLambdaCmd tests lambda command creation
+// TestNewLambdaCmd tests lambda command creation.
 func TestNewLambdaCmd(t *testing.T) {
 	t.Run("creates lambda command", func(t *testing.T) {
 		cmd := NewLambdaCmd()
@@ -46,7 +46,7 @@ func TestNewLambdaCmd(t *testing.T) {
 	})
 }
 
-// TestCreatePythonLambda tests Python Lambda project creation
+// TestCreatePythonLambda tests Python Lambda project creation.
 func TestCreatePythonLambda(t *testing.T) {
 	t.Run("creates Python Lambda project structure", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -142,7 +142,7 @@ func TestCreatePythonLambda(t *testing.T) {
 	})
 }
 
-// TestCreateLambdaProject tests Lambda project orchestration
+// TestCreateLambdaProject tests Lambda project orchestration.
 func TestCreateLambdaProject(t *testing.T) {
 	t.Run("creates Python Lambda project", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -228,7 +228,7 @@ func TestCreateLambdaProject(t *testing.T) {
 
 		// Create directory first
 		projectDir := filepath.Join(tmpDir, "existing-project")
-		require.NoError(t, os.MkdirAll(projectDir, 0755))
+		require.NoError(t, os.MkdirAll(projectDir, 0o755))
 
 		opts := LambdaProjectOptions{
 			Runtime:      "python",
@@ -303,7 +303,7 @@ func TestCreateLambdaProject(t *testing.T) {
 	})
 }
 
-// TestLambdaCmdExecution tests command execution with various flags
+// TestLambdaCmdExecution tests command execution with various flags.
 func TestLambdaCmdExecution(t *testing.T) {
 	t.Run("executes with Python runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -471,7 +471,7 @@ func TestLambdaCmdExecution(t *testing.T) {
 	})
 }
 
-// TestLambdaCmdFlags tests all flag configurations
+// TestLambdaCmdFlags tests all flag configurations.
 func TestLambdaCmdFlags(t *testing.T) {
 	t.Run("has all required flags", func(t *testing.T) {
 		cmd := NewLambdaCmd()

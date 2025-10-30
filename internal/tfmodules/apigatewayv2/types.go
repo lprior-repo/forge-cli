@@ -143,7 +143,7 @@ type Module struct {
 	VPCLinks map[string]VPCLink `json:"vpc_links,omitempty" hcl:"vpc_links,attr"`
 }
 
-// CORSConfiguration represents CORS settings for HTTP APIs
+// CORSConfiguration represents CORS settings for HTTP APIs.
 type CORSConfiguration struct {
 	// AllowCredentials allows credentials
 	AllowCredentials *bool `json:"allow_credentials,omitempty" hcl:"allow_credentials,attr"`
@@ -164,7 +164,7 @@ type CORSConfiguration struct {
 	MaxAge *int `json:"max_age,omitempty" hcl:"max_age,attr"`
 }
 
-// Authorizer represents an API Gateway authorizer
+// Authorizer represents an API Gateway authorizer.
 type Authorizer struct {
 	// Name is the authorizer name
 	Name *string `json:"name,omitempty" hcl:"name,attr"`
@@ -195,7 +195,7 @@ type Authorizer struct {
 	JWTConfiguration *JWTConfiguration `json:"jwt_configuration,omitempty" hcl:"jwt_configuration,attr"`
 }
 
-// JWTConfiguration represents JWT authorizer configuration
+// JWTConfiguration represents JWT authorizer configuration.
 type JWTConfiguration struct {
 	// Audience is the list of allowed audiences
 	Audience []string `json:"audience,omitempty" hcl:"audience,attr"`
@@ -204,7 +204,7 @@ type JWTConfiguration struct {
 	Issuer *string `json:"issuer,omitempty" hcl:"issuer,attr"`
 }
 
-// MutualTLSAuthentication represents mTLS configuration
+// MutualTLSAuthentication represents mTLS configuration.
 type MutualTLSAuthentication struct {
 	// TruststoreURI is the S3 URI of the truststore
 	TruststoreURI string `json:"truststore_uri" hcl:"truststore_uri,attr"`
@@ -213,7 +213,7 @@ type MutualTLSAuthentication struct {
 	TruststoreVersion *string `json:"truststore_version,omitempty" hcl:"truststore_version,attr"`
 }
 
-// Stage represents an API Gateway stage
+// Stage represents an API Gateway stage.
 type Stage struct {
 	// Name is the stage name
 	Name *string `json:"name,omitempty" hcl:"name,attr"`
@@ -240,7 +240,7 @@ type Stage struct {
 	Tags map[string]string `json:"tags,omitempty" hcl:"tags,attr"`
 }
 
-// RouteSettings represents route-level settings
+// RouteSettings represents route-level settings.
 type RouteSettings struct {
 	// DataTraceEnabled enables data trace logging
 	DataTraceEnabled *bool `json:"data_trace_enabled,omitempty" hcl:"data_trace_enabled,attr"`
@@ -259,7 +259,7 @@ type RouteSettings struct {
 	ThrottlingRateLimit *float64 `json:"throttling_rate_limit,omitempty" hcl:"throttling_rate_limit,attr"`
 }
 
-// AccessLogSettings represents access logging configuration
+// AccessLogSettings represents access logging configuration.
 type AccessLogSettings struct {
 	// DestinationARN is the CloudWatch Logs group or Kinesis Data Firehose ARN
 	DestinationARN string `json:"destination_arn" hcl:"destination_arn,attr"`
@@ -268,7 +268,7 @@ type AccessLogSettings struct {
 	Format string `json:"format" hcl:"format,attr"`
 }
 
-// ThrottleSettings represents throttling configuration
+// ThrottleSettings represents throttling configuration.
 type ThrottleSettings struct {
 	// BurstLimit is the burst limit
 	BurstLimit *int `json:"burst_limit,omitempty" hcl:"burst_limit,attr"`
@@ -277,7 +277,7 @@ type ThrottleSettings struct {
 	RateLimit *float64 `json:"rate_limit,omitempty" hcl:"rate_limit,attr"`
 }
 
-// Route represents an API Gateway route
+// Route represents an API Gateway route.
 type Route struct {
 	// RouteKey is the route key
 	RouteKey string `json:"route_key" hcl:"route_key,attr"`
@@ -299,7 +299,7 @@ type Route struct {
 	OperationName *string `json:"operation_name,omitempty" hcl:"operation_name,attr"`
 }
 
-// Integration represents an API Gateway integration
+// Integration represents an API Gateway integration.
 type Integration struct {
 	// IntegrationType is the type of integration
 	// Valid values: "AWS" | "AWS_PROXY" | "HTTP" | "HTTP_PROXY" | "MOCK"
@@ -325,7 +325,7 @@ type Integration struct {
 	TimeoutMilliseconds *int `json:"timeout_milliseconds,omitempty" hcl:"timeout_milliseconds,attr"`
 }
 
-// VPCLink represents a VPC link
+// VPCLink represents a VPC link.
 type VPCLink struct {
 	// Name is the VPC link name
 	Name string `json:"name" hcl:"name,attr"`
@@ -340,7 +340,7 @@ type VPCLink struct {
 	Tags map[string]string `json:"tags,omitempty" hcl:"tags,attr"`
 }
 
-// NewModule creates a new API Gateway V2 module with sensible defaults
+// NewModule creates a new API Gateway V2 module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/apigateway-v2/aws"
 	version := "~> 5.0"
@@ -362,7 +362,7 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithCORS configures CORS for HTTP APIs
+// WithCORS configures CORS for HTTP APIs.
 func (m *Module) WithCORS(allowOrigins, allowMethods, allowHeaders []string) *Module {
 	m.CORSConfiguration = &CORSConfiguration{
 		AllowOrigins: allowOrigins,
@@ -372,7 +372,7 @@ func (m *Module) WithCORS(allowOrigins, allowMethods, allowHeaders []string) *Mo
 	return m
 }
 
-// WithDomainName configures custom domain
+// WithDomainName configures custom domain.
 func (m *Module) WithDomainName(domain, certificateARN string) *Module {
 	createDomain := true
 	m.CreateDomainName = &createDomain
@@ -381,7 +381,7 @@ func (m *Module) WithDomainName(domain, certificateARN string) *Module {
 	return m
 }
 
-// WithJWTAuthorizer adds a JWT authorizer
+// WithJWTAuthorizer adds a JWT authorizer.
 func (m *Module) WithJWTAuthorizer(name, issuer string, audience []string) *Module {
 	if m.Authorizers == nil {
 		m.Authorizers = make(map[string]Authorizer)
@@ -398,7 +398,7 @@ func (m *Module) WithJWTAuthorizer(name, issuer string, audience []string) *Modu
 	return m
 }
 
-// WithLambdaAuthorizer adds a Lambda authorizer
+// WithLambdaAuthorizer adds a Lambda authorizer.
 func (m *Module) WithLambdaAuthorizer(name, lambdaURI string, identitySources []string) *Module {
 	if m.Authorizers == nil {
 		m.Authorizers = make(map[string]Authorizer)
@@ -413,7 +413,7 @@ func (m *Module) WithLambdaAuthorizer(name, lambdaURI string, identitySources []
 	return m
 }
 
-// WithRoute adds a route
+// WithRoute adds a route.
 func (m *Module) WithRoute(key string, route Route) *Module {
 	if m.Routes == nil {
 		m.Routes = make(map[string]Route)
@@ -422,7 +422,7 @@ func (m *Module) WithRoute(key string, route Route) *Module {
 	return m
 }
 
-// WithIntegration adds an integration
+// WithIntegration adds an integration.
 func (m *Module) WithIntegration(key string, integration Integration) *Module {
 	if m.Integrations == nil {
 		m.Integrations = make(map[string]Integration)
@@ -431,7 +431,7 @@ func (m *Module) WithIntegration(key string, integration Integration) *Module {
 	return m
 }
 
-// WithTags adds tags to the API
+// WithTags adds tags to the API.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -442,7 +442,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -450,8 +450,8 @@ func (m *Module) LocalName() string {
 	return "api_gateway"
 }
 
-// Configuration generates the HCL configuration for this module
-func (m *Module) Configuration() (string, error) {
+// Configuration generates the HCL configuration for this module.
+func (_ *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil
 }

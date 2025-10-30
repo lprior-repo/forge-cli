@@ -4,25 +4,27 @@
 package discovery
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	E "github.com/IBM/fp-go/either"
+
 	"github.com/lewis/forge/internal/build"
 )
 
 const (
-	// RuntimeGo is the Go Lambda runtime (provided.al2023)
+	// RuntimeGo is the Go Lambda runtime (provided.al2023).
 	RuntimeGo = "provided.al2023"
-	// RuntimeNode is the Node.js Lambda runtime
+	// RuntimeNode is the Node.js Lambda runtime.
 	RuntimeNode = "nodejs20.x"
-	// RuntimePython is the Python Lambda runtime
+	// RuntimePython is the Python Lambda runtime.
 	RuntimePython = "python3.13"
 )
 
-// Function represents a discovered Lambda function
+// Function represents a discovered Lambda function.
 type Function struct {
 	Name       string // Function name (directory name)
 	Path       string // Absolute path to function source
@@ -30,14 +32,13 @@ type Function struct {
 	EntryPoint string // Entry file (main.go, index.js, app.py, etc.)
 }
 
-// ScanFunctions discovers all functions in src/functions/*
-// Pure functional approach - no methods, no state
+// Pure functional approach - no methods, no state.
 func ScanFunctions(projectRoot string) ([]Function, error) {
 	functionsDir := filepath.Join(projectRoot, "src", "functions")
 
 	// Check if functions directory exists
 	if _, err := os.Stat(functionsDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("src/functions directory not found")
+		return nil, errors.New("src/functions directory not found")
 	}
 
 	// Read all subdirectories
@@ -72,8 +73,7 @@ func ScanFunctions(projectRoot string) ([]Function, error) {
 	return functions, nil
 }
 
-// detectRuntime determines the runtime by checking for entry point files
-// Pure function - no methods, takes path as parameter
+// Pure function - no methods, takes path as parameter.
 func detectRuntime(functionPath string) (string, string, error) {
 	// Go: main.go or *.go files
 	if fileExists(functionPath, "main.go") {
@@ -105,19 +105,17 @@ func detectRuntime(functionPath string) (string, string, error) {
 		return RuntimePython, "handler.py", nil
 	}
 
-	return "", "", fmt.Errorf("no recognized entry point found")
+	return "", "", errors.New("no recognized entry point found")
 }
 
-// fileExists checks if a file exists in the given directory
-// Pure function - no methods
+// Pure function - no methods.
 func fileExists(dir, filename string) bool {
 	path := filepath.Join(dir, filename)
 	_, err := os.Stat(path)
 	return err == nil
 }
 
-// hasGoFiles checks if directory contains any .go files
-// Pure function - no methods
+// Pure function - no methods.
 func hasGoFiles(dir string) bool {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -132,28 +130,26 @@ func hasGoFiles(dir string) bool {
 	return false
 }
 
-// ToBuildConfig converts a Function to a build.Config with validation
-// Returns Either for error handling - validates inputs before creating config
-// PURE: Calculation with validation
+// PURE: Calculation with validation.
 func ToBuildConfig(f Function, buildDir string) E.Either[error, build.Config] {
 	// Validate function name
 	if f.Name == "" {
-		return E.Left[build.Config](fmt.Errorf("function name cannot be empty"))
+		return E.Left[build.Config](errors.New("function name cannot be empty"))
 	}
 
 	// Validate runtime
 	if f.Runtime == "" {
-		return E.Left[build.Config](fmt.Errorf("function runtime cannot be empty"))
+		return E.Left[build.Config](errors.New("function runtime cannot be empty"))
 	}
 
 	// Validate path
 	if f.Path == "" {
-		return E.Left[build.Config](fmt.Errorf("function path cannot be empty"))
+		return E.Left[build.Config](errors.New("function path cannot be empty"))
 	}
 
 	// Validate buildDir
 	if buildDir == "" {
-		return E.Left[build.Config](fmt.Errorf("build directory cannot be empty"))
+		return E.Left[build.Config](errors.New("build directory cannot be empty"))
 	}
 
 	outputPath := filepath.Join(buildDir, f.Name+".zip")
@@ -170,8 +166,7 @@ func ToBuildConfig(f Function, buildDir string) E.Either[error, build.Config] {
 	})
 }
 
-// determineHandler determines the Lambda handler based on runtime
-// PURE: Calculation - safe string matching
+// PURE: Calculation - safe string matching.
 func determineHandler(runtime string) string {
 	switch {
 	case strings.HasPrefix(runtime, "nodejs"):

@@ -15,7 +15,7 @@ import (
 // TestBuildFuncSignature tests that BuildFunc has correct type.
 func TestBuildFuncSignature(t *testing.T) {
 	t.Run("BuildFunc accepts context and config", func(t *testing.T) {
-		var buildFunc BuildFunc = func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		buildFunc := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			return E.Right[error](Artifact{Path: "/tmp/test"})
 		}
 
@@ -24,7 +24,7 @@ func TestBuildFuncSignature(t *testing.T) {
 	})
 
 	t.Run("BuildFunc can return error via Left", func(t *testing.T) {
-		var buildFunc BuildFunc = func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		buildFunc := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			return E.Left[Artifact](errors.New("build failed"))
 		}
 
@@ -61,7 +61,7 @@ func TestRegistry(t *testing.T) {
 	t.Run("can add custom builder to registry", func(t *testing.T) {
 		registry := NewRegistry()
 
-		customBuilder := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		customBuilder := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			return E.Right[error](Artifact{Path: "/custom"})
 		}
 
@@ -76,7 +76,7 @@ func TestRegistry(t *testing.T) {
 func TestWithCache(t *testing.T) {
 	t.Run("caches successful builds", func(t *testing.T) {
 		callCount := 0
-		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			callCount++
 			return E.Right[error](Artifact{Path: fmt.Sprintf("/build-%d", callCount)})
 		}
@@ -99,7 +99,7 @@ func TestWithCache(t *testing.T) {
 
 	t.Run("does not cache failures", func(t *testing.T) {
 		callCount := 0
-		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			callCount++
 			return E.Left[Artifact](errors.New("build failed"))
 		}
@@ -159,7 +159,7 @@ func TestWithLogging(t *testing.T) {
 			},
 		}
 
-		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			return E.Right[error](Artifact{Path: "/test"})
 		}
 
@@ -181,7 +181,7 @@ func TestWithLogging(t *testing.T) {
 			},
 		}
 
-		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			return E.Left[Artifact](errors.New("build failed"))
 		}
 
@@ -198,7 +198,7 @@ func TestCompose(t *testing.T) {
 		callCount := 0
 		var logs []string
 
-		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			callCount++
 			return E.Right[error](Artifact{Path: "/test"})
 		}
@@ -236,7 +236,7 @@ func TestCompose(t *testing.T) {
 		// When logging wraps cache: Logging → Cache → Build
 
 		callCount := 0
-		mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+		mockBuild := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 			callCount++
 			return E.Right[error](Artifact{Path: "/test"})
 		}
@@ -300,7 +300,7 @@ func TestBuildAll(t *testing.T) {
 
 	t.Run("fails if any build fails", func(t *testing.T) {
 		registry := Registry{
-			"go1.x": func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+			"go1.x": func(_ context.Context, _ Config) E.Either[error, Artifact] {
 				return E.Left[Artifact](errors.New("go build failed"))
 			},
 		}
@@ -329,9 +329,15 @@ func TestBuildAll(t *testing.T) {
 
 // Mock implementations for testing.
 
+// mockLogger is a mock logger implementation for testing.
 type mockLogger struct {
 	infoFn  func(_ string, _ ...interface{})
 	errorFn func(_ string, _ ...interface{})
+}
+
+// MemoryCache is a simple in-memory cache for testing.
+type MemoryCache struct {
+	cache map[string]Artifact
 }
 
 func (m *mockLogger) Info(msg string, _args ...interface{}) {
@@ -344,11 +350,6 @@ func (m *mockLogger) Error(msg string, _args ...interface{}) {
 	if m.errorFn != nil {
 		m.errorFn(msg, _args...)
 	}
-}
-
-// MemoryCache is a simple in-memory cache for testing.
-type MemoryCache struct {
-	cache map[string]Artifact
 }
 
 func NewMemoryCache() *MemoryCache {
@@ -370,7 +371,7 @@ func (c *MemoryCache) Set(cfg Config, artifact Artifact) {
 
 // BenchmarkBuildFunctions benchmarks different build patterns.
 func BenchmarkBuildFunctions(b *testing.B) {
-	mockBuild := func(_ context.Context, cfg Config) E.Either[error, Artifact] {
+	mockBuild := func(_ context.Context, _ Config) E.Either[error, Artifact] {
 		return E.Right[error](Artifact{Path: "/test"})
 	}
 

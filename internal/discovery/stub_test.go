@@ -21,7 +21,7 @@ func TestCreateStubZip(t *testing.T) {
 		// Verify file exists
 		info, err := os.Stat(outputPath)
 		require.NoError(t, err)
-		assert.Greater(t, info.Size(), int64(0), "stub zip should not be empty")
+		assert.Positive(t, info.Size(), "stub zip should not be empty")
 
 		// Verify it's a valid zip file
 		reader, err := zip.OpenReader(outputPath)
@@ -29,7 +29,7 @@ func TestCreateStubZip(t *testing.T) {
 		defer reader.Close()
 
 		// Should have no files but be valid
-		assert.Equal(t, 0, len(reader.File))
+		assert.Empty(t, reader.File)
 		assert.Equal(t, "Forge stub - will be replaced by actual build", reader.Comment)
 	})
 
@@ -50,7 +50,7 @@ func TestCreateStubZip(t *testing.T) {
 		outputPath := filepath.Join(tmpDir, "test.zip")
 
 		// Create initial file
-		require.NoError(t, os.WriteFile(outputPath, []byte("old content"), 0644))
+		require.NoError(t, os.WriteFile(outputPath, []byte("old content"), 0o644))
 
 		// Create stub (should overwrite)
 		err := CreateStubZip(outputPath)
@@ -66,7 +66,7 @@ func TestCreateStubZip(t *testing.T) {
 		// Use a path that cannot be created (parent is a file, not a directory)
 		tmpDir := t.TempDir()
 		filePath := filepath.Join(tmpDir, "file.txt")
-		require.NoError(t, os.WriteFile(filePath, []byte("content"), 0644))
+		require.NoError(t, os.WriteFile(filePath, []byte("content"), 0o644))
 
 		// Try to create a zip inside the file (should fail)
 		outputPath := filepath.Join(filePath, "test.zip")
@@ -82,11 +82,11 @@ func TestCreateStubZip(t *testing.T) {
 
 		tmpDir := t.TempDir()
 		parentDir := filepath.Join(tmpDir, "readonly")
-		require.NoError(t, os.Mkdir(parentDir, 0755))
+		require.NoError(t, os.Mkdir(parentDir, 0o755))
 
 		// Make directory read-only
-		require.NoError(t, os.Chmod(parentDir, 0444))
-		defer os.Chmod(parentDir, 0755) // Cleanup
+		require.NoError(t, os.Chmod(parentDir, 0o444))
+		defer os.Chmod(parentDir, 0o755) // Cleanup
 
 		outputPath := filepath.Join(parentDir, "test.zip")
 		err := CreateStubZip(outputPath)
@@ -115,18 +115,18 @@ func TestCreateStubZips(t *testing.T) {
 			stubPath := filepath.Join(buildDir, fn.Name+".zip")
 			info, err := os.Stat(stubPath)
 			require.NoError(t, err)
-			assert.Greater(t, info.Size(), int64(0))
+			assert.Positive(t, info.Size())
 		}
 	})
 
 	t.Run("skips existing files", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		buildDir := filepath.Join(tmpDir, ".forge/build")
-		require.NoError(t, os.MkdirAll(buildDir, 0755))
+		require.NoError(t, os.MkdirAll(buildDir, 0o755))
 
 		// Create one existing file
 		existingPath := filepath.Join(buildDir, "api.zip")
-		require.NoError(t, os.WriteFile(existingPath, []byte("existing"), 0644))
+		require.NoError(t, os.WriteFile(existingPath, []byte("existing"), 0o644))
 
 		functions := []Function{
 			{Name: "api", Runtime: "provided.al2023"},
@@ -183,7 +183,7 @@ func TestCreateStubZips(t *testing.T) {
 		tmpDir := t.TempDir()
 		// Create a file where we need a directory
 		buildDirPath := filepath.Join(tmpDir, "build")
-		require.NoError(t, os.WriteFile(buildDirPath, []byte("not a dir"), 0644))
+		require.NoError(t, os.WriteFile(buildDirPath, []byte("not a dir"), 0o644))
 
 		functions := []Function{
 			{Name: "api", Runtime: "provided.al2023"},

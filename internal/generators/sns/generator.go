@@ -4,22 +4,24 @@ package sns
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	E "github.com/IBM/fp-go/either"
+
 	"github.com/lewis/forge/internal/generators"
 )
 
-// Generator implements generators.Generator for SNS topics
+// Generator implements generators.Generator for SNS topics.
 type Generator struct{}
 
-// New creates a new SNS generator
+// New creates a new SNS generator.
 func New() *Generator {
 	return &Generator{}
 }
 
-// Prompt gathers configuration from user (I/O ACTION)
+// Prompt gathers configuration from user (I/O ACTION).
 func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent, state generators.ProjectState) E.Either[error, generators.ResourceConfig] {
 	// For MVP, use sensible defaults
 	// In Phase 3, this will launch interactive TUI
@@ -29,12 +31,12 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 		Name:   intent.Name,
 		Module: intent.UseModule,
 		Variables: map[string]interface{}{
-			"display_name":           intent.Name,
-			"fifo_topic":             false,
+			"display_name":                intent.Name,
+			"fifo_topic":                  false,
 			"content_based_deduplication": false,
-			"kms_master_key_id":      "", // Use default AWS managed key
-			"delivery_policy":        "",
-			"create_topic_policy":    false,
+			"kms_master_key_id":           "", // Use default AWS managed key
+			"delivery_policy":             "",
+			"create_topic_policy":         false,
 		},
 	}
 
@@ -61,8 +63,7 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 				},
 			},
 			EnvVars: map[string]string{
-				fmt.Sprintf("%s_TOPIC_ARN", strings.ToUpper(sanitizeName(intent.Name))):
-					fmt.Sprintf("module.%s.topic_arn", sanitizeName(intent.Name)),
+				strings.ToUpper(sanitizeName(intent.Name)) + "_TOPIC_ARN": fmt.Sprintf("module.%s.topic_arn", sanitizeName(intent.Name)),
 			},
 		}
 	}
@@ -70,7 +71,7 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 	return E.Right[error](config)
 }
 
-// Generate creates Terraform code from configuration (PURE CALCULATION)
+// Generate creates Terraform code from configuration (PURE CALCULATION).
 func (g *Generator) Generate(config generators.ResourceConfig, state generators.ProjectState) E.Either[error, generators.GeneratedCode] {
 	// Validate first, then chain generation - automatic error short-circuiting
 	return E.Chain(func(validConfig generators.ResourceConfig) E.Either[error, generators.GeneratedCode] {
@@ -114,30 +115,30 @@ func (g *Generator) Generate(config generators.ResourceConfig, state generators.
 	})(g.Validate(config))
 }
 
-// Validate checks if configuration is valid (PURE CALCULATION)
+// Validate checks if configuration is valid (PURE CALCULATION).
 func (g *Generator) Validate(config generators.ResourceConfig) E.Either[error, generators.ResourceConfig] {
 	if config.Name == "" {
 		return E.Left[generators.ResourceConfig](
-			fmt.Errorf("topic name is required"),
+			errors.New("topic name is required"),
 		)
 	}
 
 	if !isValidName(config.Name) {
 		return E.Left[generators.ResourceConfig](
-			fmt.Errorf("topic name must be alphanumeric with hyphens/underscores"),
+			errors.New("topic name must be alphanumeric with hyphens/underscores"),
 		)
 	}
 
 	return E.Right[error](config)
 }
 
-// generateModuleCode creates Terraform module code (PURE)
+// generateModuleCode creates Terraform module code (PURE).
 func generateModuleCode(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 	topicName := config.Name
 
-	displayName := config.Variables["display_name"].(string)
-	fifoTopic := config.Variables["fifo_topic"].(bool)
+	displayName, _ := config.Variables["display_name"].(string)
+	fifoTopic, _ := config.Variables["fifo_topic"].(bool)
 
 	var parts []string
 
@@ -175,13 +176,13 @@ func generateModuleCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateRawResourceCode creates raw Terraform resource code (PURE)
+// generateRawResourceCode creates raw Terraform resource code (PURE).
 func generateRawResourceCode(config generators.ResourceConfig) string {
 	resourceName := sanitizeName(config.Name)
 	topicName := config.Name
 
-	displayName := config.Variables["display_name"].(string)
-	fifoTopic := config.Variables["fifo_topic"].(bool)
+	displayName, _ := config.Variables["display_name"].(string)
+	fifoTopic, _ := config.Variables["fifo_topic"].(bool)
 
 	var parts []string
 
@@ -215,7 +216,7 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateOutputs creates Terraform outputs (PURE)
+// generateOutputs creates Terraform outputs (PURE).
 func generateOutputs(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 
@@ -249,7 +250,7 @@ func generateOutputs(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// generateIntegrationCode creates Lambda subscription and IAM policy (PURE)
+// generateIntegrationCode creates Lambda subscription and IAM policy (PURE).
 func generateIntegrationCode(config generators.ResourceConfig) string {
 	if config.Integration == nil {
 		return ""
@@ -277,7 +278,7 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 	parts = append(parts, "")
 
 	// Lambda permission for SNS to invoke function
-	parts = append(parts, fmt.Sprintf("# Permission for SNS to invoke %s", functionName))
+	parts = append(parts, "# Permission for SNS to invoke "+functionName)
 	parts = append(parts, fmt.Sprintf("resource \"aws_lambda_permission\" \"%s_sns_%s\" {",
 		functionName, topicName))
 	parts = append(parts, "  statement_id  = \"AllowExecutionFromSNS\"")
@@ -320,7 +321,7 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 		}
 
 		parts = append(parts, "        ]")
-		parts = append(parts, fmt.Sprintf("        Resource = %s", perm.Resources[0]))
+		parts = append(parts, "        Resource = "+perm.Resources[0])
 		parts = append(parts, "      }")
 		parts = append(parts, "    ]")
 		parts = append(parts, "  })}")
@@ -339,13 +340,13 @@ func generateIntegrationCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
-// sanitizeName converts a name to a valid Terraform identifier (PURE)
+// sanitizeName converts a name to a valid Terraform identifier (PURE).
 func sanitizeName(name string) string {
 	// Replace hyphens with underscores for Terraform identifiers
 	return strings.ReplaceAll(name, "-", "_")
 }
 
-// isValidName checks if a name is valid (PURE)
+// isValidName checks if a name is valid (PURE).
 func isValidName(name string) bool {
 	if len(name) == 0 {
 		return false
@@ -354,6 +355,7 @@ func isValidName(name string) bool {
 	for _, r := range name {
 		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
 			(r >= '0' && r <= '9') || r == '-' || r == '_') {
+
 			return false
 		}
 	}

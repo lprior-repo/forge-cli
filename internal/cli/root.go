@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	// Global flags
+	// Global flags.
 	verbose bool
 	region  string
 )
 
-// NewRootCmd creates the root command
+// NewRootCmd creates the root command.
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "forge",
@@ -81,7 +81,7 @@ Forge combines the power of Terraform with zero-config Lambda workflows.
 	return cmd
 }
 
-// Execute runs the root command
+// Execute runs the root command.
 func Execute() {
 	cmd := NewRootCmd()
 	if err := cmd.Execute(); err != nil {

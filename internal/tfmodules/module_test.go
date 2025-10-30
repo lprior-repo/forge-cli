@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockModule is a test implementation of the Module interface
+// MockModule is a test implementation of the Module interface.
 type MockModule struct {
 	name   string
 	config string
@@ -22,7 +22,7 @@ func (m *MockModule) Configuration() (string, error) {
 	return m.config, m.err
 }
 
-// MockValidator is a test module that implements Validator
+// MockValidator is a test module that implements Validator.
 type MockValidator struct {
 	MockModule
 	validateErr error
@@ -589,14 +589,14 @@ func TestValidator_Interface(t *testing.T) {
 	})
 }
 
-// BenchmarkNewStack benchmarks stack creation
+// BenchmarkNewStack benchmarks stack creation.
 func BenchmarkNewStack(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewStack("bench-stack")
 	}
 }
 
-// BenchmarkStackAddModule benchmarks adding modules to a stack
+// BenchmarkStackAddModule benchmarks adding modules to a stack.
 func BenchmarkStackAddModule(b *testing.B) {
 	stack := NewStack("bench")
 	module := &MockModule{name: "bench-module"}
@@ -607,7 +607,7 @@ func BenchmarkStackAddModule(b *testing.B) {
 	}
 }
 
-// BenchmarkStackAddDependency benchmarks adding dependencies
+// BenchmarkStackAddDependency benchmarks adding dependencies.
 func BenchmarkStackAddDependency(b *testing.B) {
 	stack := NewStack("bench")
 
@@ -617,7 +617,7 @@ func BenchmarkStackAddDependency(b *testing.B) {
 	}
 }
 
-// BenchmarkStackValidate benchmarks stack validation
+// BenchmarkStackValidate benchmarks stack validation.
 func BenchmarkStackValidate(b *testing.B) {
 	stack := NewStack("bench")
 	for i := 0; i < 10; i++ {
@@ -630,7 +630,7 @@ func BenchmarkStackValidate(b *testing.B) {
 	}
 }
 
-// BenchmarkOutputRef benchmarks output reference generation
+// BenchmarkOutputRef benchmarks output reference generation.
 func BenchmarkOutputRef(b *testing.B) {
 	module := &MockModule{name: "bench_module"}
 	output := NewOutput(module, "attribute")

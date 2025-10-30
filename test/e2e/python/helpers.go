@@ -1,3 +1,5 @@
+// Package python provides E2E test helpers for Python Lambda function testing.
+
 package python
 
 import (

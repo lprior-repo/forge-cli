@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// ExitError wraps exec.ExitError with Terraform context
+// ExitError wraps exec.ExitError with Terraform context.
 type ExitError struct {
 	Command  string
 	ExitCode int
@@ -19,12 +19,12 @@ func (e *ExitError) Error() string {
 		e.Command, e.ExitCode, e.Stderr)
 }
 
-// Unwrap for errors.Is and errors.As
+// Unwrap for errors.Is and errors.As.
 func (e *ExitError) Unwrap() error {
 	return &exec.ExitError{}
 }
 
-// StateLockError represents a Terraform state lock error
+// StateLockError represents a Terraform state lock error.
 type StateLockError struct {
 	Message string
 	LockID  string
@@ -34,14 +34,14 @@ func (e *StateLockError) Error() string {
 	return fmt.Sprintf("terraform state locked: %s (lock ID: %s)", e.Message, e.LockID)
 }
 
-// NoChangesError indicates terraform detected no changes
+// NoChangesError indicates terraform detected no changes.
 type NoChangesError struct{}
 
 func (e *NoChangesError) Error() string {
 	return "no changes detected"
 }
 
-// ValidationError represents a terraform validation error
+// ValidationError represents a terraform validation error.
 type ValidationError struct {
 	Message string
 	File    string
@@ -52,10 +52,10 @@ func (e *ValidationError) Error() string {
 	if e.File != "" && e.Line > 0 {
 		return fmt.Sprintf("validation error at %s:%d: %s", e.File, e.Line, e.Message)
 	}
-	return fmt.Sprintf("validation error: %s", e.Message)
+	return "validation error: " + e.Message
 }
 
-// ParseTerraformError attempts to parse terraform-specific errors from stderr
+// ParseTerraformError attempts to parse terraform-specific errors from stderr.
 func ParseTerraformError(stderr string, exitCode int, command string) error {
 	// Check for state lock errors
 	if strings.Contains(stderr, "Error locking state") || strings.Contains(stderr, "Error acquiring the state lock") {
@@ -86,7 +86,7 @@ func ParseTerraformError(stderr string, exitCode int, command string) error {
 	}
 }
 
-// extractLockID attempts to extract the lock ID from error message
+// extractLockID attempts to extract the lock ID from error message.
 func extractLockID(stderr string) string {
 	// Simple extraction - can be enhanced with regex
 	if idx := strings.Index(stderr, "ID: "); idx != -1 {

@@ -7,24 +7,24 @@ import (
 	"path/filepath"
 
 	E "github.com/IBM/fp-go/either"
+
 	"github.com/lewis/forge/internal/terraform"
 )
 
-// ProvisionResult represents the result of state backend provisioning (immutable data)
+// ProvisionResult represents the result of state backend provisioning (immutable data).
 type ProvisionResult struct {
-	BucketName     string
-	TableName      string
-	BackendTFPath  string
+	BucketName       string
+	TableName        string
+	BackendTFPath    string
 	BootstrapApplied bool
 }
 
-// WriteStateBootstrap writes bootstrap Terraform files to disk (ACTION - I/O)
-// Creates a temporary .forge/bootstrap/ directory with Terraform code
+// Creates a temporary .forge/bootstrap/ directory with Terraform code.
 func WriteStateBootstrap(projectDir string, resources StateResources) (string, error) {
 	bootstrapDir := filepath.Join(projectDir, ".forge", "bootstrap")
 
 	// Create bootstrap directory
-	if err := os.MkdirAll(bootstrapDir, 0755); err != nil {
+	if err := os.MkdirAll(bootstrapDir, 0o755); err != nil {
 		return "", fmt.Errorf("failed to create bootstrap directory: %w", err)
 	}
 
@@ -32,19 +32,19 @@ func WriteStateBootstrap(projectDir string, resources StateResources) (string, e
 	bootstrapTF := RenderStateBootstrapTF(resources)
 	bootstrapPath := filepath.Join(bootstrapDir, "bootstrap.tf")
 
-	if err := os.WriteFile(bootstrapPath, []byte(bootstrapTF), 0644); err != nil {
+	if err := os.WriteFile(bootstrapPath, []byte(bootstrapTF), 0o644); err != nil {
 		return "", fmt.Errorf("failed to write bootstrap.tf: %w", err)
 	}
 
 	return bootstrapDir, nil
 }
 
-// WriteBackendConfig writes backend.tf to infra/ directory (ACTION - I/O)
+// WriteBackendConfig writes backend.tf to infra/ directory (ACTION - I/O).
 func WriteBackendConfig(projectDir string, config BackendConfig) (string, error) {
 	infraDir := filepath.Join(projectDir, "infra")
 
 	// Ensure infra directory exists
-	if err := os.MkdirAll(infraDir, 0755); err != nil {
+	if err := os.MkdirAll(infraDir, 0o755); err != nil {
 		return "", fmt.Errorf("failed to create infra directory: %w", err)
 	}
 
@@ -52,15 +52,14 @@ func WriteBackendConfig(projectDir string, config BackendConfig) (string, error)
 	backendTF := RenderBackendTF(config)
 	backendPath := filepath.Join(infraDir, "backend.tf")
 
-	if err := os.WriteFile(backendPath, []byte(backendTF), 0644); err != nil {
+	if err := os.WriteFile(backendPath, []byte(backendTF), 0o644); err != nil {
 		return "", fmt.Errorf("failed to write backend.tf: %w", err)
 	}
 
 	return backendPath, nil
 }
 
-// ApplyBootstrap applies the bootstrap Terraform to provision S3 + DynamoDB (ACTION - I/O)
-// This uses Terraform to create the state backend resources
+// This uses Terraform to create the state backend resources.
 func ApplyBootstrap(ctx context.Context, bootstrapDir string, exec terraform.Executor) error {
 	// Initialize Terraform
 	if err := exec.Init(ctx, bootstrapDir, terraform.Upgrade(false)); err != nil {
@@ -89,14 +88,12 @@ func ApplyBootstrap(ctx context.Context, bootstrapDir string, exec terraform.Exe
 	return nil
 }
 
-// CleanupBootstrap removes the temporary bootstrap directory (ACTION - I/O)
+// CleanupBootstrap removes the temporary bootstrap directory (ACTION - I/O).
 func CleanupBootstrap(bootstrapDir string) error {
 	return os.RemoveAll(bootstrapDir)
 }
 
-// ProvisionStateBackend provisions complete state backend (COMPOSITION - pure + impure)
-// This is the main entry point that orchestrates state backend provisioning
-// Uses Railway-Oriented Programming with Either monad
+// Uses Railway-Oriented Programming with Either monad.
 func ProvisionStateBackend(
 	ctx context.Context,
 	projectDir string,
@@ -139,8 +136,7 @@ func ProvisionStateBackend(
 	return E.Right[error](result)
 }
 
-// ProvisionStateBackendSync is a synchronous wrapper for ProvisionStateBackend
-// Returns (result, error) for easier use in non-functional contexts
+// Returns (result, error) for easier use in non-functional contexts.
 func ProvisionStateBackendSync(
 	ctx context.Context,
 	projectDir string,

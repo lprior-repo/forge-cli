@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestNewExecutor tests the NewExecutor constructor
+// TestNewExecutor tests the NewExecutor constructor.
 func TestNewExecutor(t *testing.T) {
 	t.Run("creates executor with all functions", func(t *testing.T) {
 		exec := NewExecutor("terraform")
@@ -46,11 +46,11 @@ func TestNewExecutor(t *testing.T) {
 	})
 }
 
-// TestMakeInitFunc tests the makeInitFunc closure
+// TestMakeInitFunc tests the makeInitFunc closure.
 func TestMakeInitFunc(t *testing.T) {
 	t.Run("returns error for non-existent directory", func(t *testing.T) {
 		initFunc := makeInitFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Use a directory that definitely doesn't exist
 		err := initFunc(ctx, "/nonexistent/directory/path/12345")
@@ -68,12 +68,12 @@ terraform {
   required_version = ">= 1.0"
 }
 `
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		// Use a non-existent terraform binary
 		initFunc := makeInitFunc("/nonexistent/terraform/binary/12345")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		err = initFunc(ctx, tmpDir)
 
@@ -86,11 +86,11 @@ terraform {
 
 		// Create a minimal terraform config
 		tfConfig := `terraform { required_version = ">= 1.0" }`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		initFunc := makeInitFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// This will fail if terraform isn't installed, but we're testing the option passing
 		// The function should accept the option without error
@@ -104,11 +104,11 @@ terraform {
 		tmpDir := t.TempDir()
 
 		tfConfig := `terraform { required_version = ">= 1.0" }`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		initFunc := makeInitFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that Backend option is accepted
 		_ = initFunc(ctx, tmpDir, Backend(false))
@@ -118,11 +118,11 @@ terraform {
 		tmpDir := t.TempDir()
 
 		tfConfig := `terraform { required_version = ">= 1.0" }`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		initFunc := makeInitFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that Reconfigure option is accepted
 		_ = initFunc(ctx, tmpDir, Reconfigure(true))
@@ -132,22 +132,22 @@ terraform {
 		tmpDir := t.TempDir()
 
 		tfConfig := `terraform { required_version = ">= 1.0" }`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		initFunc := makeInitFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that multiple options are accepted
 		_ = initFunc(ctx, tmpDir, Upgrade(true), Backend(false), Reconfigure(true))
 	})
 }
 
-// TestMakePlanFunc tests the makePlanFunc closure
+// TestMakePlanFunc tests the makePlanFunc closure.
 func TestMakePlanFunc(t *testing.T) {
 	t.Run("returns error for non-existent directory", func(t *testing.T) {
 		planFunc := makePlanFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		_, err := planFunc(ctx, "/nonexistent/directory/path/12345")
 
@@ -159,11 +159,11 @@ func TestMakePlanFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		planFunc := makePlanFunc("/nonexistent/terraform/binary/12345")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		_, err = planFunc(ctx, tmpDir)
 
@@ -174,11 +174,11 @@ func TestMakePlanFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		planFunc := makePlanFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that PlanOut option is accepted
 		_, _ = planFunc(ctx, tmpDir, PlanOut("plan.tfplan"))
@@ -188,11 +188,11 @@ func TestMakePlanFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		planFunc := makePlanFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that PlanDestroy option is accepted
 		_, _ = planFunc(ctx, tmpDir, PlanDestroy(true))
@@ -202,11 +202,11 @@ func TestMakePlanFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		planFunc := makePlanFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that PlanVarFile option is accepted
 		_, _ = planFunc(ctx, tmpDir, PlanVarFile("vars.tfvars"))
@@ -216,22 +216,22 @@ func TestMakePlanFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		planFunc := makePlanFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that multiple options are accepted
 		_, _ = planFunc(ctx, tmpDir, PlanOut("plan.tfplan"), PlanDestroy(true), PlanVarFile("vars.tfvars"))
 	})
 }
 
-// TestMakeApplyFunc tests the makeApplyFunc closure
+// TestMakeApplyFunc tests the makeApplyFunc closure.
 func TestMakeApplyFunc(t *testing.T) {
 	t.Run("returns error for non-existent directory", func(t *testing.T) {
 		applyFunc := makeApplyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		err := applyFunc(ctx, "/nonexistent/directory/path/12345")
 
@@ -243,11 +243,11 @@ func TestMakeApplyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		applyFunc := makeApplyFunc("/nonexistent/terraform/binary/12345")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		err = applyFunc(ctx, tmpDir)
 
@@ -258,11 +258,11 @@ func TestMakeApplyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		applyFunc := makeApplyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that AutoApprove option is accepted
 		_ = applyFunc(ctx, tmpDir, AutoApprove(true))
@@ -272,11 +272,11 @@ func TestMakeApplyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		applyFunc := makeApplyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that ApplyVarFile option is accepted
 		_ = applyFunc(ctx, tmpDir, ApplyVarFile("vars.tfvars"))
@@ -286,11 +286,11 @@ func TestMakeApplyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		applyFunc := makeApplyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that ApplyPlanFile option is accepted
 		_ = applyFunc(ctx, tmpDir, ApplyPlanFile("plan.tfplan"))
@@ -300,22 +300,22 @@ func TestMakeApplyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		applyFunc := makeApplyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that multiple options are accepted
 		_ = applyFunc(ctx, tmpDir, AutoApprove(true), ApplyVarFile("vars.tfvars"))
 	})
 }
 
-// TestMakeDestroyFunc tests the makeDestroyFunc closure
+// TestMakeDestroyFunc tests the makeDestroyFunc closure.
 func TestMakeDestroyFunc(t *testing.T) {
 	t.Run("returns error for non-existent directory", func(t *testing.T) {
 		destroyFunc := makeDestroyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		err := destroyFunc(ctx, "/nonexistent/directory/path/12345")
 
@@ -327,11 +327,11 @@ func TestMakeDestroyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		destroyFunc := makeDestroyFunc("/nonexistent/terraform/binary/12345")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		err = destroyFunc(ctx, tmpDir)
 
@@ -342,11 +342,11 @@ func TestMakeDestroyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		destroyFunc := makeDestroyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that DestroyAutoApprove option is accepted
 		_ = destroyFunc(ctx, tmpDir, DestroyAutoApprove(true))
@@ -356,11 +356,11 @@ func TestMakeDestroyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		destroyFunc := makeDestroyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that DestroyVarFile option is accepted
 		_ = destroyFunc(ctx, tmpDir, DestroyVarFile("vars.tfvars"))
@@ -370,22 +370,22 @@ func TestMakeDestroyFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		destroyFunc := makeDestroyFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test that multiple options are accepted
 		_ = destroyFunc(ctx, tmpDir, DestroyAutoApprove(true), DestroyVarFile("vars.tfvars"))
 	})
 }
 
-// TestMakeOutputFunc tests the makeOutputFunc closure
+// TestMakeOutputFunc tests the makeOutputFunc closure.
 func TestMakeOutputFunc(t *testing.T) {
 	t.Run("returns error for non-existent directory", func(t *testing.T) {
 		outputFunc := makeOutputFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		_, err := outputFunc(ctx, "/nonexistent/directory/path/12345")
 
@@ -397,11 +397,11 @@ func TestMakeOutputFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `output "test" { value = "test" }`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		outputFunc := makeOutputFunc("/nonexistent/terraform/binary/12345")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		_, err = outputFunc(ctx, tmpDir)
 
@@ -412,11 +412,11 @@ func TestMakeOutputFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `output "test_output" { value = "hello" }`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		outputFunc := makeOutputFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// This will fail without terraform init/apply, but tests the function signature
 		// The function should be callable and return a result (even if empty or error)
@@ -436,16 +436,15 @@ func TestMakeOutputFunc(t *testing.T) {
 
 		// Create a config with no outputs but a resource
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		outputFunc := makeOutputFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Call will fail without init, but that's expected
 		// We're testing the function structure
 		_, err = outputFunc(ctx, tmpDir)
-
 		// Either error or empty result is acceptable
 		// The function should handle both cases without panicking
 		if err != nil {
@@ -462,11 +461,11 @@ output "test_output" {
   value = "test"
 }
 `
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		outputFunc := makeOutputFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Calling output without init/apply may succeed with empty result or error
 		result, err := outputFunc(ctx, tmpDir)
@@ -480,11 +479,11 @@ output "test_output" {
 	})
 }
 
-// TestMakeValidateFunc tests the makeValidateFunc closure
+// TestMakeValidateFunc tests the makeValidateFunc closure.
 func TestMakeValidateFunc(t *testing.T) {
 	t.Run("returns error for non-existent directory", func(t *testing.T) {
 		validateFunc := makeValidateFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		err := validateFunc(ctx, "/nonexistent/directory/path/12345")
 
@@ -496,11 +495,11 @@ func TestMakeValidateFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		validateFunc := makeValidateFunc("/nonexistent/terraform/binary/12345")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		err = validateFunc(ctx, tmpDir)
 
@@ -511,16 +510,15 @@ func TestMakeValidateFunc(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		validateFunc := makeValidateFunc("terraform")
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// This will fail without terraform init, but tests the function signature
 		// The function should be callable
 		err = validateFunc(ctx, tmpDir)
-
 		// Either we get an error (expected) or validation passes (also valid)
 		// The important part is that the function is callable
 		// Note: Some terraform versions may validate without init
@@ -530,19 +528,19 @@ func TestMakeValidateFunc(t *testing.T) {
 	})
 }
 
-// TestRealFunctionsWithContext tests context handling
+// TestRealFunctionsWithContext tests context handling.
 func TestRealFunctionsWithContext(t *testing.T) {
 	t.Run("Init respects context cancellation", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `terraform { required_version = ">= 1.0" }`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		initFunc := makeInitFunc("terraform")
 
 		// Create a canceled context
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		err = initFunc(ctx, tmpDir)
@@ -555,13 +553,13 @@ func TestRealFunctionsWithContext(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		planFunc := makePlanFunc("terraform")
 
 		// Create a canceled context
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		_, err = planFunc(ctx, tmpDir)
@@ -574,13 +572,13 @@ func TestRealFunctionsWithContext(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		applyFunc := makeApplyFunc("terraform")
 
 		// Create a canceled context
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		err = applyFunc(ctx, tmpDir)
@@ -593,13 +591,13 @@ func TestRealFunctionsWithContext(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		destroyFunc := makeDestroyFunc("terraform")
 
 		// Create a canceled context
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		err = destroyFunc(ctx, tmpDir)
@@ -612,13 +610,13 @@ func TestRealFunctionsWithContext(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `output "test" { value = "test" }`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		outputFunc := makeOutputFunc("terraform")
 
 		// Create a canceled context
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		_, err = outputFunc(ctx, tmpDir)
@@ -631,13 +629,13 @@ func TestRealFunctionsWithContext(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		validateFunc := makeValidateFunc("terraform")
 
 		// Create a canceled context
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		err = validateFunc(ctx, tmpDir)
@@ -647,7 +645,7 @@ func TestRealFunctionsWithContext(t *testing.T) {
 	})
 }
 
-// TestRealFunctionsClosureProperties tests closure properties
+// TestRealFunctionsClosureProperties tests closure properties.
 func TestRealFunctionsClosureProperties(t *testing.T) {
 	t.Run("different terraform paths create independent closures", func(t *testing.T) {
 		initFunc1 := makeInitFunc("terraform1")
@@ -659,7 +657,7 @@ func TestRealFunctionsClosureProperties(t *testing.T) {
 
 		// While we can't compare function pointers directly,
 		// we can verify they're independent by checking they both exist
-		ctx := context.Background()
+		ctx := t.Context()
 		tmpDir := t.TempDir()
 
 		// Both should fail with their respective invalid paths
@@ -674,12 +672,12 @@ func TestRealFunctionsClosureProperties(t *testing.T) {
 		exec := NewExecutor("terraform")
 
 		// All functions should be independently callable
-		ctx := context.Background()
+		ctx := t.Context()
 		tmpDir := t.TempDir()
 
 		// Create a minimal terraform config
 		tfConfig := `resource "null_resource" "test" {}`
-		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 		require.NoError(t, err)
 
 		// Each function should be callable independently
@@ -695,7 +693,7 @@ func TestRealFunctionsClosureProperties(t *testing.T) {
 	})
 }
 
-// TestRealFunctionsOptionCombinations tests various option combinations
+// TestRealFunctionsOptionCombinations tests various option combinations.
 func TestRealFunctionsOptionCombinations(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -715,10 +713,10 @@ output "test_output" {
   value = var.test_var
 }
 `
-	err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0644)
+	err := os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(tfConfig), 0o644)
 	require.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("Init with all options", func(t *testing.T) {
 		initFunc := makeInitFunc("terraform")

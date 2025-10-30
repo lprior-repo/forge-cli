@@ -6,9 +6,10 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/build"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/build"
 )
 
 func TestScanner_ScanFunctions(t *testing.T) {
@@ -60,9 +61,9 @@ func TestScanner_ScanFunctions(t *testing.T) {
 		{
 			name: "detects multiple functions of different runtimes",
 			setupFiles: map[string]string{
-				"src/functions/api/main.go":        "package main",
-				"src/functions/worker/index.js":    "exports.handler = () => {}",
-				"src/functions/processor/app.py":   "def handler(): pass",
+				"src/functions/api/main.go":      "package main",
+				"src/functions/worker/index.js":  "exports.handler = () => {}",
+				"src/functions/processor/app.py": "def handler(): pass",
 			},
 			expectedFuncs: []Function{
 				{Name: "api", Runtime: "provided.al2023", EntryPoint: "main.go"},
@@ -73,7 +74,7 @@ func TestScanner_ScanFunctions(t *testing.T) {
 		{
 			name: "skips directories without entry points",
 			setupFiles: map[string]string{
-				"src/functions/api/main.go":    "package main",
+				"src/functions/api/main.go":     "package main",
 				"src/functions/invalid/foo.txt": "not a function",
 			},
 			expectedFuncs: []Function{
@@ -105,8 +106,8 @@ func TestScanner_ScanFunctions(t *testing.T) {
 			// Create files
 			for path, content := range tt.setupFiles {
 				fullPath := filepath.Join(tmpDir, path)
-				require.NoError(t, os.MkdirAll(filepath.Dir(fullPath), 0755))
-				require.NoError(t, os.WriteFile(fullPath, []byte(content), 0644))
+				require.NoError(t, os.MkdirAll(filepath.Dir(fullPath), 0o755))
+				require.NoError(t, os.WriteFile(fullPath, []byte(content), 0o644))
 			}
 
 			// Scan functions (pure functional - no OOP)
@@ -141,11 +142,11 @@ func TestScanner_ScanFunctions(t *testing.T) {
 
 func TestScanner_detectRuntime(t *testing.T) {
 	tests := []struct {
-		name           string
-		files          []string
-		expectedRT     string
-		expectedEntry  string
-		expectError    bool
+		name          string
+		files         []string
+		expectedRT    string
+		expectedEntry string
+		expectError   bool
 	}{
 		{
 			name:          "Go with main.go",
@@ -214,7 +215,7 @@ func TestScanner_detectRuntime(t *testing.T) {
 			// Create files
 			for _, file := range tt.files {
 				path := filepath.Join(tmpDir, file)
-				require.NoError(t, os.WriteFile(path, []byte("test"), 0644))
+				require.NoError(t, os.WriteFile(path, []byte("test"), 0o644))
 			}
 
 			// Pure functional - no OOP

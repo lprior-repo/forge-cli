@@ -78,7 +78,7 @@ func TestGenerateStateMachine(t *testing.T) {
 
 		sm := generateStateMachine("test-service", "workflow", config)
 
-		assert.Equal(t, `{"StartAt": "Step1"}`, sm.Config.Definition)
+		assert.JSONEq(t, `{"StartAt": "Step1"}`, sm.Config.Definition)
 	})
 }
 
@@ -122,7 +122,7 @@ func TestGenerateSNSTopic(t *testing.T) {
 func TestGenerateSQSQueue(t *testing.T) {
 	t.Run("generates basic SQS queue", func(t *testing.T) {
 		config := QueueConfig{
-			Name:                  "test-queue",
+			Name:                     "test-queue",
 			VisibilityTimeoutSeconds: 30,
 		}
 
@@ -146,7 +146,7 @@ func TestGenerateSQSQueue(t *testing.T) {
 
 	t.Run("preserves all config fields", func(t *testing.T) {
 		config := QueueConfig{
-			Name:                  "custom-queue",
+			Name:                     "custom-queue",
 			VisibilityTimeoutSeconds: 60,
 		}
 
@@ -198,8 +198,8 @@ func TestGenerateS3Bucket(t *testing.T) {
 func TestGenerateCloudWatchAlarm(t *testing.T) {
 	t.Run("generates basic CloudWatch alarm", func(t *testing.T) {
 		config := AlarmConfig{
-			Name:           "test-alarm",
-			MetricName:     "Errors",
+			Name:               "test-alarm",
+			MetricName:         "Errors",
 			ComparisonOperator: "GreaterThanThreshold",
 		}
 
@@ -223,8 +223,8 @@ func TestGenerateCloudWatchAlarm(t *testing.T) {
 
 	t.Run("preserves all config fields", func(t *testing.T) {
 		config := AlarmConfig{
-			Name:           "custom-alarm",
-			MetricName:     "Duration",
+			Name:               "custom-alarm",
+			MetricName:         "Duration",
 			ComparisonOperator: "GreaterThanThreshold",
 		}
 
@@ -343,7 +343,7 @@ func TestGenerateStackWithAllResources(t *testing.T) {
 			},
 			Queues: map[string]QueueConfig{
 				"jobs": {
-					Name:                  "job-queue",
+					Name:                     "job-queue",
 					VisibilityTimeoutSeconds: 30,
 				},
 			},
@@ -405,8 +405,8 @@ func TestGenerateStackWithAllResources(t *testing.T) {
 			},
 			Alarms: map[string]AlarmConfig{
 				"errors": {
-					Name:           "high-error-rate",
-					MetricName:     "Errors",
+					Name:               "high-error-rate",
+					MetricName:         "Errors",
 					ComparisonOperator: "GreaterThanThreshold",
 				},
 			},
@@ -518,13 +518,13 @@ func TestGenerateStackWithAllResources(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, stack.Functions, 1)
 		assert.True(t, O.IsNone(stack.APIGateway))
-		assert.Len(t, stack.Tables, 0)
-		assert.Len(t, stack.EventBridgeRules, 0)
-		assert.Len(t, stack.StateMachines, 0)
-		assert.Len(t, stack.Topics, 0)
-		assert.Len(t, stack.Queues, 0)
-		assert.Len(t, stack.Buckets, 0)
-		assert.Len(t, stack.Alarms, 0)
+		assert.Empty(t, stack.Tables)
+		assert.Empty(t, stack.EventBridgeRules)
+		assert.Empty(t, stack.StateMachines)
+		assert.Empty(t, stack.Topics)
+		assert.Empty(t, stack.Queues)
+		assert.Empty(t, stack.Buckets)
+		assert.Empty(t, stack.Alarms)
 	})
 }
 
@@ -714,14 +714,14 @@ func TestValidateRuntimeEdgeCases(t *testing.T) {
 
 	t.Run("rejects unsupported runtimes", func(t *testing.T) {
 		unsupportedRuntimes := []string{
-			"nodejs16.x",   // Old version
-			"python3.8",    // Old version
-			"go2.x",        // Non-existent
-			"java8",        // Old version
-			"dotnet5",      // Old version
-			"ruby2.7",      // Old version
-			"invalid",      // Invalid
-			"",             // Empty
+			"nodejs16.x", // Old version
+			"python3.8",  // Old version
+			"go2.x",      // Non-existent
+			"java8",      // Old version
+			"dotnet5",    // Old version
+			"ruby2.7",    // Old version
+			"invalid",    // Invalid
+			"",           // Empty
 		}
 
 		for _, runtime := range unsupportedRuntimes {

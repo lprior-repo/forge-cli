@@ -4,50 +4,51 @@ import (
 	"context"
 	"testing"
 
-	"github.com/lewis/forge/internal/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/terraform"
 )
 
-// mockExecutorState holds the state for mock terraform operations
+// mockExecutorState holds the state for mock terraform operations.
 type mockExecutorState struct {
-	initCalled      bool
-	planCalled      bool
-	applyCalled     bool
-	outputCalled    bool
-	initErr         error
-	planResult      bool
-	planErr         error
-	applyErr        error
-	outputs         map[string]interface{}
-	outputErr       error
-	lastInitOpts    []terraform.InitOption
-	lastPlanOpts    []terraform.PlanOption
-	lastApplyOpts   []terraform.ApplyOption
+	initCalled    bool
+	planCalled    bool
+	applyCalled   bool
+	outputCalled  bool
+	initErr       error
+	planResult    bool
+	planErr       error
+	applyErr      error
+	outputs       map[string]interface{}
+	outputErr     error
+	lastInitOpts  []terraform.InitOption
+	lastPlanOpts  []terraform.PlanOption
+	lastApplyOpts []terraform.ApplyOption
 }
 
-// newMockExecutor creates a mock terraform.Executor with customizable behavior
+// newMockExecutor creates a mock terraform.Executor with customizable behavior.
 func newMockExecutor(state *mockExecutorState) terraform.Executor {
 	return terraform.Executor{
-		Init: func(ctx context.Context, dir string, opts ...terraform.InitOption) error {
+		Init: func(_ context.Context, dir string, opts ...terraform.InitOption) error {
 			state.initCalled = true
 			state.lastInitOpts = opts
 			return state.initErr
 		},
-		Plan: func(ctx context.Context, dir string, opts ...terraform.PlanOption) (bool, error) {
+		Plan: func(_ context.Context, dir string, opts ...terraform.PlanOption) (bool, error) {
 			state.planCalled = true
 			state.lastPlanOpts = opts
 			return state.planResult, state.planErr
 		},
-		Apply: func(ctx context.Context, dir string, opts ...terraform.ApplyOption) error {
+		Apply: func(_ context.Context, dir string, opts ...terraform.ApplyOption) error {
 			state.applyCalled = true
 			state.lastApplyOpts = opts
 			return state.applyErr
 		},
-		Destroy: func(ctx context.Context, dir string, opts ...terraform.DestroyOption) error {
+		Destroy: func(_ context.Context, dir string, opts ...terraform.DestroyOption) error {
 			return nil
 		},
-		Output: func(ctx context.Context, dir string) (map[string]interface{}, error) {
+		Output: func(_ context.Context, dir string) (map[string]interface{}, error) {
 			state.outputCalled = true
 			return state.outputs, state.outputErr
 		},
@@ -65,7 +66,7 @@ func TestAdaptTerraformExecutorInit(t *testing.T) {
 		// Pure functional adapter - no OOP, no methods!
 		adapted := adaptTerraformExecutor(mock)
 
-		err := adapted.Init(context.Background(), "/test/dir")
+		err := adapted.Init(t.Context(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.True(t, state.initCalled)
@@ -76,21 +77,21 @@ func TestAdaptTerraformExecutorInit(t *testing.T) {
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		err := adapted.Init(context.Background(), "/test/dir")
+		err := adapted.Init(t.Context(), "/test/dir")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.True(t, state.initCalled)
 	})
 }
 
-// TestAdaptTerraformExecutorPlan tests the function
+// TestAdaptTerraformExecutorPlan tests the function.
 func TestAdaptTerraformExecutorPlan(t *testing.T) {
 	t.Run("calls PlanWithVars with nil vars", func(t *testing.T) {
 		state := &mockExecutorState{planResult: true}
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		hasChanges, err := adapted.Plan(context.Background(), "/test/dir")
+		hasChanges, err := adapted.Plan(t.Context(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.True(t, hasChanges)
@@ -102,14 +103,14 @@ func TestAdaptTerraformExecutorPlan(t *testing.T) {
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		_, err := adapted.Plan(context.Background(), "/test/dir")
+		_, err := adapted.Plan(t.Context(), "/test/dir")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.True(t, state.planCalled)
 	})
 }
 
-// TestAdaptTerraformExecutorPlanWithVars tests the function
+// TestAdaptTerraformExecutorPlanWithVars tests the function.
 func TestAdaptTerraformExecutorPlanWithVars(t *testing.T) {
 	t.Run("calls terraform executor Plan with variables", func(t *testing.T) {
 		state := &mockExecutorState{planResult: true}
@@ -121,7 +122,7 @@ func TestAdaptTerraformExecutorPlanWithVars(t *testing.T) {
 			"namespace": "pr-123",
 		}
 
-		hasChanges, err := adapted.PlanWithVars(context.Background(), "/test/dir", vars)
+		hasChanges, err := adapted.PlanWithVars(t.Context(), "/test/dir", vars)
 
 		require.NoError(t, err)
 		assert.True(t, hasChanges)
@@ -135,7 +136,7 @@ func TestAdaptTerraformExecutorPlanWithVars(t *testing.T) {
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		hasChanges, err := adapted.PlanWithVars(context.Background(), "/test/dir", nil)
+		hasChanges, err := adapted.PlanWithVars(t.Context(), "/test/dir", nil)
 
 		require.NoError(t, err)
 		assert.False(t, hasChanges)
@@ -147,21 +148,21 @@ func TestAdaptTerraformExecutorPlanWithVars(t *testing.T) {
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		_, err := adapted.PlanWithVars(context.Background(), "/test/dir", map[string]string{"key": "value"})
+		_, err := adapted.PlanWithVars(t.Context(), "/test/dir", map[string]string{"key": "value"})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.True(t, state.planCalled)
 	})
 }
 
-// TestAdaptTerraformExecutorApply tests the function
+// TestAdaptTerraformExecutorApply tests the function.
 func TestAdaptTerraformExecutorApply(t *testing.T) {
 	t.Run("calls terraform executor Apply with plan file", func(t *testing.T) {
 		state := &mockExecutorState{}
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		err := adapted.Apply(context.Background(), "/test/dir")
+		err := adapted.Apply(t.Context(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.True(t, state.applyCalled)
@@ -174,14 +175,14 @@ func TestAdaptTerraformExecutorApply(t *testing.T) {
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		err := adapted.Apply(context.Background(), "/test/dir")
+		err := adapted.Apply(t.Context(), "/test/dir")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.True(t, state.applyCalled)
 	})
 }
 
-// TestAdaptTerraformExecutorOutput tests the function
+// TestAdaptTerraformExecutorOutput tests the function.
 func TestAdaptTerraformExecutorOutput(t *testing.T) {
 	t.Run("calls terraform executor Output and returns outputs", func(t *testing.T) {
 		expectedOutputs := map[string]interface{}{
@@ -192,7 +193,7 @@ func TestAdaptTerraformExecutorOutput(t *testing.T) {
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		outputs, err := adapted.Output(context.Background(), "/test/dir")
+		outputs, err := adapted.Output(t.Context(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedOutputs, outputs)
@@ -204,9 +205,9 @@ func TestAdaptTerraformExecutorOutput(t *testing.T) {
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		_, err := adapted.Output(context.Background(), "/test/dir")
+		_, err := adapted.Output(t.Context(), "/test/dir")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.True(t, state.outputCalled)
 	})
 
@@ -215,7 +216,7 @@ func TestAdaptTerraformExecutorOutput(t *testing.T) {
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
 
-		outputs, err := adapted.Output(context.Background(), "/test/dir")
+		outputs, err := adapted.Output(t.Context(), "/test/dir")
 
 		require.NoError(t, err)
 		assert.Empty(t, outputs)
@@ -223,7 +224,7 @@ func TestAdaptTerraformExecutorOutput(t *testing.T) {
 	})
 }
 
-// TestAdaptTerraformExecutorIntegration tests the full functional adapter workflow
+// TestAdaptTerraformExecutorIntegration tests the full functional adapter workflow.
 func TestAdaptTerraformExecutorIntegration(t *testing.T) {
 	t.Run("full deployment workflow", func(t *testing.T) {
 		state := &mockExecutorState{
@@ -234,7 +235,7 @@ func TestAdaptTerraformExecutorIntegration(t *testing.T) {
 		}
 		mock := newMockExecutor(state)
 		adapted := adaptTerraformExecutor(mock)
-		ctx := context.Background()
+		ctx := t.Context()
 		dir := "/test/infra"
 
 		// Init

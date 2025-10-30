@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestInitOptions tests Init option builders
+// TestInitOptions tests Init option builders.
 func TestInitOptions(t *testing.T) {
 	t.Run("Upgrade option sets Upgrade field", func(t *testing.T) {
 		cfg := &InitConfig{}
@@ -46,7 +46,7 @@ func TestInitOptions(t *testing.T) {
 	})
 }
 
-// TestPlanOptions tests Plan option builders
+// TestPlanOptions tests Plan option builders.
 func TestPlanOptions(t *testing.T) {
 	t.Run("PlanOut sets Out field", func(t *testing.T) {
 		cfg := &PlanConfig{}
@@ -87,7 +87,7 @@ func TestPlanOptions(t *testing.T) {
 	})
 }
 
-// TestApplyOptions tests Apply option builders
+// TestApplyOptions tests Apply option builders.
 func TestApplyOptions(t *testing.T) {
 	t.Run("AutoApprove sets AutoApprove field", func(t *testing.T) {
 		cfg := &ApplyConfig{}
@@ -128,7 +128,7 @@ func TestApplyOptions(t *testing.T) {
 	})
 }
 
-// TestDestroyOptions tests Destroy option builders
+// TestDestroyOptions tests Destroy option builders.
 func TestDestroyOptions(t *testing.T) {
 	t.Run("DestroyAutoApprove sets AutoApprove field", func(t *testing.T) {
 		cfg := &DestroyConfig{}
@@ -160,7 +160,7 @@ func TestDestroyOptions(t *testing.T) {
 	})
 }
 
-// TestOptionEdgeCases tests edge cases for all option types
+// TestOptionEdgeCases tests edge cases for all option types.
 func TestOptionEdgeCases(t *testing.T) {
 	t.Run("InitOptions with empty BackendConfig", func(t *testing.T) {
 		cfg := applyInitOptions(BackendConfig(""))

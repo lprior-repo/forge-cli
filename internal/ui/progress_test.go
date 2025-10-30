@@ -204,7 +204,7 @@ func TestProgressBarSequence(t *testing.T) {
 	})
 }
 
-// BenchmarkSpinner tests spinner performance
+// BenchmarkSpinner tests spinner performance.
 func BenchmarkSpinner(b *testing.B) {
 	buf := &bytes.Buffer{}
 
@@ -218,7 +218,7 @@ func BenchmarkSpinner(b *testing.B) {
 	}
 }
 
-// BenchmarkProgressBar tests progress bar performance
+// BenchmarkProgressBar tests progress bar performance.
 func BenchmarkProgressBar(b *testing.B) {
 	buf := &bytes.Buffer{}
 	bar := NewProgressBar(buf, 100, "Benchmark")

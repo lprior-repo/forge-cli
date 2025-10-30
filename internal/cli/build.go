@@ -8,17 +8,16 @@ import (
 
 	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
+	"github.com/spf13/cobra"
+
 	"github.com/lewis/forge/internal/build"
 	"github.com/lewis/forge/internal/discovery"
 	"github.com/lewis/forge/internal/ui"
-	"github.com/spf13/cobra"
 )
 
-// NewBuildCmd creates the 'build' command
+// NewBuildCmd creates the 'build' command.
 func NewBuildCmd() *cobra.Command {
-	var (
-		stubOnly bool
-	)
+	var stubOnly bool
 
 	cmd := &cobra.Command{
 		Use:   "build",
@@ -77,7 +76,7 @@ Automatically discovers functions, detects runtimes, and creates deployment pack
 	return cmd
 }
 
-// runBuild executes the build process
+// runBuild executes the build process.
 func runBuild(stubOnly bool) error {
 	out := ui.DefaultOutput()
 
@@ -145,7 +144,7 @@ func runBuild(stubOnly bool) error {
 
 	// Build single function with UI feedback
 	buildOne := func(index int, fn discovery.Function) E.Either[error, build.Artifact] {
-		out.Step(index+1, len(functions), fmt.Sprintf("Building %s", fn.Name))
+		out.Step(index+1, len(functions), "Building "+fn.Name)
 
 		// Get builder from registry and convert Option to Either
 		builderEither := E.FromOption[build.BuildFunc](

@@ -1285,14 +1285,14 @@ func TestModule_ComplexConfiguration(t *testing.T) {
 	})
 }
 
-// BenchmarkNewModule benchmarks module creation
+// BenchmarkNewModule benchmarks module creation.
 func BenchmarkNewModule(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_distribution")
 	}
 }
 
-// BenchmarkFluentAPI benchmarks fluent API calls
+// BenchmarkFluentAPI benchmarks fluent API calls.
 func BenchmarkFluentAPI(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_distribution").
@@ -1306,7 +1306,7 @@ func BenchmarkFluentAPI(b *testing.B) {
 	}
 }
 
-// BenchmarkWithTags benchmarks tag merging
+// BenchmarkWithTags benchmarks tag merging.
 func BenchmarkWithTags(b *testing.B) {
 	module := NewModule("bench_distribution")
 	tags := map[string]string{
@@ -1321,7 +1321,7 @@ func BenchmarkWithTags(b *testing.B) {
 	}
 }
 
-// BenchmarkWithOrigin benchmarks origin addition
+// BenchmarkWithOrigin benchmarks origin addition.
 func BenchmarkWithOrigin(b *testing.B) {
 	module := NewModule("bench_distribution")
 	origin := Origin{

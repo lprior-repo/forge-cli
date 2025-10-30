@@ -16,7 +16,7 @@ type Module interface {
 	Configuration() (string, error)
 }
 
-// BaseModule provides common functionality for all modules
+// BaseModule provides common functionality for all modules.
 type BaseModule struct {
 	// localName is the Terraform local identifier
 	localName string
@@ -28,7 +28,7 @@ type BaseModule struct {
 	version string
 }
 
-// NewBaseModule creates a new base module
+// NewBaseModule creates a new base module.
 func NewBaseModule(localName, source, version string) BaseModule {
 	return BaseModule{
 		localName: localName,
@@ -37,17 +37,17 @@ func NewBaseModule(localName, source, version string) BaseModule {
 	}
 }
 
-// LocalName returns the Terraform local name
+// LocalName returns the Terraform local name.
 func (b BaseModule) LocalName() string {
 	return b.localName
 }
 
-// Source returns the module source
+// Source returns the module source.
 func (b BaseModule) Source() string {
 	return b.source
 }
 
-// Version returns the module version
+// Version returns the module version.
 func (b BaseModule) Version() string {
 	return b.version
 }
@@ -62,7 +62,7 @@ type Output struct {
 	attribute string
 }
 
-// NewOutput creates a new output reference
+// NewOutput creates a new output reference.
 func NewOutput(module Module, attribute string) Output {
 	return Output{
 		module:    module,
@@ -70,18 +70,17 @@ func NewOutput(module Module, attribute string) Output {
 	}
 }
 
-// Ref returns the Terraform reference string for this output.
-// Example: "module.my_queue.queue_arn"
+// Example: "module.my_queue.queue_arn".
 func (o Output) Ref() string {
 	return fmt.Sprintf("module.%s.%s", o.module.LocalName(), o.attribute)
 }
 
-// String returns the string representation
+// String returns the string representation.
 func (o Output) String() string {
 	return o.Ref()
 }
 
-// ModuleCall is a helper to generate module block HCL
+// ModuleCall is a helper to generate module block HCL.
 type ModuleCall struct {
 	Name    string
 	Source  string
@@ -89,7 +88,7 @@ type ModuleCall struct {
 	Args    map[string]interface{}
 }
 
-// ToHCL converts the module call to HCL string
+// ToHCL converts the module call to HCL string.
 func (m ModuleCall) ToHCL() string {
 	hcl := fmt.Sprintf("module \"%s\" {\n", m.Name)
 	hcl += fmt.Sprintf("  source  = \"%s\"\n", m.Source)
@@ -106,13 +105,13 @@ func (m ModuleCall) ToHCL() string {
 	return hcl
 }
 
-// Validator provides validation for module configurations
+// Validator provides validation for module configurations.
 type Validator interface {
 	// Validate checks if the module configuration is valid
 	Validate() error
 }
 
-// WithValidation is a helper that adds validation to module operations
+// WithValidation is a helper that adds validation to module operations.
 func WithValidation(m Module) error {
 	if v, ok := m.(Validator); ok {
 		return v.Validate()
@@ -133,7 +132,7 @@ type Stack struct {
 	Dependencies map[string][]string
 }
 
-// NewStack creates a new module stack
+// NewStack creates a new module stack.
 func NewStack(name string) *Stack {
 	return &Stack{
 		Name:         name,
@@ -142,12 +141,12 @@ func NewStack(name string) *Stack {
 	}
 }
 
-// AddModule adds a module to the stack
+// AddModule adds a module to the stack.
 func (s *Stack) AddModule(m Module) {
 	s.Modules = append(s.Modules, m)
 }
 
-// AddDependency declares that one module depends on another
+// AddDependency declares that one module depends on another.
 func (s *Stack) AddDependency(dependent, dependsOn string) {
 	if s.Dependencies[dependent] == nil {
 		s.Dependencies[dependent] = []string{}
@@ -155,7 +154,7 @@ func (s *Stack) AddDependency(dependent, dependsOn string) {
 	s.Dependencies[dependent] = append(s.Dependencies[dependent], dependsOn)
 }
 
-// ToHCL generates HCL for all modules in the stack
+// ToHCL generates HCL for all modules in the stack.
 func (s *Stack) ToHCL() (string, error) {
 	var hcl string
 
@@ -170,7 +169,7 @@ func (s *Stack) ToHCL() (string, error) {
 	return hcl, nil
 }
 
-// Validate validates all modules in the stack
+// Validate validates all modules in the stack.
 func (s *Stack) Validate() error {
 	for _, m := range s.Modules {
 		if err := WithValidation(m); err != nil {

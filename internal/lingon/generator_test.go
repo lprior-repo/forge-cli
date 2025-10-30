@@ -1,7 +1,6 @@
 package lingon
 
 import (
-	"context"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
@@ -10,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestNewGenerator tests the generator constructor
+// TestNewGenerator tests the generator constructor.
 func TestNewGenerator(t *testing.T) {
 	t.Run("creates generator with generate function", func(t *testing.T) {
 		gen := NewGenerator()
@@ -19,7 +18,7 @@ func TestNewGenerator(t *testing.T) {
 	})
 }
 
-// TestValidateConfig tests configuration validation
+// TestValidateConfig tests configuration validation.
 func TestValidateConfig(t *testing.T) {
 	t.Run("valid minimal config", func(t *testing.T) {
 		config := ForgeConfig{
@@ -101,7 +100,7 @@ func TestValidateConfig(t *testing.T) {
 	})
 }
 
-// TestValidateFunction tests function validation
+// TestValidateFunction tests function validation.
 func TestValidateFunction(t *testing.T) {
 	t.Run("valid function config", func(t *testing.T) {
 		fn := FunctionConfig{
@@ -220,7 +219,7 @@ func TestValidateFunction(t *testing.T) {
 	})
 }
 
-// TestGenerateLambdaFunction tests Lambda function generation
+// TestGenerateLambdaFunction tests Lambda function generation.
 func TestGenerateLambdaFunction(t *testing.T) {
 	t.Run("generates basic lambda function", func(t *testing.T) {
 		config := FunctionConfig{
@@ -334,7 +333,7 @@ func TestGenerateLambdaFunction(t *testing.T) {
 	})
 }
 
-// TestGenerateIAMRole tests IAM role generation
+// TestGenerateIAMRole tests IAM role generation.
 func TestGenerateIAMRole(t *testing.T) {
 	t.Run("generates default role", func(t *testing.T) {
 		config := IAMConfig{}
@@ -398,7 +397,7 @@ func TestGenerateIAMRole(t *testing.T) {
 	})
 }
 
-// TestGenerateAPIGateway tests API Gateway generation
+// TestGenerateAPIGateway tests API Gateway generation.
 func TestGenerateAPIGateway(t *testing.T) {
 	t.Run("generates API Gateway with integrations", func(t *testing.T) {
 		config := APIGatewayConfig{
@@ -493,7 +492,7 @@ func TestGenerateAPIGateway(t *testing.T) {
 	})
 }
 
-// TestGenerateDynamoDBTable tests DynamoDB table generation
+// TestGenerateDynamoDBTable tests DynamoDB table generation.
 func TestGenerateDynamoDBTable(t *testing.T) {
 	t.Run("generates basic table", func(t *testing.T) {
 		config := TableConfig{
@@ -527,7 +526,7 @@ func TestGenerateDynamoDBTable(t *testing.T) {
 	})
 }
 
-// TestGenerateStack tests complete stack generation
+// TestGenerateStack tests complete stack generation.
 func TestGenerateStack(t *testing.T) {
 	t.Run("generates complete stack", func(t *testing.T) {
 		config := ForgeConfig{
@@ -578,7 +577,7 @@ func TestGenerateStack(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, "test-service", stack.Service)
-		assert.Len(t, stack.Functions, 0)
+		assert.Empty(t, stack.Functions)
 	})
 
 	t.Run("fails with invalid function config", func(t *testing.T) {
@@ -605,7 +604,7 @@ func TestGenerateStack(t *testing.T) {
 	})
 }
 
-// TestGenerateFunc tests the main generator function
+// TestGenerateFunc tests the main generator function.
 func TestGenerateFunc(t *testing.T) {
 	t.Run("generates terraform code from valid config", func(t *testing.T) {
 		config := ForgeConfig{
@@ -625,7 +624,7 @@ func TestGenerateFunc(t *testing.T) {
 		}
 
 		gen := NewGenerator()
-		result := gen.Generate(context.Background(), config)
+		result := gen.Generate(t.Context(), config)
 
 		assert.True(t, E.IsRight(result))
 
@@ -649,7 +648,7 @@ func TestGenerateFunc(t *testing.T) {
 		}
 
 		gen := NewGenerator()
-		result := gen.Generate(context.Background(), config)
+		result := gen.Generate(t.Context(), config)
 
 		assert.True(t, E.IsLeft(result))
 
@@ -663,7 +662,7 @@ func TestGenerateFunc(t *testing.T) {
 	})
 }
 
-// TestExportToTerraform tests Terraform export
+// TestExportToTerraform tests Terraform export.
 func TestExportToTerraform(t *testing.T) {
 	t.Run("exports stack to terraform", func(t *testing.T) {
 		stack := &Stack{
@@ -704,7 +703,7 @@ func TestExportToTerraform(t *testing.T) {
 	})
 }
 
-// TestGenerateStackWithAPIGateway tests stack generation with API Gateway
+// TestGenerateStackWithAPIGateway tests stack generation with API Gateway.
 func TestGenerateStackWithAPIGateway(t *testing.T) {
 	t.Run("generates stack with API Gateway", func(t *testing.T) {
 		config := ForgeConfig{
@@ -885,113 +884,7 @@ func TestGenerateStackWithAPIGateway(t *testing.T) {
 // 	})
 // }
 
-// // TestGenerateStackEdgeCases tests edge cases in stack generation
-//
-//	func TestGenerateStackEdgeCases(t *testing.T) {
-//		t.Run("handles function with all optional fields", func(t *testing.T) {
-//			config := ForgeConfig{
-//				Service: "test-service",
-//				Provider: ProviderConfig{
-//					Region: "us-east-1",
-//				},
-//				Functions: map[string]FunctionConfig{
-//					"complete": {
-//						Handler:     "index.handler",
-//						Runtime:     "python3.11",
-//						Timeout:     300,
-//						MemorySize:  1024,
-//						Description: "Complete function",
-//						Source: SourceConfig{
-//							Path: "./src",
-//						},
-//						Environment: map[string]string{
-//							"KEY": "value",
-//						},
-//						Tags: map[string]string{
-//							"Environment": "test",
-//						},
-//						ReservedConcurrentExecutions: 5,
-//						Architectures:                []string{"arm64"},
-//						Layers: []string{
-//							"arn:aws:lambda:us-east-1:123456789012:layer:test:1",
-//						},
-//					},
-//				},
-//			}
-//
-//			stack, err := generateStack(config)
-//
-//			require.NoError(t, err)
-//			assert.Equal(t, "test-service", stack.Service)
-//			assert.Len(t, stack.Functions, 1)
-//		})
-//
-//		t.Run("handles empty API Gateway config", func(t *testing.T) {
-//			config := ForgeConfig{
-//				Service: "test-service",
-//				Provider: ProviderConfig{
-//					Region: "us-east-1",
-//				},
-//				Functions: map[string]FunctionConfig{
-//					"hello": {
-//						Handler: "index.handler",
-//						Runtime: "nodejs20.x",
-//						Source: SourceConfig{
-//							Path: "./src",
-//						},
-//					},
-//				},
-//				APIGateway: nil,
-//			}
-//
-//			stack, err := generateStack(config)
-//
-//			require.NoError(t, err)
-//			assert.Nil(t, stack.APIGateway)
-//		})
-//
-//		t.Run("handles multiple functions with different runtimes", func(t *testing.T) {
-//			config := ForgeConfig{
-//				Service: "test-service",
-//				Provider: ProviderConfig{
-//					Region: "us-east-1",
-//				},
-//				Functions: map[string]FunctionConfig{
-//					"node-fn": {
-//						Handler: "index.handler",
-//						Runtime: "nodejs20.x",
-//						Source: SourceConfig{
-//							Path: "./src/node",
-//						},
-//					},
-//					"python-fn": {
-//						Handler: "main.handler",
-//						Runtime: "python3.11",
-//						Source: SourceConfig{
-//							Path: "./src/python",
-//						},
-//					},
-//					"go-fn": {
-//						Handler: "bootstrap",
-//						Runtime: "provided.al2023",
-//						Source: SourceConfig{
-//							Path: "./src/go",
-//						},
-//					},
-//				},
-//			}
-//
-//			stack, err := generateStack(config)
-//
-//			require.NoError(t, err)
-//			assert.Len(t, stack.Functions, 3)
-//			assert.Contains(t, stack.Functions, "node-fn")
-//			assert.Contains(t, stack.Functions, "python-fn")
-//			assert.Contains(t, stack.Functions, "go-fn")
-//		})
-//	}
-//
-// TestExportToTerraformSimple tests the Terraform export function
+// TestExportToTerraformSimple tests the Terraform export function.
 func TestExportToTerraformSimple(t *testing.T) {
 	t.Run("exports stack successfully", func(t *testing.T) {
 		config := ForgeConfig{

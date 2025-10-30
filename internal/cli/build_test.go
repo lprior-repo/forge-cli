@@ -49,8 +49,8 @@ func TestRunBuild(t *testing.T) {
 
 		// Create src/functions structure with a Go function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -69,7 +69,7 @@ func TestRunBuild(t *testing.T) {
 
 		// Create functions dir with unsupported files (will be ignored)
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		os.Chdir(tmpDir)
 
@@ -87,8 +87,8 @@ func TestRunBuild(t *testing.T) {
 		// Ruby files are ignored by discovery, so we need a different approach
 		// Create functions dir but no recognized entry files
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.rb"), []byte("# Ruby"), 0644))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.rb"), []byte("# Ruby"), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -108,16 +108,16 @@ func TestRunBuild(t *testing.T) {
 
 		// Create Python function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "handler")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		// Create minimal Python handler
 		pythonCode := `def lambda_handler(event, context):
     return {"statusCode": 200, "body": "Hello"}
 `
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "app.py"), []byte(pythonCode), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "app.py"), []byte(pythonCode), 0o644))
 
 		// Create empty requirements.txt
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "requirements.txt"), []byte(""), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "requirements.txt"), []byte(""), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -137,8 +137,8 @@ func TestRunBuild(t *testing.T) {
 		// Create multiple stub functions
 		for _, name := range []string{"api", "worker", "processor"} {
 			functionsDir := filepath.Join(tmpDir, "src", "functions", name)
-			require.NoError(t, os.MkdirAll(functionsDir, 0755))
-			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0644))
+			require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 		}
 
 		os.Chdir(tmpDir)
@@ -161,8 +161,8 @@ func TestRunBuild(t *testing.T) {
 
 		// Create function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -184,13 +184,13 @@ func TestRunBuild(t *testing.T) {
 
 		// Create function with invalid Go code (to trigger build failure)
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		// Invalid Go code that won't compile
 		invalidGo := `package main
 this is not valid go code
 `
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -206,13 +206,13 @@ this is not valid go code
 
 		// Create Node.js function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		nodeCode := `exports.handler = async (event) => {
     return { statusCode: 200, body: 'Hello' };
 };
 `
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "index.js"), []byte(nodeCode), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "index.js"), []byte(nodeCode), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -232,18 +232,18 @@ this is not valid go code
 
 		// Create Go function
 		goDir := filepath.Join(tmpDir, "src", "functions", "go-handler")
-		require.NoError(t, os.MkdirAll(goDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(goDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(goDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(goDir, "main.go"), []byte("package main"), 0o644))
 
 		// Create Node.js function
 		nodeDir := filepath.Join(tmpDir, "src", "functions", "node-handler")
-		require.NoError(t, os.MkdirAll(nodeDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(nodeDir, "index.js"), []byte("exports.handler = async () => {}"), 0644))
+		require.NoError(t, os.MkdirAll(nodeDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(nodeDir, "index.js"), []byte("exports.handler = async () => {}"), 0o644))
 
 		// Create Python function
 		pythonDir := filepath.Join(tmpDir, "src", "functions", "python-handler")
-		require.NoError(t, os.MkdirAll(pythonDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(pythonDir, "app.py"), []byte("def lambda_handler(e, c): pass"), 0644))
+		require.NoError(t, os.MkdirAll(pythonDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(pythonDir, "app.py"), []byte("def lambda_handler(e, c): pass"), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -265,8 +265,8 @@ this is not valid go code
 
 		// Create single function for output test
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -282,12 +282,12 @@ this is not valid go code
 
 		// Create Node.js function with handler.js
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		nodeCode := `exports.handler = async (event) => {
     return { statusCode: 200 };
 };`
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.js"), []byte(nodeCode), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.js"), []byte(nodeCode), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -305,11 +305,11 @@ this is not valid go code
 
 		// Create Python function with lambda_function.py
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "worker")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		pythonCode := `def lambda_handler(event, context):
     return {"statusCode": 200}`
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "lambda_function.py"), []byte(pythonCode), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "lambda_function.py"), []byte(pythonCode), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -340,14 +340,14 @@ this is not valid go code
 
 		// Create function with syntax error
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		// Invalid Go syntax (will cause compilation error)
 		invalidGo := `package main
 func main() {
 	// Missing closing brace
 `
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -363,7 +363,7 @@ func main() {
 
 		// Create empty functions directory
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		os.Chdir(tmpDir)
 
@@ -379,12 +379,12 @@ func main() {
 
 		// Create Node.js function with index.mjs
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		nodeCode := `export const handler = async (event) => {
     return { statusCode: 200, body: 'Hello' };
 };`
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "index.mjs"), []byte(nodeCode), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "index.mjs"), []byte(nodeCode), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -402,11 +402,11 @@ func main() {
 
 		// Create Python function with handler.py
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "worker")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 		pythonCode := `def lambda_handler(event, context):
     return {"statusCode": 200}`
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.py"), []byte(pythonCode), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.py"), []byte(pythonCode), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -426,8 +426,8 @@ func main() {
 
 		// Create function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
 		os.Chdir(tmpDir)
 
@@ -451,7 +451,7 @@ func main() {
 
 		for name, entryFile := range functions {
 			functionsDir := filepath.Join(tmpDir, "src", "functions", name)
-			require.NoError(t, os.MkdirAll(functionsDir, 0755))
+			require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
 			var content string
 			switch {
@@ -463,7 +463,7 @@ func main() {
 				content = "def lambda_handler(e, c): pass"
 			}
 
-			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, entryFile), []byte(content), 0644))
+			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, entryFile), []byte(content), 0o644))
 		}
 
 		os.Chdir(tmpDir)
@@ -489,8 +489,8 @@ func main() {
 		for i := 1; i <= 3; i++ {
 			funcName := fmt.Sprintf("func%d", i)
 			functionsDir := filepath.Join(tmpDir, "src", "functions", funcName)
-			require.NoError(t, os.MkdirAll(functionsDir, 0755))
-			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0644))
+			require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 		}
 
 		os.Chdir(tmpDir)

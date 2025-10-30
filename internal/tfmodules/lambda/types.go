@@ -56,13 +56,13 @@ type Module struct {
 	LambdaRole *string `json:"lambda_role,omitempty" hcl:"lambda_role,attr"`
 
 	// MemorySize is the amount of memory in MB (128-10240)
-	MemorySize *int `json:"memory_size,omitempty" hcl:"memory_size,attr" validate:"min=128,max=10240"`
+	MemorySize *int `json:"memory_size,omitempty" validate:"min=128,max=10240" hcl:"memory_size,attr"`
 
 	// Timeout is the execution timeout in seconds (1-900)
-	Timeout *int `json:"timeout,omitempty" hcl:"timeout,attr" validate:"min=1,max=900"`
+	Timeout *int `json:"timeout,omitempty" validate:"min=1,max=900" hcl:"timeout,attr"`
 
 	// EphemeralStorageSize is the /tmp storage in MB (512-10240)
-	EphemeralStorageSize *int `json:"ephemeral_storage_size,omitempty" hcl:"ephemeral_storage_size,attr" validate:"min=512,max=10240"`
+	EphemeralStorageSize *int `json:"ephemeral_storage_size,omitempty" validate:"min=512,max=10240" hcl:"ephemeral_storage_size,attr"`
 
 	// ReservedConcurrentExecutions limits concurrent executions (-1 for unlimited, 0 to disable)
 	ReservedConcurrentExecutions *int `json:"reserved_concurrent_executions,omitempty" hcl:"reserved_concurrent_executions,attr"`
@@ -202,10 +202,10 @@ type Module struct {
 	CreateAsyncEventConfig *bool `json:"create_async_event_config,omitempty" hcl:"create_async_event_config,attr"`
 
 	// MaximumEventAgeInSeconds is the max age for async events (60-21600)
-	MaximumEventAgeInSeconds *int `json:"maximum_event_age_in_seconds,omitempty" hcl:"maximum_event_age_in_seconds,attr" validate:"min=60,max=21600"`
+	MaximumEventAgeInSeconds *int `json:"maximum_event_age_in_seconds,omitempty" validate:"min=60,max=21600" hcl:"maximum_event_age_in_seconds,attr"`
 
 	// MaximumRetryAttempts is the max retry attempts (0-2)
-	MaximumRetryAttempts *int `json:"maximum_retry_attempts,omitempty" hcl:"maximum_retry_attempts,attr" validate:"min=0,max=2"`
+	MaximumRetryAttempts *int `json:"maximum_retry_attempts,omitempty" validate:"min=0,max=2" hcl:"maximum_retry_attempts,attr"`
 
 	// DestinationOnFailure is the ARN for failed invocations
 	DestinationOnFailure *string `json:"destination_on_failure,omitempty" hcl:"destination_on_failure,attr"`
@@ -292,7 +292,7 @@ type Module struct {
 	SkipDestroy *bool `json:"skip_destroy,omitempty" hcl:"skip_destroy,attr"`
 }
 
-// CORSConfig represents CORS configuration for Function URL
+// CORSConfig represents CORS configuration for Function URL.
 type CORSConfig struct {
 	// AllowCredentials allows credentials
 	AllowCredentials *bool `json:"allow_credentials,omitempty" hcl:"allow_credentials,attr"`
@@ -313,7 +313,7 @@ type CORSConfig struct {
 	MaxAge *int `json:"max_age,omitempty" hcl:"max_age,attr"`
 }
 
-// PolicyStatement represents an IAM policy statement
+// PolicyStatement represents an IAM policy statement.
 type PolicyStatement struct {
 	// Effect is Allow or Deny
 	Effect *string `json:"effect,omitempty" hcl:"effect,attr"`
@@ -325,7 +325,7 @@ type PolicyStatement struct {
 	Resources []string `json:"resources,omitempty" hcl:"resources,attr"`
 }
 
-// EventSourceMapping represents an event source mapping configuration
+// EventSourceMapping represents an event source mapping configuration.
 type EventSourceMapping struct {
 	// EventSourceARN is the ARN of the event source
 	EventSourceARN string `json:"event_source_arn" hcl:"event_source_arn,attr"`
@@ -347,7 +347,7 @@ type EventSourceMapping struct {
 	FilterCriteria map[string]interface{} `json:"filter_criteria,omitempty" hcl:"filter_criteria,attr"`
 }
 
-// AllowedTrigger represents an allowed trigger configuration
+// AllowedTrigger represents an allowed trigger configuration.
 type AllowedTrigger struct {
 	// Service is the AWS service
 	Service string `json:"service" hcl:"service,attr"`
@@ -359,7 +359,7 @@ type AllowedTrigger struct {
 	Principal *string `json:"principal,omitempty" hcl:"principal,attr"`
 }
 
-// NewModule creates a new Lambda module with sensible defaults
+// NewModule creates a new Lambda module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/lambda/aws"
 	version := "~> 7.0"
@@ -394,21 +394,21 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithRuntime sets the runtime and handler
+// WithRuntime sets the runtime and handler.
 func (m *Module) WithRuntime(runtime, handler string) *Module {
 	m.Runtime = &runtime
 	m.Handler = &handler
 	return m
 }
 
-// WithMemoryAndTimeout configures memory and timeout
+// WithMemoryAndTimeout configures memory and timeout.
 func (m *Module) WithMemoryAndTimeout(memoryMB, timeoutSeconds int) *Module {
 	m.MemorySize = &memoryMB
 	m.Timeout = &timeoutSeconds
 	return m
 }
 
-// WithVPC configures VPC settings
+// WithVPC configures VPC settings.
 func (m *Module) WithVPC(subnetIDs, securityGroupIDs []string) *Module {
 	m.VPCSubnetIDs = subnetIDs
 	m.VPCSecurityGroupIDs = securityGroupIDs
@@ -417,7 +417,7 @@ func (m *Module) WithVPC(subnetIDs, securityGroupIDs []string) *Module {
 	return m
 }
 
-// WithEnvironment sets environment variables
+// WithEnvironment sets environment variables.
 func (m *Module) WithEnvironment(envVars map[string]string) *Module {
 	if m.EnvironmentVariables == nil {
 		m.EnvironmentVariables = make(map[string]string)
@@ -428,7 +428,7 @@ func (m *Module) WithEnvironment(envVars map[string]string) *Module {
 	return m
 }
 
-// WithTracing enables X-Ray tracing
+// WithTracing enables X-Ray tracing.
 func (m *Module) WithTracing(mode string) *Module {
 	m.TracingMode = &mode
 	attachTracing := true
@@ -436,13 +436,13 @@ func (m *Module) WithTracing(mode string) *Module {
 	return m
 }
 
-// WithLayers adds Lambda layers
+// WithLayers adds Lambda layers.
 func (m *Module) WithLayers(layerARNs ...string) *Module {
 	m.Layers = append(m.Layers, layerARNs...)
 	return m
 }
 
-// WithFunctionURL enables Function URL
+// WithFunctionURL enables Function URL.
 func (m *Module) WithFunctionURL(authType string, cors *CORSConfig) *Module {
 	createURL := true
 	m.CreateLambdaFunctionURL = &createURL
@@ -451,7 +451,7 @@ func (m *Module) WithFunctionURL(authType string, cors *CORSConfig) *Module {
 	return m
 }
 
-// WithDeadLetterQueue configures DLQ
+// WithDeadLetterQueue configures DLQ.
 func (m *Module) WithDeadLetterQueue(targetARN string) *Module {
 	m.DeadLetterTargetARN = &targetARN
 	attachDLQ := true
@@ -459,7 +459,7 @@ func (m *Module) WithDeadLetterQueue(targetARN string) *Module {
 	return m
 }
 
-// WithEventSourceMapping adds an event source mapping
+// WithEventSourceMapping adds an event source mapping.
 func (m *Module) WithEventSourceMapping(name string, mapping EventSourceMapping) *Module {
 	if m.EventSourceMapping == nil {
 		m.EventSourceMapping = make(map[string]EventSourceMapping)
@@ -468,7 +468,7 @@ func (m *Module) WithEventSourceMapping(name string, mapping EventSourceMapping)
 	return m
 }
 
-// WithTags adds tags to the function
+// WithTags adds tags to the function.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -479,7 +479,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
+// LocalName returns the local identifier for this module instance.
 func (m *Module) LocalName() string {
 	if m.FunctionName != nil {
 		return *m.FunctionName
@@ -487,7 +487,7 @@ func (m *Module) LocalName() string {
 	return "lambda_function"
 }
 
-// Configuration generates the HCL configuration for this module
+// Configuration generates the HCL configuration for this module.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

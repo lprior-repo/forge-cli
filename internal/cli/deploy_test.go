@@ -55,8 +55,8 @@ func TestRunDeploy(t *testing.T) {
 
 		// Create functions but no infra (Go build will fail first)
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionsDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0644))
+		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
 		os.Chdir(tmpDir)
 

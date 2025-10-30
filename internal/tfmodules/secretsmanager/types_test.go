@@ -80,7 +80,7 @@ func TestModule_WithSecretJSON(t *testing.T) {
 
 		// Verify secret string is set with JSON
 		assert.NotNil(t, module.SecretString)
-		assert.Equal(t, jsonValue, *module.SecretString)
+		assert.JSONEq(t, jsonValue, *module.SecretString)
 		assert.Contains(t, *module.SecretString, "username")
 	})
 
@@ -478,14 +478,14 @@ func TestRotationRules(t *testing.T) {
 	})
 }
 
-// BenchmarkNewModule benchmarks module creation
+// BenchmarkNewModule benchmarks module creation.
 func BenchmarkNewModule(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_secret")
 	}
 }
 
-// BenchmarkFluentAPI benchmarks fluent API calls
+// BenchmarkFluentAPI benchmarks fluent API calls.
 func BenchmarkFluentAPI(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("bench_secret").
@@ -495,7 +495,7 @@ func BenchmarkFluentAPI(b *testing.B) {
 	}
 }
 
-// BenchmarkWithReplication benchmarks replication addition
+// BenchmarkWithReplication benchmarks replication addition.
 func BenchmarkWithReplication(b *testing.B) {
 	module := NewModule("bench_secret")
 

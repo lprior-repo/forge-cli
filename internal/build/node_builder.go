@@ -10,21 +10,21 @@ import (
 	E "github.com/IBM/fp-go/either"
 )
 
-// NodeBuildSpec represents the pure specification for a Node.js build
-// PURE: No side effects, deterministic output from inputs
+// NodeBuildSpec represents the pure specification for a Node.js build.
+// PURE: No side effects, deterministic output from inputs.
 type NodeBuildSpec struct {
-	OutputPath      string
-	SourceDir       string
-	HasPackageJSON  bool
-	HasTypeScript   bool
-	Env             []string
-	InstallCmd      []string // npm install command
-	BuildCmd        []string // npm run build command (for TypeScript)
+	OutputPath     string
+	SourceDir      string
+	HasPackageJSON bool
+	HasTypeScript  bool
+	Env            []string
+	InstallCmd     []string // npm install command
+	BuildCmd       []string // npm run build command (for TypeScript)
 }
 
-// GenerateNodeBuildSpec creates a build specification from config
-// PURE: Calculation - same inputs always produce same outputs
-func GenerateNodeBuildSpec(cfg Config, hasPackageJSON bool, hasTypeScript bool) NodeBuildSpec {
+// GenerateNodeBuildSpec creates a build specification from config.
+// PURE: Calculation - same inputs always produce same outputs.
+func GenerateNodeBuildSpec(cfg Config, hasPackageJSON, hasTypeScript bool) NodeBuildSpec {
 	outputPath := cfg.OutputPath
 	if outputPath == "" {
 		outputPath = filepath.Join(cfg.SourceDir, "lambda.zip")
@@ -54,8 +54,8 @@ func GenerateNodeBuildSpec(cfg Config, hasPackageJSON bool, hasTypeScript bool) 
 	}
 }
 
-// ExecuteNodeBuildSpec executes a Node.js build specification
-// ACTION: Performs I/O operations (file system, process execution)
+// ExecuteNodeBuildSpec executes a build specification using functional composition.
+// ACTION: Performs I/O operations (file system, process execution).
 func ExecuteNodeBuildSpec(ctx context.Context, spec NodeBuildSpec) E.Either[error, Artifact] {
 	artifact, err := func() (Artifact, error) {
 		// I/O: Install dependencies if package.json exists
@@ -77,15 +77,7 @@ func ExecuteNodeBuildSpec(ctx context.Context, spec NodeBuildSpec) E.Either[erro
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to create zip: %w", err)
 		}
-		defer func() {
-			_ = zipFile.Close() // Best effort close in defer
-		}()
-
 		zipWriter := zip.NewWriter(zipFile)
-		defer func() {
-			_ = zipWriter.Close() // Best effort close in defer
-		}()
-
 		// I/O: Add source code and node_modules
 		if err := addDirToZip(zipWriter, spec.SourceDir, ""); err != nil {
 			return Artifact{}, fmt.Errorf("failed to add source code: %w", err)
@@ -117,15 +109,14 @@ func ExecuteNodeBuildSpec(ctx context.Context, spec NodeBuildSpec) E.Either[erro
 			Size:     size,
 		}, nil
 	}()
-
 	if err != nil {
 		return E.Left[Artifact](err)
 	}
 	return E.Right[error](artifact)
 }
 
-// NodeBuild composes pure specification generation with impure execution
-// COMPOSITION: Pure core + Imperative shell
+// NodeBuild composes pure specification generation with impure execution.
+// COMPOSITION: Pure core + Imperative shell.
 func NodeBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 	// I/O: Check for package.json
 	packageJSONPath := filepath.Join(cfg.SourceDir, "package.json")

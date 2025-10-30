@@ -2,20 +2,22 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	E "github.com/IBM/fp-go/either"
+	"github.com/spf13/cobra"
+
 	"github.com/lewis/forge/internal/generators"
 	"github.com/lewis/forge/internal/generators/dynamodb"
 	"github.com/lewis/forge/internal/generators/s3"
 	"github.com/lewis/forge/internal/generators/sns"
 	"github.com/lewis/forge/internal/generators/sqs"
-	"github.com/spf13/cobra"
 )
 
-// NewAddCmd creates the 'add' command
+// NewAddCmd creates the 'add' command.
 func NewAddCmd() *cobra.Command {
 	var (
 		addToFunc   string
@@ -24,9 +26,9 @@ func NewAddCmd() *cobra.Command {
 	)
 
 	addCmd := &cobra.Command{
-	Use:   "add <resource-type> <name>",
-	Short: "Add AWS resources with generated Terraform code",
-	Long: `
+		Use:   "add <resource-type> <name>",
+		Short: "Add AWS resources with generated Terraform code",
+		Long: `
 ╭──────────────────────────────────────────────────────────────╮
 │  ➕ Forge Add Resource                                      │
 ╰──────────────────────────────────────────────────────────────╯
@@ -88,8 +90,8 @@ Smart defaults, best practices, and Lambda integrations built-in.
 	return addCmd
 }
 
-// runAdd executes the add command (I/O ACTION)
-func runAdd(cmd *cobra.Command, args []string, toFunc string, raw bool, noModule bool) error {
+// runAdd executes the add command (I/O ACTION).
+func runAdd(cmd *cobra.Command, args []string, toFunc string, raw, noModule bool) error {
 	ctx := cmd.Context()
 	resourceType := args[0]
 	resourceName := args[1]
@@ -173,7 +175,7 @@ func runAdd(cmd *cobra.Command, args []string, toFunc string, raw bool, noModule
 	)(writtenResult)
 }
 
-// createGeneratorRegistry creates registry with all generators (PURE)
+// createGeneratorRegistry creates registry with all generators (PURE).
 func createGeneratorRegistry() *generators.Registry {
 	registry := generators.NewRegistry()
 	registry.Register(generators.ResourceSQS, sqs.New())
@@ -183,14 +185,14 @@ func createGeneratorRegistry() *generators.Registry {
 	return registry
 }
 
-// discoverProjectState scans project for existing resources (I/O ACTION)
+// discoverProjectState scans project for existing resources (I/O ACTION).
 func discoverProjectState(projectRoot string) E.Either[error, generators.ProjectState] {
 	infraDir := filepath.Join(projectRoot, "infra")
 
 	// Check if infra directory exists
 	if _, err := os.Stat(infraDir); os.IsNotExist(err) {
 		return E.Left[generators.ProjectState](
-			fmt.Errorf("infra/ directory not found - run 'forge new' first"),
+			errors.New("infra/ directory not found - run 'forge new' first"),
 		)
 	}
 
@@ -226,7 +228,7 @@ func discoverProjectState(projectRoot string) E.Either[error, generators.Project
 	return E.Right[error](state)
 }
 
-// writeGeneratedFiles persists code to disk (I/O ACTION)
+// writeGeneratedFiles persists code to disk (I/O ACTION).
 func writeGeneratedFiles(code generators.GeneratedCode, infraDir string) E.Either[error, generators.WrittenFiles] {
 	written := generators.WrittenFiles{
 		Created: []string{},
@@ -235,7 +237,8 @@ func writeGeneratedFiles(code generators.GeneratedCode, infraDir string) E.Eithe
 	}
 
 	// Ensure infra directory exists
-	if err := os.MkdirAll(infraDir, 0755); err != nil {
+	//nolint:gosec // User-facing directory needs read access
+	if err := os.MkdirAll(infraDir, 0o755); err != nil {
 		return E.Left[generators.WrittenFiles](
 			fmt.Errorf("failed to create infra directory: %w", err),
 		)
@@ -252,7 +255,7 @@ func writeGeneratedFiles(code generators.GeneratedCode, infraDir string) E.Eithe
 				written.Skipped = append(written.Skipped, file.Path)
 				continue
 			}
-			if err := os.WriteFile(filePath, []byte(file.Content), 0644); err != nil {
+			if err := os.WriteFile(filePath, []byte(file.Content), 0o644); err != nil {
 				return E.Left[generators.WrittenFiles](
 					fmt.Errorf("failed to create %s: %w", file.Path, err),
 				)
@@ -261,16 +264,25 @@ func writeGeneratedFiles(code generators.GeneratedCode, infraDir string) E.Eithe
 
 		case generators.WriteModeAppend:
 			// Append to existing file or create new
-			f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 			if err != nil {
 				return E.Left[generators.WrittenFiles](
 					fmt.Errorf("failed to open %s: %w", file.Path, err),
 				)
 			}
-			defer f.Close()
+			defer func() {
+				if err := f.Close(); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to close file %s: %v\n", filePath, err)
+				}
+			}()
 
 			// Check if file existed before
-			stat, _ := os.Stat(filePath)
+			stat, err := os.Stat(filePath)
+			if err != nil && !os.IsNotExist(err) {
+				return E.Left[generators.WrittenFiles](
+					fmt.Errorf("failed to stat %s: %w", filePath, err),
+				)
+			}
 			existed := stat != nil && stat.Size() > 0
 
 			if _, err := f.WriteString("\n" + file.Content); err != nil {
@@ -289,13 +301,17 @@ func writeGeneratedFiles(code generators.GeneratedCode, infraDir string) E.Eithe
 			// Update existing resource in file (requires parsing)
 			// For MVP, treat as append
 			// TODO: Implement smart update in Phase 2
-			f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 			if err != nil {
 				return E.Left[generators.WrittenFiles](
 					fmt.Errorf("failed to open %s: %w", file.Path, err),
 				)
 			}
-			defer f.Close()
+			defer func() {
+				if err := f.Close(); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to close file %s: %v\n", filePath, err)
+				}
+			}()
 
 			if _, err := f.WriteString("\n" + file.Content); err != nil {
 				return E.Left[generators.WrittenFiles](

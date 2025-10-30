@@ -7,19 +7,20 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/discovery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/discovery"
 )
 
-// TestConventionStubsEdgeCases tests edge cases in stub creation
+// TestConventionStubsEdgeCases tests edge cases in stub creation.
 func TestConventionStubsEdgeCases(t *testing.T) {
 	t.Run("creates build directory if it doesn't exist", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		// Don't create .forge/build directory
 
 		functionDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionDir, 0755))
+		require.NoError(t, os.MkdirAll(functionDir, 0o755))
 
 		functions := []discovery.Function{
 			{
@@ -36,7 +37,7 @@ func TestConventionStubsEdgeCases(t *testing.T) {
 		}
 
 		stage := ConventionStubs()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -46,13 +47,13 @@ func TestConventionStubsEdgeCases(t *testing.T) {
 	})
 }
 
-// TestConventionStubsV2EdgeCases tests V2 stub creation edge cases
+// TestConventionStubsV2EdgeCases tests V2 stub creation edge cases.
 func TestConventionStubsV2EdgeCases(t *testing.T) {
 	t.Run("creates build directory and emits events", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		functionDir := filepath.Join(tmpDir, "src", "functions", "api")
-		require.NoError(t, os.MkdirAll(functionDir, 0755))
+		require.NoError(t, os.MkdirAll(functionDir, 0o755))
 
 		functions := []discovery.Function{
 			{
@@ -69,7 +70,7 @@ func TestConventionStubsV2EdgeCases(t *testing.T) {
 		}
 
 		stage := ConventionStubsV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -91,7 +92,7 @@ func TestConventionStubsV2EdgeCases(t *testing.T) {
 		// Create multiple functions
 		for _, name := range []string{"api1", "api2", "api3"} {
 			functionDir := filepath.Join(tmpDir, "src", "functions", name)
-			require.NoError(t, os.MkdirAll(functionDir, 0755))
+			require.NoError(t, os.MkdirAll(functionDir, 0o755))
 		}
 
 		functions := []discovery.Function{
@@ -106,7 +107,7 @@ func TestConventionStubsV2EdgeCases(t *testing.T) {
 		}
 
 		stage := ConventionStubsV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -120,7 +121,7 @@ func TestConventionStubsV2EdgeCases(t *testing.T) {
 	})
 }
 
-// TestRunEdgeCasesMore tests additional Run edge cases
+// TestRunEdgeCasesMore tests additional Run edge cases.
 func TestRunEdgeCasesMore(t *testing.T) {
 	t.Run("handles None value in pipeline gracefully", func(t *testing.T) {
 		// This tests the O.IsNone check in Run
@@ -132,7 +133,7 @@ func TestRunEdgeCasesMore(t *testing.T) {
 		}
 
 		pipeline := New(stage)
-		result := Run(pipeline, context.Background(), State{ProjectDir: "/test"})
+		result := Run(pipeline, t.Context(), State{ProjectDir: "/test"})
 
 		assert.True(t, E.IsRight(result))
 		assert.True(t, stageExecuted)
@@ -156,14 +157,14 @@ func TestRunEdgeCasesMore(t *testing.T) {
 			makeStage(5),
 		)
 
-		result := Run(pipeline, context.Background(), State{})
+		result := Run(pipeline, t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, executionOrder)
 	})
 }
 
-// TestParallelEdgeCasesMore tests additional Parallel edge cases
+// TestParallelEdgeCasesMore tests additional Parallel edge cases.
 func TestParallelEdgeCasesMore(t *testing.T) {
 	t.Run("parallel executes all stages when no errors", func(t *testing.T) {
 		var stage1Called, stage2Called, stage3Called bool
@@ -184,7 +185,7 @@ func TestParallelEdgeCasesMore(t *testing.T) {
 		}
 
 		parallelStage := Parallel(stage1, stage2, stage3)
-		result := parallelStage(context.Background(), State{})
+		result := parallelStage(t.Context(), State{})
 
 		assert.True(t, E.IsRight(result))
 		assert.True(t, stage1Called)
@@ -193,7 +194,7 @@ func TestParallelEdgeCasesMore(t *testing.T) {
 	})
 }
 
-// TestRunWithEventsEdgeCases tests additional RunWithEvents edge cases
+// TestRunWithEventsEdgeCases tests additional RunWithEvents edge cases.
 func TestRunWithEventsEdgeCases(t *testing.T) {
 	t.Run("handles successful execution through all stages", func(t *testing.T) {
 		stage1 := func(ctx context.Context, s State) E.Either[error, StageResult] {
@@ -217,7 +218,7 @@ func TestRunWithEventsEdgeCases(t *testing.T) {
 		}
 
 		pipeline := NewEventPipeline(stage1, stage2)
-		result := RunWithEvents(pipeline, context.Background(), State{})
+		result := RunWithEvents(pipeline, t.Context(), State{})
 
 		require.True(t, E.IsRight(result))
 
@@ -245,13 +246,13 @@ func TestRunWithEventsEdgeCases(t *testing.T) {
 		}
 
 		pipeline := NewEventPipeline(stage1, stage2)
-		result := RunWithEvents(pipeline, context.Background(), State{})
+		result := RunWithEvents(pipeline, t.Context(), State{})
 
 		assert.True(t, E.IsLeft(result))
 	})
 }
 
-// TestConventionBuildV2EdgeCases tests V2 build edge cases
+// TestConventionBuildV2EdgeCases tests V2 build edge cases.
 func TestConventionBuildV2EdgeCases(t *testing.T) {
 	t.Run("handles empty function list with events", func(t *testing.T) {
 		state := State{
@@ -261,7 +262,7 @@ func TestConventionBuildV2EdgeCases(t *testing.T) {
 		}
 
 		stage := ConventionBuildV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -281,13 +282,13 @@ func TestConventionBuildV2EdgeCases(t *testing.T) {
 		}
 
 		stage := ConventionBuildV2()
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result))
 	})
 }
 
-// TestTerraformApplyV2EdgeCases tests V2 apply edge cases
+// TestTerraformApplyV2EdgeCases tests V2 apply edge cases.
 func TestTerraformApplyV2EdgeCases(t *testing.T) {
 	t.Run("applies with auto-approve and emits success event", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -305,7 +306,7 @@ func TestTerraformApplyV2EdgeCases(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformApplyV2(exec, autoApprove)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 		assert.True(t, applyCalled)
@@ -339,7 +340,7 @@ func TestTerraformApplyV2EdgeCases(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformApplyV2(exec, autoApprove)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result))
 	})
@@ -358,7 +359,7 @@ func TestTerraformApplyV2EdgeCases(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformApplyV2(exec, cancelFunc)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		assert.True(t, E.IsLeft(result))
 	})
@@ -376,14 +377,14 @@ func TestTerraformApplyV2EdgeCases(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformApplyV2(exec, nil) // nil approval func
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 		assert.True(t, applyCalled)
 	})
 }
 
-// TestOutputsV2EdgeCases tests V2 outputs edge cases
+// TestOutputsV2EdgeCases tests V2 outputs edge cases.
 func TestOutputsV2EdgeCases(t *testing.T) {
 	t.Run("captures outputs and emits success events", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -401,7 +402,7 @@ func TestOutputsV2EdgeCases(t *testing.T) {
 
 		state := State{ProjectDir: tmpDir}
 		stage := ConventionTerraformOutputsV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 
@@ -431,7 +432,7 @@ func TestOutputsV2EdgeCases(t *testing.T) {
 		}
 
 		stage := ConventionTerraformOutputsV2(exec)
-		result := stage(context.Background(), state)
+		result := stage(t.Context(), state)
 
 		require.True(t, E.IsRight(result))
 

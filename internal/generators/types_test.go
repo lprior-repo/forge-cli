@@ -8,22 +8,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestResourceTypes tests resource type constants
+// TestResourceTypes tests resource type constants.
 func TestResourceTypes(t *testing.T) {
 	t.Run("all resource types are defined", func(t *testing.T) {
-		assert.Equal(t, ResourceType("lambda"), ResourceLambda)
-		assert.Equal(t, ResourceType("sqs"), ResourceSQS)
-		assert.Equal(t, ResourceType("sns"), ResourceSNS)
-		assert.Equal(t, ResourceType("dynamodb"), ResourceDynamoDB)
-		assert.Equal(t, ResourceType("apigw"), ResourceAPIGateway)
-		assert.Equal(t, ResourceType("eventbridge"), ResourceEventBridge)
-		assert.Equal(t, ResourceType("sfn"), ResourceStepFunctions)
-		assert.Equal(t, ResourceType("s3"), ResourceS3)
-		assert.Equal(t, ResourceType("cognito"), ResourceCognito)
+		assert.Equal(t, ResourceLambda, ResourceType("lambda"))
+		assert.Equal(t, ResourceSQS, ResourceType("sqs"))
+		assert.Equal(t, ResourceSNS, ResourceType("sns"))
+		assert.Equal(t, ResourceDynamoDB, ResourceType("dynamodb"))
+		assert.Equal(t, ResourceAPIGateway, ResourceType("apigw"))
+		assert.Equal(t, ResourceEventBridge, ResourceType("eventbridge"))
+		assert.Equal(t, ResourceStepFunctions, ResourceType("sfn"))
+		assert.Equal(t, ResourceS3, ResourceType("s3"))
+		assert.Equal(t, ResourceCognito, ResourceType("cognito"))
 	})
 }
 
-// TestResourceIntent tests intent data structure
+// TestResourceIntent tests intent data structure.
 func TestResourceIntent(t *testing.T) {
 	t.Run("creates intent with required fields", func(t *testing.T) {
 		intent := ResourceIntent{
@@ -52,7 +52,7 @@ func TestResourceIntent(t *testing.T) {
 	})
 }
 
-// TestProjectState tests project state data structure
+// TestProjectState tests project state data structure.
 func TestProjectState(t *testing.T) {
 	t.Run("creates empty project state", func(t *testing.T) {
 		state := ProjectState{
@@ -99,7 +99,7 @@ func TestProjectState(t *testing.T) {
 	})
 }
 
-// TestResourceConfig tests configuration data structure
+// TestResourceConfig tests configuration data structure.
 func TestResourceConfig(t *testing.T) {
 	t.Run("creates config without integration", func(t *testing.T) {
 		config := ResourceConfig{
@@ -151,7 +151,7 @@ func TestResourceConfig(t *testing.T) {
 	})
 }
 
-// TestGeneratedCode tests code generation data structure
+// TestGeneratedCode tests code generation data structure.
 func TestGeneratedCode(t *testing.T) {
 	t.Run("creates generated code with resources", func(t *testing.T) {
 		code := GeneratedCode{
@@ -182,16 +182,16 @@ func TestGeneratedCode(t *testing.T) {
 	})
 }
 
-// TestWriteMode tests write mode constants
+// TestWriteMode tests write mode constants.
 func TestWriteMode(t *testing.T) {
 	t.Run("all write modes are defined", func(t *testing.T) {
-		assert.Equal(t, WriteMode("create"), WriteModeCreate)
-		assert.Equal(t, WriteMode("append"), WriteModeAppend)
-		assert.Equal(t, WriteMode("update"), WriteModeUpdate)
+		assert.Equal(t, WriteModeCreate, WriteMode("create"))
+		assert.Equal(t, WriteModeAppend, WriteMode("append"))
+		assert.Equal(t, WriteModeUpdate, WriteMode("update"))
 	})
 }
 
-// TestRegistry tests generator registry
+// TestRegistry tests generator registry.
 func TestRegistry(t *testing.T) {
 	t.Run("creates empty registry", func(t *testing.T) {
 		registry := NewRegistry()
@@ -250,7 +250,7 @@ func TestRegistry(t *testing.T) {
 	})
 }
 
-// TestFunctionInfo tests function info data structure
+// TestFunctionInfo tests function info data structure.
 func TestFunctionInfo(t *testing.T) {
 	t.Run("stores complete function metadata", func(t *testing.T) {
 		info := FunctionInfo{
@@ -267,7 +267,7 @@ func TestFunctionInfo(t *testing.T) {
 	})
 }
 
-// TestIntegrationConfig tests integration configuration
+// TestIntegrationConfig tests integration configuration.
 func TestIntegrationConfig(t *testing.T) {
 	t.Run("creates integration with event source", func(t *testing.T) {
 		config := IntegrationConfig{
@@ -318,7 +318,7 @@ func TestIntegrationConfig(t *testing.T) {
 	})
 }
 
-// mockGenerator implements Generator for testing
+// mockGenerator implements Generator for testing.
 type mockGenerator struct {
 	promptFunc   func(context.Context, ResourceIntent, ProjectState) E.Either[error, ResourceConfig]
 	generateFunc func(ResourceConfig, ProjectState) E.Either[error, GeneratedCode]

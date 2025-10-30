@@ -2,6 +2,7 @@ package lingon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	E "github.com/IBM/fp-go/either"
@@ -9,22 +10,22 @@ import (
 	"github.com/samber/lo"
 )
 
-// GeneratorFunc is a function that generates Terraform code from ForgeConfig
+// GeneratorFunc is a function that generates Terraform code from ForgeConfig.
 type GeneratorFunc func(ctx context.Context, config ForgeConfig) E.Either[error, []byte]
 
-// Generator provides Terraform generation from Forge configuration
+// Generator provides Terraform generation from Forge configuration.
 type Generator struct {
 	Generate GeneratorFunc
 }
 
-// NewGenerator creates a new Terraform generator using Lingon
+// NewGenerator creates a new Terraform generator using Lingon.
 func NewGenerator() Generator {
 	return Generator{
 		Generate: makeGenerateFunc(),
 	}
 }
 
-// makeGenerateFunc creates the main generation function
+// makeGenerateFunc creates the main generation function.
 func makeGenerateFunc() GeneratorFunc {
 	return func(ctx context.Context, config ForgeConfig) E.Either[error, []byte] {
 		// Validate configuration
@@ -48,18 +49,18 @@ func makeGenerateFunc() GeneratorFunc {
 	}
 }
 
-// validateConfig validates the ForgeConfig
+// validateConfig validates the ForgeConfig.
 func validateConfig(config ForgeConfig) error {
 	if config.Service == "" {
-		return fmt.Errorf("service name is required")
+		return errors.New("service name is required")
 	}
 
 	if config.Provider.Region == "" {
-		return fmt.Errorf("provider region is required")
+		return errors.New("provider region is required")
 	}
 
 	if len(config.Functions) == 0 {
-		return fmt.Errorf("at least one function is required")
+		return errors.New("at least one function is required")
 	}
 
 	// Validate each function
@@ -72,18 +73,18 @@ func validateConfig(config ForgeConfig) error {
 	return nil
 }
 
-// validateFunction validates a single function configuration
+// validateFunction validates a single function configuration.
 func validateFunction(name string, fn FunctionConfig) error {
 	if fn.Handler == "" {
-		return fmt.Errorf("handler is required")
+		return errors.New("handler is required")
 	}
 
 	if fn.Runtime == "" {
-		return fmt.Errorf("runtime is required")
+		return errors.New("runtime is required")
 	}
 
 	if fn.Source.Path == "" && fn.Source.S3Bucket == "" && fn.Source.Filename == "" {
-		return fmt.Errorf("source path, S3 location, or filename is required")
+		return errors.New("source path, S3 location, or filename is required")
 	}
 
 	// Validate runtime
@@ -104,7 +105,7 @@ func validateFunction(name string, fn FunctionConfig) error {
 	return nil
 }
 
-// Stack represents a Lingon stack containing all resources
+// Stack represents a Lingon stack containing all resources.
 type Stack struct {
 	Service          string
 	Provider         ProviderConfig
@@ -119,7 +120,7 @@ type Stack struct {
 	Alarms           map[string]*CloudWatchAlarm
 }
 
-// LambdaFunction represents a Lingon Lambda function resource
+// LambdaFunction represents a Lingon Lambda function resource.
 type LambdaFunction struct {
 	Name         string
 	Config       FunctionConfig
@@ -129,7 +130,7 @@ type LambdaFunction struct {
 	EventSources []EventSourceMapping
 }
 
-// IAMRole represents a Lingon IAM role
+// IAMRole represents a Lingon IAM role.
 type IAMRole struct {
 	Name                string
 	AssumeRolePolicy    string
@@ -139,14 +140,14 @@ type IAMRole struct {
 	MaxSessionDuration  O.Option[int]
 }
 
-// CloudWatchLogGroup represents a CloudWatch log group
+// CloudWatchLogGroup represents a CloudWatch log group.
 type CloudWatchLogGroup struct {
 	Name            string
 	RetentionInDays O.Option[int]
 	KMSKeyId        O.Option[string]
 }
 
-// LambdaFunctionURL represents a Lambda function URL
+// LambdaFunctionURL represents a Lambda function URL.
 type LambdaFunctionURL struct {
 	FunctionName      string
 	AuthorizationType string
@@ -154,14 +155,14 @@ type LambdaFunctionURL struct {
 	InvokeMode        O.Option[string]
 }
 
-// EventSourceMapping represents a Lambda event source mapping
+// EventSourceMapping represents a Lambda event source mapping.
 type EventSourceMapping struct {
 	FunctionName   string
 	EventSourceArn string
 	Config         EventSourceMappingConfig
 }
 
-// APIGateway represents a Lingon API Gateway
+// APIGateway represents a Lingon API Gateway.
 type APIGateway struct {
 	Name         string
 	Config       APIGatewayConfig
@@ -171,7 +172,7 @@ type APIGateway struct {
 	Domain       O.Option[*APIGatewayDomain]
 }
 
-// APIGatewayIntegration represents an API Gateway integration
+// APIGatewayIntegration represents an API Gateway integration.
 type APIGatewayIntegration struct {
 	APIId                string
 	IntegrationType      string
@@ -179,7 +180,7 @@ type APIGatewayIntegration struct {
 	PayloadFormatVersion string
 }
 
-// APIGatewayRoute represents an API Gateway route
+// APIGatewayRoute represents an API Gateway route.
 type APIGatewayRoute struct {
 	APIId             string
 	RouteKey          string
@@ -188,63 +189,63 @@ type APIGatewayRoute struct {
 	AuthorizerId      O.Option[string]
 }
 
-// APIGatewayStage represents an API Gateway stage
+// APIGatewayStage represents an API Gateway stage.
 type APIGatewayStage struct {
 	APIId  string
 	Name   string
 	Config StageConfig
 }
 
-// APIGatewayDomain represents an API Gateway custom domain
+// APIGatewayDomain represents an API Gateway custom domain.
 type APIGatewayDomain struct {
 	DomainName     string
 	CertificateArn string
 	Config         DomainConfig
 }
 
-// DynamoDBTable represents a Lingon DynamoDB table
+// DynamoDBTable represents a Lingon DynamoDB table.
 type DynamoDBTable struct {
 	Name   string
 	Config TableConfig
 }
 
-// EventBridgeRule represents an EventBridge rule
+// EventBridgeRule represents an EventBridge rule.
 type EventBridgeRule struct {
 	Name   string
 	Config EventBridgeConfig
 }
 
-// StepFunctionsStateMachine represents a Step Functions state machine
+// StepFunctionsStateMachine represents a Step Functions state machine.
 type StepFunctionsStateMachine struct {
 	Name   string
 	Config StateMachineConfig
 }
 
-// SNSTopic represents an SNS topic
+// SNSTopic represents an SNS topic.
 type SNSTopic struct {
 	Name   string
 	Config TopicConfig
 }
 
-// SQSQueue represents an SQS queue
+// SQSQueue represents an SQS queue.
 type SQSQueue struct {
 	Name   string
 	Config QueueConfig
 }
 
-// S3Bucket represents an S3 bucket
+// S3Bucket represents an S3 bucket.
 type S3Bucket struct {
 	Name   string
 	Config BucketConfig
 }
 
-// CloudWatchAlarm represents a CloudWatch alarm
+// CloudWatchAlarm represents a CloudWatch alarm.
 type CloudWatchAlarm struct {
 	Name   string
 	Config AlarmConfig
 }
 
-// generateStack generates a Lingon stack from ForgeConfig
+// generateStack generates a Lingon stack from ForgeConfig.
 func generateStack(config ForgeConfig) (*Stack, error) {
 	stack := &Stack{
 		Service:          config.Service,
@@ -329,7 +330,7 @@ func generateStack(config ForgeConfig) (*Stack, error) {
 	return stack, nil
 }
 
-// generateLambdaFunction generates a Lambda function resource
+// generateLambdaFunction generates a Lambda function resource.
 func generateLambdaFunction(service, name string, config FunctionConfig) (*LambdaFunction, error) {
 	// Generate IAM role
 	role := generateIAMRole(service, name, config.IAM)
@@ -396,7 +397,7 @@ func generateLambdaFunction(service, name string, config FunctionConfig) (*Lambd
 	}, nil
 }
 
-// generateIAMRole generates an IAM role for a Lambda function
+// generateIAMRole generates an IAM role for a Lambda function.
 func generateIAMRole(service, functionName string, config IAMConfig) *IAMRole {
 	// Default assume role policy for Lambda
 	defaultAssumeRolePolicy := `{
@@ -448,9 +449,9 @@ func generateIAMRole(service, functionName string, config IAMConfig) *IAMRole {
 	}
 }
 
-// generateAPIGateway generates an API Gateway resource
+// generateAPIGateway generates an API Gateway resource.
 func generateAPIGateway(service string, config APIGatewayConfig, functions map[string]FunctionConfig) (*APIGateway, error) {
-	apiName := lo.Ternary(config.Name != "", config.Name, fmt.Sprintf("%s-api", service))
+	apiName := lo.Ternary(config.Name != "", config.Name, service+"-api")
 
 	api := &APIGateway{
 		Name:         apiName,
@@ -463,8 +464,8 @@ func generateAPIGateway(service string, config APIGatewayConfig, functions map[s
 	// Generate integrations and routes for functions with HTTP routing
 	for fnName, fnConfig := range functions {
 		if fnConfig.HTTPRouting != nil {
-			integrationName := fmt.Sprintf("%s-integration", fnName)
-			routeName := fmt.Sprintf("%s-route", fnName)
+			integrationName := fnName + "-integration"
+			routeName := fnName + "-route"
 
 			// Create integration
 			integration := &APIGatewayIntegration{
@@ -537,7 +538,7 @@ func generateAPIGateway(service string, config APIGatewayConfig, functions map[s
 	return api, nil
 }
 
-// generateDynamoDBTable generates a DynamoDB table resource
+// generateDynamoDBTable generates a DynamoDB table resource.
 func generateDynamoDBTable(service, name string, config TableConfig) *DynamoDBTable {
 	tableName := lo.Ternary(config.TableName != "", config.TableName, fmt.Sprintf("%s-%s", service, name))
 
@@ -550,7 +551,7 @@ func generateDynamoDBTable(service, name string, config TableConfig) *DynamoDBTa
 	}
 }
 
-// generateEventBridgeRule generates an EventBridge rule resource
+// generateEventBridgeRule generates an EventBridge rule resource.
 func generateEventBridgeRule(service, name string, config EventBridgeConfig) *EventBridgeRule {
 	ruleName := lo.Ternary(config.Name != "", config.Name, fmt.Sprintf("%s-%s", service, name))
 
@@ -563,7 +564,7 @@ func generateEventBridgeRule(service, name string, config EventBridgeConfig) *Ev
 	}
 }
 
-// generateStateMachine generates a Step Functions state machine resource
+// generateStateMachine generates a Step Functions state machine resource.
 func generateStateMachine(service, name string, config StateMachineConfig) *StepFunctionsStateMachine {
 	smName := lo.Ternary(config.Name != "", config.Name, fmt.Sprintf("%s-%s", service, name))
 
@@ -576,7 +577,7 @@ func generateStateMachine(service, name string, config StateMachineConfig) *Step
 	}
 }
 
-// generateSNSTopic generates an SNS topic resource
+// generateSNSTopic generates an SNS topic resource.
 func generateSNSTopic(service, name string, config TopicConfig) *SNSTopic {
 	topicName := lo.Ternary(config.Name != "", config.Name, fmt.Sprintf("%s-%s", service, name))
 
@@ -589,7 +590,7 @@ func generateSNSTopic(service, name string, config TopicConfig) *SNSTopic {
 	}
 }
 
-// generateSQSQueue generates an SQS queue resource
+// generateSQSQueue generates an SQS queue resource.
 func generateSQSQueue(service, name string, config QueueConfig) *SQSQueue {
 	queueName := lo.Ternary(config.Name != "", config.Name, fmt.Sprintf("%s-%s", service, name))
 
@@ -602,7 +603,7 @@ func generateSQSQueue(service, name string, config QueueConfig) *SQSQueue {
 	}
 }
 
-// generateS3Bucket generates an S3 bucket resource
+// generateS3Bucket generates an S3 bucket resource.
 func generateS3Bucket(service, name string, config BucketConfig) *S3Bucket {
 	bucketName := lo.Ternary(config.Name != "", config.Name, fmt.Sprintf("%s-%s", service, name))
 
@@ -615,7 +616,7 @@ func generateS3Bucket(service, name string, config BucketConfig) *S3Bucket {
 	}
 }
 
-// generateCloudWatchAlarm generates a CloudWatch alarm resource
+// generateCloudWatchAlarm generates a CloudWatch alarm resource.
 func generateCloudWatchAlarm(service, name string, config AlarmConfig) *CloudWatchAlarm {
 	alarmName := lo.Ternary(config.Name != "", config.Name, fmt.Sprintf("%s-%s", service, name))
 
@@ -628,7 +629,7 @@ func generateCloudWatchAlarm(service, name string, config AlarmConfig) *CloudWat
 	}
 }
 
-// exportToTerraform exports the stack to Terraform code using Lingon
+// exportToTerraform exports the stack to Terraform code using Lingon.
 func exportToTerraform(stack *Stack) ([]byte, error) {
 	// Convert our internal Stack to ForgeConfig for Lingon
 	config := ForgeConfig{

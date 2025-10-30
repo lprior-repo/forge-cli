@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-// ProjectConfig defines the configuration for a Python Lambda project
+// ProjectConfig defines the configuration for a Python Lambda project.
 type ProjectConfig struct {
 	ServiceName    string
 	FunctionName   string
@@ -20,8 +20,7 @@ type ProjectConfig struct {
 	HTTPMethod     string // e.g., "POST"
 }
 
-// Generate creates the complete Python Lambda project structure
-// Pure function - takes projectRoot and config as parameters
+// Pure function - takes projectRoot and config as parameters.
 func Generate(projectRoot string, config ProjectConfig) error {
 	// Create directory structure
 	if err := createDirectoryStructure(projectRoot, config); err != nil {
@@ -41,7 +40,7 @@ func Generate(projectRoot string, config ProjectConfig) error {
 	return nil
 }
 
-// createDirectoryStructure creates all necessary directories
+// createDirectoryStructure creates all necessary directories.
 func createDirectoryStructure(projectRoot string, config ProjectConfig) error {
 	dirs := []string{
 		"service",
@@ -61,7 +60,7 @@ func createDirectoryStructure(projectRoot string, config ProjectConfig) error {
 
 	for _, dir := range dirs {
 		path := filepath.Join(projectRoot, dir)
-		if err := os.MkdirAll(path, 0755); err != nil {
+		if err := os.MkdirAll(path, 0o755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
@@ -69,7 +68,7 @@ func createDirectoryStructure(projectRoot string, config ProjectConfig) error {
 	return nil
 }
 
-// generateProjectFiles generates all project files
+// generateProjectFiles generates all project files.
 func generateProjectFiles(projectRoot string, config ProjectConfig) error {
 	files := map[string]func() string{
 		"pyproject.toml":                          func() string { return generatePyProjectToml(config) },
@@ -106,7 +105,7 @@ func generateProjectFiles(projectRoot string, config ProjectConfig) error {
 	for filePath, generator := range files {
 		fullPath := filepath.Join(projectRoot, filePath)
 		content := generator()
-		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", filePath, err)
 		}
 	}
@@ -114,9 +113,9 @@ func generateProjectFiles(projectRoot string, config ProjectConfig) error {
 	return nil
 }
 
-// generatePyProjectToml generates pyproject.toml with Poetry configuration
+// generatePyProjectToml generates pyproject.toml with Poetry configuration.
 func generatePyProjectToml(config ProjectConfig) string {
-	pythonConstraint := fmt.Sprintf("^%s", config.PythonVersion)
+	pythonConstraint := "^" + config.PythonVersion
 
 	content := fmt.Sprintf(`[build-system]
 requires = ["poetry>=2.0.1"]
@@ -177,7 +176,7 @@ indent-style = "space"
 	return content
 }
 
-// generateReadme generates README.md
+// generateReadme generates README.md.
 func generateReadme(config ProjectConfig) string {
 	return fmt.Sprintf(`# %s
 
@@ -234,7 +233,7 @@ service/
 		config.HTTPMethod, config.APIPath, config.Description)
 }
 
-// generateGitignore generates .gitignore
+// generateGitignore generates .gitignore.
 func generateGitignore(config ProjectConfig) string {
 	return `__pycache__/
 *.py[cod]
@@ -275,9 +274,9 @@ cdk.out/
 `
 }
 
-// generateMakefile generates Makefile
+// generateMakefile generates Makefile.
 func generateMakefile(config ProjectConfig) string {
-	return fmt.Sprintf(`.PHONY: install test format lint deploy clean
+	return `.PHONY: install test format lint deploy clean
 
 install:
 	poetry install
@@ -299,15 +298,15 @@ clean:
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 	rm -rf .pytest_cache .coverage htmlcov/ dist/ build/
-`)
+`
 }
 
-// generateEmptyInit generates empty __init__.py
+// generateEmptyInit generates empty __init__.py.
 func generateEmptyInit() string {
 	return ""
 }
 
-// generateHandler generates the Lambda handler
+// generateHandler generates the Lambda handler.
 func generateHandler(config ProjectConfig) string {
 	if config.UsePowertools {
 		return generatePowertoolsHandler(config)
@@ -315,7 +314,7 @@ func generateHandler(config ProjectConfig) string {
 	return generateBasicHandler(config)
 }
 
-// generatePowertoolsHandler generates handler with Powertools
+// generatePowertoolsHandler generates handler with Powertools.
 func generatePowertoolsHandler(config ProjectConfig) string {
 	return fmt.Sprintf(`from typing import Annotated, Any
 
@@ -391,7 +390,7 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
 	}(), config.Description, config.Description)
 }
 
-// generateBasicHandler generates basic handler without Powertools
+// generateBasicHandler generates basic handler without Powertools.
 func generateBasicHandler(config ProjectConfig) string {
 	return `import json
 from typing import Any

@@ -2,12 +2,13 @@ package ui
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 )
 
-// Prompter provides interactive prompts
+// Prompter provides interactive prompts.
 type Prompter struct {
 	reader  io.Reader
 	writer  io.Writer
@@ -15,7 +16,7 @@ type Prompter struct {
 	scanner *bufio.Scanner
 }
 
-// NewPrompter creates a new prompter
+// NewPrompter creates a new prompter.
 func NewPrompter(r io.Reader, w io.Writer) *Prompter {
 	return &Prompter{
 		reader:  r,
@@ -25,8 +26,7 @@ func NewPrompter(r io.Reader, w io.Writer) *Prompter {
 	}
 }
 
-// Confirm asks for yes/no confirmation
-// Returns true if user confirms, false otherwise
+// Returns true if user confirms, false otherwise.
 func (p *Prompter) Confirm(message string) bool {
 	p.output.Warning("%s (y/N): ", message)
 
@@ -38,9 +38,8 @@ func (p *Prompter) Confirm(message string) bool {
 	return response == "y" || response == "yes"
 }
 
-// ConfirmDestruction asks for confirmation of a destructive action
-// Requires typing "yes" explicitly for safety
-func (p *Prompter) ConfirmDestruction(message string, resource string) bool {
+// Requires typing "yes" explicitly for safety.
+func (p *Prompter) ConfirmDestruction(message, resource string) bool {
 	p.output.Error("DESTRUCTIVE ACTION")
 	p.output.Warning("%s", message)
 	p.output.Print("")
@@ -55,9 +54,9 @@ func (p *Prompter) ConfirmDestruction(message string, resource string) bool {
 	return response == "yes"
 }
 
-// Input prompts for text input
+// Input prompts for text input.
 func (p *Prompter) Input(message string) string {
-	fmt.Fprintf(p.writer, "%s: ", message)
+	_, _ = fmt.Fprintf(p.writer, "%s: ", message)
 
 	if !p.scanner.Scan() {
 		return ""
@@ -81,7 +80,7 @@ func (p *Prompter) Select(message string, options []string) (int, string, error)
 		input := p.Input(fmt.Sprintf("Select option (1-%d)", len(options)))
 
 		if input == "" {
-			return 0, "", fmt.Errorf("no input received")
+			return 0, "", errors.New("no input received")
 		}
 
 		var selection int

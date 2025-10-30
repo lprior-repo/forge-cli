@@ -2,16 +2,17 @@ package pipeline
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/terraform"
 )
 
-// Helper to create a mock executor with custom behavior
+// Helper to create a mock executor with custom behavior.
 func newMockExecutor(
 	initErr error,
 	planResult bool, planErr error,
@@ -41,7 +42,7 @@ func newMockExecutor(
 func TestTerraformInit(t *testing.T) {
 	t.Run("executes init successfully", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 		stage := TerraformInit(exec)
 		state := State{ProjectDir: "/project/infra"}
@@ -58,8 +59,8 @@ func TestTerraformInit(t *testing.T) {
 
 	t.Run("returns error when init fails", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
-		initErr := fmt.Errorf("terraform not found")
+		ctx := t.Context()
+		initErr := errors.New("terraform not found")
 		exec := newMockExecutor(initErr, false, nil, nil, nil, nil, nil)
 		stage := TerraformInit(exec)
 		state := State{ProjectDir: "/project/infra"}
@@ -80,7 +81,7 @@ func TestTerraformInit(t *testing.T) {
 
 	t.Run("preserves state on success", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 		stage := TerraformInit(exec)
 		state := State{
@@ -104,7 +105,7 @@ func TestTerraformInit(t *testing.T) {
 func TestTerraformPlan(t *testing.T) {
 	t.Run("executes plan successfully with changes", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, true, nil, nil, nil, nil, nil)
 		stage := TerraformPlan(exec)
 		state := State{ProjectDir: "/project/infra"}
@@ -118,7 +119,7 @@ func TestTerraformPlan(t *testing.T) {
 
 	t.Run("executes plan successfully with no changes", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 		stage := TerraformPlan(exec)
 		state := State{ProjectDir: "/project/infra"}
@@ -132,8 +133,8 @@ func TestTerraformPlan(t *testing.T) {
 
 	t.Run("returns error when plan fails", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
-		planErr := fmt.Errorf("invalid configuration")
+		ctx := t.Context()
+		planErr := errors.New("invalid configuration")
 		exec := newMockExecutor(nil, false, planErr, nil, nil, nil, nil)
 		stage := TerraformPlan(exec)
 		state := State{ProjectDir: "/project/infra"}
@@ -156,7 +157,7 @@ func TestTerraformPlan(t *testing.T) {
 func TestTerraformApply(t *testing.T) {
 	t.Run("executes apply successfully with auto-approve", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 		stage := TerraformApply(exec, true)
 		state := State{ProjectDir: "/project/infra"}
@@ -170,7 +171,7 @@ func TestTerraformApply(t *testing.T) {
 
 	t.Run("executes apply successfully without auto-approve", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 		stage := TerraformApply(exec, false)
 		state := State{ProjectDir: "/project/infra"}
@@ -184,8 +185,8 @@ func TestTerraformApply(t *testing.T) {
 
 	t.Run("returns error when apply fails", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
-		applyErr := fmt.Errorf("resource creation failed")
+		ctx := t.Context()
+		applyErr := errors.New("resource creation failed")
 		exec := newMockExecutor(nil, false, nil, applyErr, nil, nil, nil)
 		stage := TerraformApply(exec, true)
 		state := State{ProjectDir: "/project/infra"}
@@ -206,7 +207,7 @@ func TestTerraformApply(t *testing.T) {
 
 	t.Run("preserves state on success", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 		stage := TerraformApply(exec, true)
 		state := State{
@@ -230,7 +231,7 @@ func TestTerraformApply(t *testing.T) {
 func TestTerraformDestroy(t *testing.T) {
 	t.Run("executes destroy successfully with auto-approve", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 		stage := TerraformDestroy(exec, true)
 		state := State{ProjectDir: "/project/infra"}
@@ -244,7 +245,7 @@ func TestTerraformDestroy(t *testing.T) {
 
 	t.Run("executes destroy successfully without auto-approve", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 		stage := TerraformDestroy(exec, false)
 		state := State{ProjectDir: "/project/infra"}
@@ -258,8 +259,8 @@ func TestTerraformDestroy(t *testing.T) {
 
 	t.Run("returns error when destroy fails", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
-		destroyErr := fmt.Errorf("resource still in use")
+		ctx := t.Context()
+		destroyErr := errors.New("resource still in use")
 		exec := newMockExecutor(nil, false, nil, nil, destroyErr, nil, nil)
 		stage := TerraformDestroy(exec, true)
 		state := State{ProjectDir: "/project/infra"}
@@ -282,7 +283,7 @@ func TestTerraformDestroy(t *testing.T) {
 func TestCaptureOutputs(t *testing.T) {
 	t.Run("captures outputs successfully", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		outputs := map[string]interface{}{
 			"api_url":     "https://api.example.com",
 			"bucket_name": "my-bucket",
@@ -308,7 +309,7 @@ func TestCaptureOutputs(t *testing.T) {
 
 	t.Run("handles empty outputs", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		outputs := map[string]interface{}{}
 		exec := newMockExecutor(nil, false, nil, nil, nil, outputs, nil)
 		stage := CaptureOutputs(exec)
@@ -327,8 +328,8 @@ func TestCaptureOutputs(t *testing.T) {
 
 	t.Run("returns error when output fails", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
-		outputErr := fmt.Errorf("no state file found")
+		ctx := t.Context()
+		outputErr := errors.New("no state file found")
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, outputErr)
 		stage := CaptureOutputs(exec)
 		state := State{ProjectDir: "/project/infra"}
@@ -349,7 +350,7 @@ func TestCaptureOutputs(t *testing.T) {
 
 	t.Run("preserves existing outputs", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		outputs := map[string]interface{}{
 			"new_output": "value",
 		}
@@ -374,11 +375,11 @@ func TestCaptureOutputs(t *testing.T) {
 	})
 }
 
-// Integration test for terraform stages in a pipeline
+// Integration test for terraform stages in a pipeline.
 func TestTerraformStagesIntegration(t *testing.T) {
 	t.Run("full terraform deployment pipeline", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		outputs := map[string]interface{}{
 			"endpoint": "https://api.example.com",
 		}
@@ -407,8 +408,8 @@ func TestTerraformStagesIntegration(t *testing.T) {
 
 	t.Run("pipeline stops on init failure", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
-		initErr := fmt.Errorf("terraform init failed")
+		ctx := t.Context()
+		initErr := errors.New("terraform init failed")
 		exec := newMockExecutor(initErr, true, nil, nil, nil, nil, nil)
 
 		pipeline := New(
@@ -434,7 +435,7 @@ func TestTerraformStagesIntegration(t *testing.T) {
 
 	t.Run("destroy pipeline", func(t *testing.T) {
 		// Arrange
-		ctx := context.Background()
+		ctx := t.Context()
 		exec := newMockExecutor(nil, false, nil, nil, nil, nil, nil)
 
 		pipeline := New(

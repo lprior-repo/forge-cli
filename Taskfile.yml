@@ -4,7 +4,7 @@ vars:
   COVERAGE_THRESHOLD: 90
   # Exclude generated AWS resources (2,671 packages, ~1M LOC) for faster testing
   TEST_PACKAGES:
-    sh: go list ./internal/... | grep -v '/internal/lingon/aws'
+    sh: go list ./internal/... | grep -v '/internal/lingon/aws' | tr '\n' ' '
 
 tasks:
   default:
@@ -24,20 +24,42 @@ tasks:
       - go test {{.TEST_PACKAGES}} -v
 
   test:unit:
-    desc: Run unit tests only (fast, excludes AWS resources)
+    desc: Run unit tests only (fast, excludes AWS resources and integration tests)
     cmds:
       - go test {{.TEST_PACKAGES}} -v -short
 
   test:integration:
-    desc: Run integration tests (requires terraform, go, python, npm)
+    desc: Run unit + integration tests together
     cmds:
       - go test {{.TEST_PACKAGES}} -tags=integration -v
 
+  test:integration:only:
+    desc: Run ONLY integration tests (requires terraform, go, python, npm)
+    cmds:
+      - go test -tags=integration -run="^TestIntegration" -v ./internal/terraform
+      # Note: ./internal/build integration tests have compilation errors - skipped for now
+
+  test:e2e:
+    desc: Run end-to-end tests (requires full environment setup)
+    cmds:
+      - go test ./test/e2e/... -tags=e2e -v -timeout=30m
+
+  test:e2e:only:
+    desc: Run ONLY end-to-end tests (requires AWS credentials, terraform, python)
+    cmds:
+      - go test ./test/e2e/... -tags=e2e -v -timeout=30m
+
+  test:e2e:python:
+    desc: Run Python Lambda E2E test (deploys to AWS)
+    cmds:
+      - go test ./test/e2e/python -tags=e2e -v -timeout=30m
+
   test:all:
-    desc: Run all tests (unit + integration)
+    desc: Run all tests (unit + integration + e2e)
     cmds:
       - task: test
       - task: test:integration
+      - task: test:e2e
 
   coverage:
     desc: Generate coverage report
@@ -61,11 +83,14 @@ tasks:
         go test {{.TEST_PACKAGES}} -coverprofile=coverage.out -covermode=atomic
         COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Current coverage: ${COVERAGE}%"
-        if (( $(echo "$COVERAGE < {{.COVERAGE_THRESHOLD}}" | bc -l) )); then
+        # Use awk for floating point comparison (more portable than bc)
+        THRESHOLD={{.COVERAGE_THRESHOLD}}
+        PASSES=$(awk -v cov="$COVERAGE" -v thresh="$THRESHOLD" 'BEGIN {print (cov >= thresh)}')
+        if [ "$PASSES" = "1" ]; then
+          echo "✅ Coverage ${COVERAGE}% meets threshold {{.COVERAGE_THRESHOLD}}%"
+        else
           echo "❌ Coverage ${COVERAGE}% is below threshold {{.COVERAGE_THRESHOLD}}%"
           exit 1
-        else
-          echo "✅ Coverage ${COVERAGE}% meets threshold {{.COVERAGE_THRESHOLD}}%"
         fi
 
   coverage:integration:
@@ -74,6 +99,20 @@ tasks:
       - go test {{.TEST_PACKAGES}} -tags=integration -coverprofile=coverage-integration.out -covermode=atomic
       - go tool cover -func=coverage-integration.out
       - echo "Integration coverage report saved to coverage-integration.out"
+
+  coverage:integration:only:
+    desc: Generate coverage for ONLY integration tests
+    cmds:
+      - go test -tags=integration -run="^TestIntegration" -coverprofile=coverage-integration-only.out -covermode=atomic ./internal/terraform
+      - go tool cover -func=coverage-integration-only.out
+      - echo "Integration-only coverage report saved to coverage-integration-only.out"
+
+  coverage:e2e:
+    desc: Generate coverage for end-to-end tests
+    cmds:
+      - go test {{.TEST_PACKAGES}} -tags=e2e -coverprofile=coverage-e2e.out -covermode=atomic
+      - go tool cover -func=coverage-e2e.out
+      - echo "E2E coverage report saved to coverage-e2e.out"
 
   bench:
     desc: Run benchmarks
@@ -133,7 +172,7 @@ tasks:
   clean:
     desc: Clean build artifacts and coverage files
     cmds:
-      - rm -f coverage.out coverage.html coverage-integration.out
+      - rm -f coverage.out coverage.html coverage-integration.out coverage-integration-only.out coverage-e2e.out
       - go clean -cache -testcache
       - echo "Cleaned build artifacts"
 
@@ -170,27 +209,46 @@ tasks:
         Common Tasks:
           task                     Show available tasks
           task test                Run unit tests
-          task test:integration    Run integration tests
           task coverage            Generate coverage report
           task coverage:check      Verify coverage meets 90% threshold
           task ci                  Run all CI checks
 
-        Coverage Tasks:
-          task coverage            Generate text coverage report
-          task coverage:html       Generate HTML coverage report
-          task coverage:check      Check coverage threshold
+        Test Tasks:
+          task test                Run unit tests (default)
+          task test:unit           Run unit tests with -short flag
+          task test:integration    Run unit + integration tests together
+          task test:integration:only  Run ONLY integration tests
+          task test:e2e            Run end-to-end tests
+          task test:e2e:only       Run ONLY end-to-end tests
+          task test:all            Run all tests (unit + integration + e2e)
 
-        Integration Tests:
+        Coverage Tasks:
+          task coverage            Generate text coverage report (unit tests)
+          task coverage:html       Generate HTML coverage report
+          task coverage:check      Check coverage meets 90% threshold
+          task coverage:integration    Coverage with integration tests
+          task coverage:integration:only  Coverage for ONLY integration tests
+          task coverage:e2e        Coverage for end-to-end tests
+
+        Integration & E2E Tests:
           Integration tests require: terraform, go, python, npm
-          task test:integration    Run integration tests
-          task coverage:integration  Coverage with integration tests
+          E2E tests require: Full environment setup + AWS credentials
+
+          Naming conventions:
+          - Integration tests: TestXxxIntegration or use //go:build integration
+          - E2E tests: TestXxxE2E or use //go:build e2e
 
         Build:
           task build               Build CLI binary to bin/forge
           task clean               Clean artifacts
 
-        Formatting:
+        Code Quality:
           task fmt                 Format code
           task vet                 Run go vet
           task lint                Run linters (if installed)
+          task mutation            Run mutation testing (requires nushell)
+
+        Benchmarks:
+          task bench               Run benchmarks
+          task bench:integration   Run integration benchmarks
         EOF

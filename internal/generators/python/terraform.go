@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-// generateTerraformFiles generates Terraform infrastructure code
+// generateTerraformFiles generates Terraform infrastructure code.
 func generateTerraformFiles(projectRoot string, config ProjectConfig) error {
 	terraformDir := filepath.Join(projectRoot, "terraform")
-	if err := os.MkdirAll(terraformDir, 0755); err != nil {
+	if err := os.MkdirAll(terraformDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create terraform directory: %w", err)
 	}
 
@@ -33,7 +33,7 @@ func generateTerraformFiles(projectRoot string, config ProjectConfig) error {
 	for filePath, generator := range files {
 		fullPath := filepath.Join(projectRoot, filePath)
 		content := generator()
-		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", filePath, err)
 		}
 	}
@@ -41,7 +41,7 @@ func generateTerraformFiles(projectRoot string, config ProjectConfig) error {
 	return nil
 }
 
-// generateTerraformMain generates main.tf
+// generateTerraformMain generates main.tf.
 func generateTerraformMain(config ProjectConfig) string {
 	return `terraform {
   required_version = ">= 1.0"
@@ -68,7 +68,7 @@ provider "aws" {
 `
 }
 
-// generateTerraformVariables generates variables.tf
+// generateTerraformVariables generates variables.tf.
 func generateTerraformVariables(config ProjectConfig) string {
 	serviceName := strings.ReplaceAll(config.ServiceName, "_", "-")
 
@@ -144,7 +144,7 @@ variable "dynamodb_write_capacity" {
 	return content
 }
 
-// generateTerraformOutputs generates outputs.tf
+// generateTerraformOutputs generates outputs.tf.
 func generateTerraformOutputs(config ProjectConfig) string {
 	content := `output "lambda_function_name" {
   description = "Lambda function name"
@@ -189,7 +189,7 @@ output "dynamodb_table_arn" {
 	return content
 }
 
-// generateTerraformLambda generates lambda.tf
+// generateTerraformLambda generates lambda.tf.
 func generateTerraformLambda(config ProjectConfig) string {
 	return fmt.Sprintf(`# Lambda deployment package
 data "archive_file" "lambda" {
@@ -255,7 +255,7 @@ resource "aws_lambda_permission" "api_gateway" {
 	}())
 }
 
-// generateTerraformIAM generates iam.tf
+// generateTerraformIAM generates iam.tf.
 func generateTerraformIAM(config ProjectConfig) string {
 	content := `# Lambda execution role
 resource "aws_iam_role" "lambda" {
@@ -319,7 +319,7 @@ resource "aws_iam_role_policy" "dynamodb" {
 	return content
 }
 
-// generateTerraformDynamoDB generates dynamodb.tf
+// generateTerraformDynamoDB generates dynamodb.tf.
 func generateTerraformDynamoDB(config ProjectConfig) string {
 	tableName := config.TableName
 	if tableName == "" {
@@ -357,7 +357,7 @@ resource "aws_dynamodb_table" "main" {
 `, tableName, tableName)
 }
 
-// generateTerraformAPIGateway generates apigateway.tf
+// generateTerraformAPIGateway generates apigateway.tf.
 func generateTerraformAPIGateway(config ProjectConfig) string {
 	apiPath := strings.TrimPrefix(config.APIPath, "/")
 
@@ -420,7 +420,7 @@ resource "aws_apigatewayv2_route" "main" {
 `, config.Description, config.HTTPMethod, apiPath)
 }
 
-// generateTaskfile generates Taskfile.yml with uv-based build
+// generateTaskfile generates Taskfile.yml with uv-based build.
 func generateTaskfile(config ProjectConfig) string {
 	serviceName := strings.ReplaceAll(config.ServiceName, "_", "-")
 

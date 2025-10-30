@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/terraform"
 )
 
-// TestWriteStateBootstrap tests writing bootstrap Terraform files
+// TestWriteStateBootstrap tests writing bootstrap Terraform files.
 func TestWriteStateBootstrap(t *testing.T) {
 	t.Run("writes bootstrap files successfully", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -71,7 +72,7 @@ func TestWriteStateBootstrap(t *testing.T) {
 	})
 }
 
-// TestWriteBackendConfig tests writing backend.tf
+// TestWriteBackendConfig tests writing backend.tf.
 func TestWriteBackendConfig(t *testing.T) {
 	t.Run("writes backend.tf successfully", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -142,7 +143,7 @@ func TestWriteBackendConfig(t *testing.T) {
 	})
 }
 
-// TestApplyBootstrap tests applying bootstrap Terraform
+// TestApplyBootstrap tests applying bootstrap Terraform.
 func TestApplyBootstrap(t *testing.T) {
 	t.Run("executes terraform init and apply successfully", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -166,7 +167,7 @@ func TestApplyBootstrap(t *testing.T) {
 			},
 		}
 
-		err := ApplyBootstrap(context.Background(), tmpDir, exec)
+		err := ApplyBootstrap(t.Context(), tmpDir, exec)
 		require.NoError(t, err)
 
 		assert.True(t, initCalled, "Should call terraform init")
@@ -192,7 +193,7 @@ func TestApplyBootstrap(t *testing.T) {
 			},
 		}
 
-		err := ApplyBootstrap(context.Background(), tmpDir, exec)
+		err := ApplyBootstrap(t.Context(), tmpDir, exec)
 		require.NoError(t, err)
 
 		assert.False(t, applyCalled, "Should not call apply when no changes")
@@ -207,7 +208,7 @@ func TestApplyBootstrap(t *testing.T) {
 			},
 		}
 
-		err := ApplyBootstrap(context.Background(), tmpDir, exec)
+		err := ApplyBootstrap(t.Context(), tmpDir, exec)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "terraform init failed")
 	})
@@ -224,7 +225,7 @@ func TestApplyBootstrap(t *testing.T) {
 			},
 		}
 
-		err := ApplyBootstrap(context.Background(), tmpDir, exec)
+		err := ApplyBootstrap(t.Context(), tmpDir, exec)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "terraform plan failed")
 	})
@@ -244,21 +245,21 @@ func TestApplyBootstrap(t *testing.T) {
 			},
 		}
 
-		err := ApplyBootstrap(context.Background(), tmpDir, exec)
+		err := ApplyBootstrap(t.Context(), tmpDir, exec)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "terraform apply failed")
 	})
 }
 
-// TestCleanupBootstrap tests cleanup of bootstrap directory
+// TestCleanupBootstrap tests cleanup of bootstrap directory.
 func TestCleanupBootstrap(t *testing.T) {
 	t.Run("removes bootstrap directory successfully", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		bootstrapDir := filepath.Join(tmpDir, ".forge", "bootstrap")
 
 		// Create directory with some files
-		require.NoError(t, os.MkdirAll(bootstrapDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(bootstrapDir, "test.txt"), []byte("test"), 0644))
+		require.NoError(t, os.MkdirAll(bootstrapDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(bootstrapDir, "test.txt"), []byte("test"), 0o644))
 
 		err := CleanupBootstrap(bootstrapDir)
 		require.NoError(t, err)
@@ -274,7 +275,7 @@ func TestCleanupBootstrap(t *testing.T) {
 	})
 }
 
-// TestProvisionStateBackend tests the complete provisioning workflow
+// TestProvisionStateBackend tests the complete provisioning workflow.
 func TestProvisionStateBackend(t *testing.T) {
 	t.Run("provisions state backend successfully", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -291,7 +292,7 @@ func TestProvisionStateBackend(t *testing.T) {
 			},
 		}
 
-		result := ProvisionStateBackend(context.Background(), tmpDir, "test-project", "us-east-1", exec)
+		result := ProvisionStateBackend(t.Context(), tmpDir, "test-project", "us-east-1", exec)
 
 		require.True(t, E.IsRight(result), "Provisioning should succeed")
 
@@ -319,7 +320,7 @@ func TestProvisionStateBackend(t *testing.T) {
 			},
 		}
 
-		result := ProvisionStateBackend(context.Background(), tmpDir, "test-project", "us-east-1", exec)
+		result := ProvisionStateBackend(t.Context(), tmpDir, "test-project", "us-east-1", exec)
 
 		assert.True(t, E.IsLeft(result), "Should fail when bootstrap apply fails")
 	})
@@ -333,7 +334,7 @@ func TestProvisionStateBackend(t *testing.T) {
 			Apply: func(ctx context.Context, dir string, opts ...terraform.ApplyOption) error { return nil },
 		}
 
-		result := ProvisionStateBackend(context.Background(), tmpDir, "test", "eu-west-1", exec)
+		result := ProvisionStateBackend(t.Context(), tmpDir, "test", "eu-west-1", exec)
 
 		require.True(t, E.IsRight(result))
 
@@ -345,7 +346,7 @@ func TestProvisionStateBackend(t *testing.T) {
 	})
 }
 
-// TestProvisionStateBackendSync tests the synchronous wrapper
+// TestProvisionStateBackendSync tests the synchronous wrapper.
 func TestProvisionStateBackendSync(t *testing.T) {
 	t.Run("returns result on success", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -356,7 +357,7 @@ func TestProvisionStateBackendSync(t *testing.T) {
 			Apply: func(ctx context.Context, dir string, opts ...terraform.ApplyOption) error { return nil },
 		}
 
-		result, err := ProvisionStateBackendSync(context.Background(), tmpDir, "test-project", "us-east-1", exec)
+		result, err := ProvisionStateBackendSync(t.Context(), tmpDir, "test-project", "us-east-1", exec)
 
 		require.NoError(t, err)
 		assert.Equal(t, "forge-state-test-project", result.BucketName)
@@ -373,7 +374,7 @@ func TestProvisionStateBackendSync(t *testing.T) {
 			},
 		}
 
-		result, err := ProvisionStateBackendSync(context.Background(), tmpDir, "test-project", "us-east-1", exec)
+		result, err := ProvisionStateBackendSync(t.Context(), tmpDir, "test-project", "us-east-1", exec)
 
 		assert.Error(t, err)
 		assert.Equal(t, ProvisionResult{}, result)

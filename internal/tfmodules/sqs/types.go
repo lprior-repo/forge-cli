@@ -33,7 +33,7 @@ type Module struct {
 
 	// DelaySeconds is the time in seconds that the delivery of all messages will be delayed
 	// Valid range: 0-900 (15 minutes)
-	DelaySeconds *int `json:"delay_seconds,omitempty" hcl:"delay_seconds,attr" validate:"min=0,max=900"`
+	DelaySeconds *int `json:"delay_seconds,omitempty" validate:"min=0,max=900" hcl:"delay_seconds,attr"`
 
 	// FifoQueue designates a FIFO queue
 	FifoQueue *bool `json:"fifo_queue,omitempty" hcl:"fifo_queue,attr"`
@@ -44,18 +44,18 @@ type Module struct {
 
 	// KmsDataKeyReusePeriodSeconds is the length of time for which Amazon SQS can reuse a data key
 	// Valid range: 60-86400 (1 minute to 24 hours)
-	KmsDataKeyReusePeriodSeconds *int `json:"kms_data_key_reuse_period_seconds,omitempty" hcl:"kms_data_key_reuse_period_seconds,attr" validate:"min=60,max=86400"`
+	KmsDataKeyReusePeriodSeconds *int `json:"kms_data_key_reuse_period_seconds,omitempty" validate:"min=60,max=86400" hcl:"kms_data_key_reuse_period_seconds,attr"`
 
 	// KmsMasterKeyID is the ID of an AWS-managed customer master key (CMK) or custom CMK
 	KmsMasterKeyID *string `json:"kms_master_key_id,omitempty" hcl:"kms_master_key_id,attr"`
 
 	// MaxMessageSize is the limit of how many bytes a message can contain
 	// Valid range: 1024-1048576 (1 KiB to 1024 KiB)
-	MaxMessageSize *int `json:"max_message_size,omitempty" hcl:"max_message_size,attr" validate:"min=1024,max=1048576"`
+	MaxMessageSize *int `json:"max_message_size,omitempty" validate:"min=1024,max=1048576" hcl:"max_message_size,attr"`
 
 	// MessageRetentionSeconds is the number of seconds Amazon SQS retains a message
 	// Valid range: 60-1209600 (1 minute to 14 days)
-	MessageRetentionSeconds *int `json:"message_retention_seconds,omitempty" hcl:"message_retention_seconds,attr" validate:"min=60,max=1209600"`
+	MessageRetentionSeconds *int `json:"message_retention_seconds,omitempty" validate:"min=60,max=1209600" hcl:"message_retention_seconds,attr"`
 
 	// Name is the human-readable name of the queue
 	Name *string `json:"name,omitempty" hcl:"name,attr"`
@@ -65,7 +65,7 @@ type Module struct {
 
 	// ReceiveWaitTimeSeconds is the time for which a ReceiveMessage call will wait (long polling)
 	// Valid range: 0-20 seconds
-	ReceiveWaitTimeSeconds *int `json:"receive_wait_time_seconds,omitempty" hcl:"receive_wait_time_seconds,attr" validate:"min=0,max=20"`
+	ReceiveWaitTimeSeconds *int `json:"receive_wait_time_seconds,omitempty" validate:"min=0,max=20" hcl:"receive_wait_time_seconds,attr"`
 
 	// RedriveAllowPolicy is the JSON policy to set up the Dead Letter Queue redrive permission
 	RedriveAllowPolicy interface{} `json:"redrive_allow_policy,omitempty" hcl:"redrive_allow_policy,attr"`
@@ -78,7 +78,7 @@ type Module struct {
 
 	// VisibilityTimeoutSeconds is the visibility timeout for the queue
 	// Valid range: 0-43200 (12 hours)
-	VisibilityTimeoutSeconds *int `json:"visibility_timeout_seconds,omitempty" hcl:"visibility_timeout_seconds,attr" validate:"min=0,max=43200"`
+	VisibilityTimeoutSeconds *int `json:"visibility_timeout_seconds,omitempty" validate:"min=0,max=43200" hcl:"visibility_timeout_seconds,attr"`
 
 	// ================================
 	// Queue Policy
@@ -110,22 +110,22 @@ type Module struct {
 	DLQDeduplicationScope *string `json:"dlq_deduplication_scope,omitempty" hcl:"dlq_deduplication_scope,attr"`
 
 	// DLQDelaySeconds is the time in seconds that delivery will be delayed for DLQ
-	DLQDelaySeconds *int `json:"dlq_delay_seconds,omitempty" hcl:"dlq_delay_seconds,attr" validate:"min=0,max=900"`
+	DLQDelaySeconds *int `json:"dlq_delay_seconds,omitempty" validate:"min=0,max=900" hcl:"dlq_delay_seconds,attr"`
 
 	// DLQKmsDataKeyReusePeriodSeconds is the data key reuse period for DLQ
-	DLQKmsDataKeyReusePeriodSeconds *int `json:"dlq_kms_data_key_reuse_period_seconds,omitempty" hcl:"dlq_kms_data_key_reuse_period_seconds,attr" validate:"min=60,max=86400"`
+	DLQKmsDataKeyReusePeriodSeconds *int `json:"dlq_kms_data_key_reuse_period_seconds,omitempty" validate:"min=60,max=86400" hcl:"dlq_kms_data_key_reuse_period_seconds,attr"`
 
 	// DLQKmsMasterKeyID is the KMS key ID for DLQ encryption
 	DLQKmsMasterKeyID *string `json:"dlq_kms_master_key_id,omitempty" hcl:"dlq_kms_master_key_id,attr"`
 
 	// DLQMessageRetentionSeconds is the number of seconds DLQ retains a message
-	DLQMessageRetentionSeconds *int `json:"dlq_message_retention_seconds,omitempty" hcl:"dlq_message_retention_seconds,attr" validate:"min=60,max=1209600"`
+	DLQMessageRetentionSeconds *int `json:"dlq_message_retention_seconds,omitempty" validate:"min=60,max=1209600" hcl:"dlq_message_retention_seconds,attr"`
 
 	// DLQName is the human-readable name of the dead letter queue
 	DLQName *string `json:"dlq_name,omitempty" hcl:"dlq_name,attr"`
 
 	// DLQReceiveWaitTimeSeconds is the long polling wait time for DLQ
-	DLQReceiveWaitTimeSeconds *int `json:"dlq_receive_wait_time_seconds,omitempty" hcl:"dlq_receive_wait_time_seconds,attr" validate:"min=0,max=20"`
+	DLQReceiveWaitTimeSeconds *int `json:"dlq_receive_wait_time_seconds,omitempty" validate:"min=0,max=20" hcl:"dlq_receive_wait_time_seconds,attr"`
 
 	// CreateDLQRedriveAllowPolicy determines whether to create a redrive allow policy for DLQ
 	CreateDLQRedriveAllowPolicy *bool `json:"create_dlq_redrive_allow_policy,omitempty" hcl:"create_dlq_redrive_allow_policy,attr"`
@@ -140,7 +140,7 @@ type Module struct {
 	DLQFifoThroughputLimit *string `json:"dlq_fifo_throughput_limit,omitempty" hcl:"dlq_fifo_throughput_limit,attr"`
 
 	// DLQVisibilityTimeoutSeconds is the visibility timeout for DLQ
-	DLQVisibilityTimeoutSeconds *int `json:"dlq_visibility_timeout_seconds,omitempty" hcl:"dlq_visibility_timeout_seconds,attr" validate:"min=0,max=43200"`
+	DLQVisibilityTimeoutSeconds *int `json:"dlq_visibility_timeout_seconds,omitempty" validate:"min=0,max=43200" hcl:"dlq_visibility_timeout_seconds,attr"`
 
 	// DLQTags are additional tags to assign to the dead letter queue
 	DLQTags map[string]string `json:"dlq_tags,omitempty" hcl:"dlq_tags,attr"`
@@ -162,7 +162,7 @@ type Module struct {
 	DLQQueuePolicyStatements map[string]PolicyStatement `json:"dlq_queue_policy_statements,omitempty" hcl:"dlq_queue_policy_statements,attr"`
 }
 
-// PolicyStatement represents an IAM policy statement
+// PolicyStatement represents an IAM policy statement.
 type PolicyStatement struct {
 	// SID is the statement ID
 	SID *string `json:"sid,omitempty" hcl:"sid,attr"`
@@ -192,7 +192,7 @@ type PolicyStatement struct {
 	Condition []Condition `json:"condition,omitempty" hcl:"condition,block"`
 }
 
-// Principal represents an IAM principal
+// Principal represents an IAM principal.
 type Principal struct {
 	// Type of principal (AWS, Service, etc.)
 	Type string `json:"type" hcl:"type,attr"`
@@ -201,7 +201,7 @@ type Principal struct {
 	Identifiers []string `json:"identifiers" hcl:"identifiers,attr"`
 }
 
-// Condition represents an IAM condition
+// Condition represents an IAM condition.
 type Condition struct {
 	// Test is the condition operator
 	Test string `json:"test" hcl:"test,attr"`
@@ -213,7 +213,7 @@ type Condition struct {
 	Values []string `json:"values" hcl:"values,attr"`
 }
 
-// NewModule creates a new SQS module with sensible defaults
+// NewModule creates a new SQS module with sensible defaults.
 func NewModule(name string) *Module {
 	source := "terraform-aws-modules/sqs/aws"
 	version := "~> 4.0"
@@ -221,7 +221,7 @@ func NewModule(name string) *Module {
 	sqsManagedSSE := true
 	dlqSSE := true
 	visibility := 30
-	retention := 345600 // 4 days
+	retention := 345600     // 4 days
 	dlqRetention := 1209600 // 14 days
 
 	return &Module{
@@ -242,7 +242,7 @@ func NewModule(name string) *Module {
 	}
 }
 
-// WithFIFO configures the queue as a FIFO queue
+// WithFIFO configures the queue as a FIFO queue.
 func (m *Module) WithFIFO(contentBasedDedup bool) *Module {
 	fifo := true
 	m.FifoQueue = &fifo
@@ -250,21 +250,21 @@ func (m *Module) WithFIFO(contentBasedDedup bool) *Module {
 	return m
 }
 
-// WithEncryption configures KMS encryption
+// WithEncryption configures KMS encryption.
 func (m *Module) WithEncryption(kmsKeyID string) *Module {
 	m.KmsMasterKeyID = &kmsKeyID
 	m.DLQKmsMasterKeyID = &kmsKeyID
 	return m
 }
 
-// WithoutDLQ disables the dead letter queue
+// WithoutDLQ disables the dead letter queue.
 func (m *Module) WithoutDLQ() *Module {
 	createDLQ := false
 	m.CreateDLQ = &createDLQ
 	return m
 }
 
-// WithTags adds tags to the queue
+// WithTags adds tags to the queue.
 func (m *Module) WithTags(tags map[string]string) *Module {
 	if m.Tags == nil {
 		m.Tags = make(map[string]string)
@@ -275,8 +275,7 @@ func (m *Module) WithTags(tags map[string]string) *Module {
 	return m
 }
 
-// LocalName returns the local identifier for this module instance
-// This is extracted from the Name field if set, or defaults to "sqs_queue"
+// This is extracted from the Name field if set, or defaults to "sqs_queue".
 func (m *Module) LocalName() string {
 	if m.Name != nil {
 		return *m.Name
@@ -284,8 +283,7 @@ func (m *Module) LocalName() string {
 	return "sqs_queue"
 }
 
-// Configuration generates the HCL configuration for this module
-// This is a placeholder - full HCL generation will be implemented later
+// This is a placeholder - full HCL generation will be implemented later.
 func (m *Module) Configuration() (string, error) {
 	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
 	return "", nil

@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/either"
-	"github.com/lewis/forge/internal/pipeline"
-	"github.com/lewis/forge/internal/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/lewis/forge/internal/pipeline"
+	"github.com/lewis/forge/internal/terraform"
 )
 
-// TestNewDestroyCmd tests the destroy command creation
+// TestNewDestroyCmd tests the destroy command creation.
 func TestNewDestroyCmd(t *testing.T) {
 	t.Run("creates destroy command", func(t *testing.T) {
 		cmd := NewDestroyCmd()
@@ -48,7 +49,7 @@ func TestNewDestroyCmd(t *testing.T) {
 	})
 }
 
-// TestRunDestroy tests the runDestroy function with various scenarios
+// TestRunDestroy tests the runDestroy function with various scenarios.
 func TestRunDestroy(t *testing.T) {
 	t.Run("returns error when config loading fails", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -75,11 +76,11 @@ project {
   region = "us-east-1"
 }
 `
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "forge.hcl"), []byte(forgeHCL), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "forge.hcl"), []byte(forgeHCL), 0o644))
 
 		// Create infra directory for terraform
 		infraDir := filepath.Join(tmpDir, "infra")
-		require.NoError(t, os.MkdirAll(infraDir, 0755))
+		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		os.Chdir(tmpDir)
 
@@ -106,7 +107,7 @@ project {
 	})
 }
 
-// TestDestroyPipeline tests the destroy pipeline using functional approach
+// TestDestroyPipeline tests the destroy pipeline using functional approach.
 func TestDestroyPipeline(t *testing.T) {
 	t.Run("destroys infrastructure", func(t *testing.T) {
 		exec := terraform.NewMockExecutor()
@@ -119,7 +120,7 @@ func TestDestroyPipeline(t *testing.T) {
 			ProjectDir: "/test",
 		}
 
-		result := pipeline.Run(destroyPipeline, context.Background(), initialState)
+		result := pipeline.Run(destroyPipeline, t.Context(), initialState)
 
 		assert.True(t, E.IsRight(result), "Destroy pipeline should succeed")
 	})
@@ -139,13 +140,13 @@ func TestDestroyPipeline(t *testing.T) {
 			ProjectDir: "/test",
 		}
 
-		result := pipeline.Run(destroyPipeline, context.Background(), initialState)
+		result := pipeline.Run(destroyPipeline, t.Context(), initialState)
 
 		assert.True(t, E.IsLeft(result), "Should fail on destroy error")
 	})
 }
 
-// TestDestroyWithAutoApprove tests auto-approve flag
+// TestDestroyWithAutoApprove tests auto-approve flag.
 func TestDestroyWithAutoApprove(t *testing.T) {
 	t.Run("auto-approve flag is passed to executor", func(t *testing.T) {
 		var receivedAutoApprove bool
@@ -170,7 +171,7 @@ func TestDestroyWithAutoApprove(t *testing.T) {
 			ProjectDir: "/test",
 		}
 
-		result := pipeline.Run(destroyPipeline, context.Background(), initialState)
+		result := pipeline.Run(destroyPipeline, t.Context(), initialState)
 
 		assert.True(t, E.IsRight(result), "Destroy should succeed")
 		assert.True(t, receivedAutoApprove, "AutoApprove should be true")
@@ -198,14 +199,14 @@ func TestDestroyWithAutoApprove(t *testing.T) {
 			ProjectDir: "/test",
 		}
 
-		result := pipeline.Run(destroyPipeline, context.Background(), initialState)
+		result := pipeline.Run(destroyPipeline, t.Context(), initialState)
 
 		assert.True(t, E.IsRight(result), "Destroy should succeed")
 		assert.False(t, receivedAutoApprove, "AutoApprove should be false")
 	})
 }
 
-// TestDestroyPreservesState tests that state is preserved through pipeline
+// TestDestroyPreservesState tests that state is preserved through pipeline.
 func TestDestroyPreservesState(t *testing.T) {
 	t.Run("preserves project directory and config", func(t *testing.T) {
 		exec := terraform.NewMockExecutor()
@@ -219,7 +220,7 @@ func TestDestroyPreservesState(t *testing.T) {
 			Config:     "test-config",
 		}
 
-		result := pipeline.Run(destroyPipeline, context.Background(), initialState)
+		result := pipeline.Run(destroyPipeline, t.Context(), initialState)
 
 		require.True(t, E.IsRight(result), "Destroy should succeed")
 
@@ -234,7 +235,7 @@ func TestDestroyPreservesState(t *testing.T) {
 	})
 }
 
-// BenchmarkDestroyPipeline benchmarks the destroy pipeline
+// BenchmarkDestroyPipeline benchmarks the destroy pipeline.
 func BenchmarkDestroyPipeline(b *testing.B) {
 	exec := terraform.NewMockExecutor()
 
@@ -248,6 +249,6 @@ func BenchmarkDestroyPipeline(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		pipeline.Run(destroyPipeline, context.Background(), initialState)
+		pipeline.Run(destroyPipeline, b.Context(), initialState)
 	}
 }

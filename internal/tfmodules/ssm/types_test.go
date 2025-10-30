@@ -486,14 +486,14 @@ func TestModule_TypeCombinations(t *testing.T) {
 	})
 }
 
-// BenchmarkNewModule benchmarks module creation
+// BenchmarkNewModule benchmarks module creation.
 func BenchmarkNewModule(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("/bench/parameter")
 	}
 }
 
-// BenchmarkFluentAPI benchmarks fluent API calls
+// BenchmarkFluentAPI benchmarks fluent API calls.
 func BenchmarkFluentAPI(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewModule("/bench/parameter").
@@ -503,7 +503,7 @@ func BenchmarkFluentAPI(b *testing.B) {
 	}
 }
 
-// BenchmarkWithSecureString benchmarks secure string creation
+// BenchmarkWithSecureString benchmarks secure string creation.
 func BenchmarkWithSecureString(b *testing.B) {
 	module := NewModule("/bench/secret")
 
@@ -513,7 +513,7 @@ func BenchmarkWithSecureString(b *testing.B) {
 	}
 }
 
-// BenchmarkWithStringList benchmarks string list creation
+// BenchmarkWithStringList benchmarks string list creation.
 func BenchmarkWithStringList(b *testing.B) {
 	module := NewModule("/bench/list")
 	values := []string{"value1", "value2", "value3"}

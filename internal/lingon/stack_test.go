@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestGetOutputs tests the GetOutputs helper function
+// TestGetOutputs tests the GetOutputs helper function.
 func TestGetOutputs(t *testing.T) {
 	t.Run("returns outputs from stack", func(t *testing.T) {
 		config := ForgeConfig{
@@ -46,11 +46,11 @@ func TestGetOutputs(t *testing.T) {
 		outputs := GetOutputs(stack)
 
 		assert.NotNil(t, outputs)
-		assert.Len(t, outputs, 0)
+		assert.Empty(t, outputs)
 	})
 }
 
-// TestNewForgeStack tests Lingon stack creation from configuration
+// TestNewForgeStack tests Lingon stack creation from configuration.
 func TestNewForgeStack(t *testing.T) {
 	t.Run("creates stack from minimal config", func(t *testing.T) {
 		config := ForgeConfig{
@@ -248,7 +248,7 @@ func TestNewForgeStack(t *testing.T) {
 	})
 }
 
-// TestExportTerraform tests Terraform HCL generation
+// TestExportTerraform tests Terraform HCL generation.
 func TestExportTerraform(t *testing.T) {
 	t.Run("exports minimal stack to HCL", func(t *testing.T) {
 		config := ForgeConfig{
@@ -534,7 +534,7 @@ func TestExportTerraform(t *testing.T) {
 	})
 }
 
-// TestLambdaFunctionResourceCreation tests Lambda resource creation
+// TestLambdaFunctionResourceCreation tests Lambda resource creation.
 func TestLambdaFunctionResourceCreation(t *testing.T) {
 	t.Run("creates basic Lambda resources", func(t *testing.T) {
 		config := FunctionConfig{
@@ -586,7 +586,7 @@ func TestLambdaFunctionResourceCreation(t *testing.T) {
 	})
 }
 
-// TestAPIGatewayResourceCreation tests API Gateway resource creation
+// TestAPIGatewayResourceCreation tests API Gateway resource creation.
 func TestAPIGatewayResourceCreation(t *testing.T) {
 	t.Run("creates API Gateway resources", func(t *testing.T) {
 		config := APIGatewayConfig{
@@ -647,7 +647,7 @@ func TestAPIGatewayResourceCreation(t *testing.T) {
 	})
 }
 
-// TestDynamoDBTableResourceCreation tests DynamoDB resource creation
+// TestDynamoDBTableResourceCreation tests DynamoDB resource creation.
 func TestDynamoDBTableResourceCreation(t *testing.T) {
 	t.Run("creates DynamoDB table resources", func(t *testing.T) {
 		config := TableConfig{
