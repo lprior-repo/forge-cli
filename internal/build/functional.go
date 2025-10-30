@@ -106,13 +106,18 @@ func WithCache(cache Cache) func(BuildFunc) BuildFunc {
 			// Build
 			result := build(ctx, cfg)
 
-			// Store in cache if successful
-			if E.IsRight(result) {
-				artifact := E.ToOption(result)
-				if O.IsSome(artifact) {
-					cache.Set(cfg, O.GetOrElse(func() Artifact { return Artifact{} })(artifact))
-				}
-			}
+			// Store in cache if successful (use Fold to handle both cases)
+			E.Fold(
+				func(err error) error {
+					// Left case (error) - do nothing
+					return err
+				},
+				func(artifact Artifact) error {
+					// Right case (success) - cache the artifact
+					cache.Set(cfg, artifact)
+					return nil
+				},
+			)(result)
 
 			return result
 		}
@@ -127,12 +132,17 @@ func WithLogging(log Logger) func(BuildFunc) BuildFunc {
 
 			result := build(ctx, cfg)
 
-			// Log based on result
-			if E.IsLeft(result) {
-				log.Error("Build failed", "error", "build error")
-			} else {
-				log.Info("Build succeeded")
-			}
+			// Log based on result using Fold
+			E.Fold(
+				func(err error) error {
+					log.Error("Build failed", "error", "build error")
+					return err
+				},
+				func(artifact Artifact) error {
+					log.Info("Build succeeded")
+					return nil
+				},
+			)(result)
 
 			return result
 		}
