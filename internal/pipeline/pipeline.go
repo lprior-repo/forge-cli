@@ -27,14 +27,28 @@ type Artifact struct {
 // Uses Either monad for error handling
 type Stage func(context.Context, State) E.Either[error, State]
 
+// EventStage is a function that transforms state and returns events
+// Uses Either monad for error handling and returns StageResult with events
+type EventStage func(context.Context, State) E.Either[error, StageResult]
+
 // Pipeline composes stages functionally
 type Pipeline struct {
 	stages []Stage
 }
 
+// EventPipeline composes event-based stages
+type EventPipeline struct {
+	stages []EventStage
+}
+
 // New creates a new pipeline from stages
 func New(stages ...Stage) Pipeline {
 	return Pipeline{stages: stages}
+}
+
+// NewEventPipeline creates a new event-based pipeline from stages
+func NewEventPipeline(stages ...EventStage) EventPipeline {
+	return EventPipeline{stages: stages}
 }
 
 // Run executes all stages in order using functional composition
@@ -60,6 +74,47 @@ func Run(p Pipeline, ctx context.Context, initial State) E.Either[error, State] 
 	}
 
 	return result
+}
+
+// RunWithEvents executes all event stages and collects events
+// PURE: Functional composition of event stages with event collection
+func RunWithEvents(p EventPipeline, ctx context.Context, initial State) E.Either[error, StageResult] {
+	// Start with empty events and initial state
+	allEvents := []StageEvent{}
+	currentState := initial
+
+	for _, stage := range p.stages {
+		// Run the stage
+		result := stage(ctx, currentState)
+
+		// Check for errors
+		if E.IsLeft(result) {
+			// Return error with events collected so far
+			return E.MapLeft[StageResult](func(err error) error {
+				// Print events before erroring
+				PrintEvents(allEvents)
+				return err
+			})(result)
+		}
+
+		// Extract the stage result
+		stageResult := E.Fold(
+			func(e error) StageResult { return StageResult{} },
+			func(r StageResult) StageResult { return r },
+		)(result)
+
+		// Collect events
+		allEvents = append(allEvents, stageResult.Events...)
+
+		// Update current state
+		currentState = stageResult.State
+	}
+
+	// Return final result with all collected events
+	return E.Right[error](StageResult{
+		State:  currentState,
+		Events: allEvents,
+	})
 }
 
 // Chain composes multiple pipelines into one

@@ -4,10 +4,12 @@
 package build
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 )
 
 // Config holds build configuration (immutable)
@@ -51,4 +53,23 @@ func getFileSize(path string) (int64, error) {
 		return 0, err
 	}
 	return info.Size(), nil
+}
+
+// executeCommand executes a command with given environment and working directory
+// ACTION: Performs I/O (process execution)
+func executeCommand(ctx context.Context, command []string, env []string, workDir string) error {
+	if len(command) == 0 {
+		return fmt.Errorf("empty command")
+	}
+
+	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
+	cmd.Env = append(os.Environ(), env...)
+	cmd.Dir = workDir
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("command failed: %w\nOutput: %s", err, string(output))
+	}
+
+	return nil
 }

@@ -249,7 +249,7 @@ go 1.21
 		)(result)
 
 		assert.NotNil(t, buildErr)
-		assert.Contains(t, buildErr.Error(), "go build failed", "Error should mention build failure")
+		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
 
 	t.Run("returns error for missing source directory", func(t *testing.T) {

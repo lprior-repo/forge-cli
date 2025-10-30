@@ -112,7 +112,7 @@ func runDestroy(autoApprove bool) error {
 			"You are about to PERMANENTLY DELETE all infrastructure",
 			projectRoot,
 		) {
-			out.Info("Destroy cancelled")
+			out.Info("Destroy canceled")
 			return nil
 		}
 	}

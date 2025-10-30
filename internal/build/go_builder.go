@@ -4,71 +4,86 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	E "github.com/IBM/fp-go/either"
 )
 
-// GoBuild is a pure function that builds Go Lambda functions
-func GoBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
-	// For Go Lambda functions, the binary must be named "bootstrap"
+// GoBuildSpec represents the pure specification for a Go build
+// PURE: No side effects, deterministic output from inputs
+type GoBuildSpec struct {
+	Command    []string
+	Env        []string
+	WorkDir    string
+	OutputPath string
+}
+
+// GenerateGoBuildSpec creates a build specification from config
+// PURE: Calculation - same inputs always produce same outputs
+func GenerateGoBuildSpec(cfg Config) GoBuildSpec {
 	outputPath := cfg.OutputPath
 	if outputPath == "" {
 		outputPath = filepath.Join(cfg.SourceDir, "bootstrap")
 	}
 
-	// Build function returns either error or artifact
+	// Build command arguments
+	command := []string{
+		"go", "build",
+		"-tags", "lambda.norpc",
+		"-ldflags", "-s -w",
+		"-o", outputPath,
+		"./" + cfg.Handler,
+	}
+
+	// Set environment for Lambda (Linux AMD64)
+	env := []string{
+		"GOOS=linux",
+		"GOARCH=amd64",
+		"CGO_ENABLED=0",
+	}
+
+	// Add any additional env vars from config
+	for k, v := range cfg.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return GoBuildSpec{
+		Command:    command,
+		Env:        env,
+		WorkDir:    cfg.SourceDir,
+		OutputPath: outputPath,
+	}
+}
+
+// ExecuteGoBuildSpec executes a build specification
+// ACTION: Performs I/O operations (file system, process execution)
+func ExecuteGoBuildSpec(ctx context.Context, spec GoBuildSpec) E.Either[error, Artifact] {
 	artifact, err := func() (Artifact, error) {
-		// Ensure output directory exists
+		// I/O: Ensure output directory exists
 		//nolint:gosec // G301: Lambda build directory permissions are intentionally permissive
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0754); err != nil {
+		if err := os.MkdirAll(filepath.Dir(spec.OutputPath), 0754); err != nil {
 			return Artifact{}, fmt.Errorf("failed to create output directory: %w", err)
 		}
 
-		// Build command
-		cmd := exec.CommandContext(ctx, "go", "build",
-			"-tags", "lambda.norpc",
-			"-ldflags", "-s -w",
-			"-o", outputPath,
-			"./"+cfg.Handler,
-		)
-
-		// Set environment for Lambda (Linux AMD64)
-		cmd.Env = append(os.Environ(),
-			"GOOS=linux",
-			"GOARCH=amd64",
-			"CGO_ENABLED=0",
-		)
-
-		// Add any additional env vars from config
-		for k, v := range cfg.Env {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		// I/O: Execute build command
+		if err := executeCommand(ctx, spec.Command, spec.Env, spec.WorkDir); err != nil {
+			return Artifact{}, err
 		}
 
-		// Set working directory
-		cmd.Dir = cfg.SourceDir
-
-		// Run build
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			return Artifact{}, fmt.Errorf("go build failed: %w\nOutput: %s", err, string(output))
-		}
-
-		// Calculate checksum
-		checksum, err := calculateChecksum(outputPath)
+		// I/O: Calculate checksum
+		checksum, err := calculateChecksum(spec.OutputPath)
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
-		// Get file size
-		size, err := getFileSize(outputPath)
+		// I/O: Get file size
+		size, err := getFileSize(spec.OutputPath)
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to get file size: %w", err)
 		}
 
 		return Artifact{
-			Path:     outputPath,
+			Path:     spec.OutputPath,
 			Checksum: checksum,
 			Size:     size,
 		}, nil
@@ -78,4 +93,11 @@ func GoBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 		return E.Left[Artifact](err)
 	}
 	return E.Right[error](artifact)
+}
+
+// GoBuild composes pure specification generation with impure execution
+// COMPOSITION: Pure core + Imperative shell
+func GoBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+	spec := GenerateGoBuildSpec(cfg)      // PURE: Calculation
+	return ExecuteGoBuildSpec(ctx, spec) // ACTION: I/O
 }

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
-	O "github.com/IBM/fp-go/option"
 	"github.com/lewis/forge/internal/build"
 	"github.com/lewis/forge/internal/discovery"
 	"github.com/lewis/forge/internal/ui"
@@ -143,73 +143,85 @@ func runBuild(stubOnly bool) error {
 	// Create build registry
 	registry := build.NewRegistry()
 
-	// Build each function with progress tracking
-	successCount := 0
-	for i, fn := range functions {
-		out.Step(i+1, len(functions), fmt.Sprintf("Building %s", fn.Name))
+	// Build single function with UI feedback
+	buildOne := func(index int, fn discovery.Function) E.Either[error, build.Artifact] {
+		out.Step(index+1, len(functions), fmt.Sprintf("Building %s", fn.Name))
 
-		// Get builder from registry
-		builderOpt := build.GetBuilder(registry, fn.Runtime)
-		if O.IsNone(builderOpt) {
-			out.Error("Unsupported runtime: %s", fn.Runtime)
-			out.Warning("Supported runtimes:")
-			out.Print("  • provided.al2023, provided.al2 (Go)")
-			out.Print("  • nodejs20.x, nodejs18.x (Node.js)")
-			out.Print("  • python3.13, python3.12, python3.11 (Python)")
-			return fmt.Errorf("unsupported runtime: %s", fn.Runtime)
-		}
+		// Get builder from registry and convert Option to Either
+		builderEither := E.FromOption[build.BuildFunc](
+			func() error {
+				out.Error("Unsupported runtime: %s", fn.Runtime)
+				out.Warning("Supported runtimes:")
+				out.Print("  • provided.al2023, provided.al2 (Go)")
+				out.Print("  • nodejs20.x, nodejs18.x (Node.js)")
+				out.Print("  • python3.13, python3.12, python3.11 (Python)")
+				return fmt.Errorf("unsupported runtime: %s", fn.Runtime)
+			},
+		)(build.GetBuilder(registry, fn.Runtime))
 
-		// Extract builder
-		builder := O.Fold(
-			func() build.BuildFunc { return nil },
-			func(b build.BuildFunc) build.BuildFunc { return b },
-		)(builderOpt)
+		// Chain the build operation
+		return E.Chain(func(builder build.BuildFunc) E.Either[error, build.Artifact] {
+			cfg := build.Config{
+				SourceDir:  fn.Path,
+				OutputPath: filepath.Join(buildDir, fn.Name),
+				Handler:    fn.EntryPoint,
+				Runtime:    fn.Runtime,
+				Env:        make(map[string]string),
+			}
 
-		// Convert to build config
-		cfg := build.Config{
-			SourceDir:  fn.Path,
-			OutputPath: filepath.Join(buildDir, fn.Name),
-			Handler:    fn.EntryPoint,
-			Runtime:    fn.Runtime,
-			Env:        make(map[string]string),
-		}
-
-		// Execute build
-		result := builder(ctx, cfg)
-
-		// Handle result
-		if E.IsLeft(result) {
-			err := E.Fold(
-				func(e error) error { return e },
-				func(a build.Artifact) error { return nil },
-			)(result)
-			out.Error("Build failed for %s: %v", fn.Name, err)
-			out.Warning("Debug tips:")
-			out.Print("  • Check function source code in %s", fn.Path)
-			out.Print("  • Verify dependencies are specified correctly")
-			out.Print("  • Review build logs above for details")
-			return fmt.Errorf("failed to build %s: %w", fn.Name, err)
-		}
-
-		// Extract artifact
-		artifact := E.Fold(
-			func(e error) build.Artifact { return build.Artifact{} },
-			func(a build.Artifact) build.Artifact { return a },
-		)(result)
-
-		sizeMB := float64(artifact.Size) / 1024 / 1024
-		out.Success("%s: %s (%.2f MB, checksum: %s)",
-			fn.Name,
-			filepath.Base(artifact.Path),
-			sizeMB,
-			artifact.Checksum[:8],
-		)
-		successCount++
+			// Execute build and add error context
+			return E.MapLeft[build.Artifact](func(err error) error {
+				out.Error("Build failed for %s: %v", fn.Name, err)
+				out.Warning("Debug tips:")
+				out.Print("  • Check function source code in %s", fn.Path)
+				out.Print("  • Verify dependencies are specified correctly")
+				out.Print("  • Review build logs above for details")
+				return fmt.Errorf("failed to build %s: %w", fn.Name, err)
+			})(builder(ctx, cfg))
+		})(builderEither)
 	}
 
-	out.Print("")
-	out.Success("All %d functions built successfully", successCount)
-	out.Dim("Output directory: %s", buildDir)
+	// Build all functions functionally using indexed map and fold
+	type indexedFunc struct {
+		index int
+		fn    discovery.Function
+	}
 
-	return nil
+	// Create indexed list
+	indexed := A.MapWithIndex(func(i int, fn discovery.Function) indexedFunc {
+		return indexedFunc{index: i, fn: fn}
+	})(functions)
+
+	// Build all and short-circuit on first error
+	artifactsEither := A.Reduce(
+		func(acc E.Either[error, []build.Artifact], item indexedFunc) E.Either[error, []build.Artifact] {
+			return E.Chain(func(artifacts []build.Artifact) E.Either[error, []build.Artifact] {
+				return E.Map[error](func(artifact build.Artifact) []build.Artifact {
+					// Print success message
+					sizeMB := float64(artifact.Size) / 1024 / 1024
+					out.Success("%s: %s (%.2f MB, checksum: %s)",
+						item.fn.Name,
+						filepath.Base(artifact.Path),
+						sizeMB,
+						artifact.Checksum[:8],
+					)
+					return append(artifacts, artifact)
+				})(buildOne(item.index, item.fn))
+			})(acc)
+		},
+		E.Right[error]([]build.Artifact{}),
+	)(indexed)
+
+	// Handle final result
+	return E.Fold(
+		func(err error) error {
+			return err
+		},
+		func(artifacts []build.Artifact) error {
+			out.Print("")
+			out.Success("All %d functions built successfully", len(artifacts))
+			out.Dim("Output directory: %s", buildDir)
+			return nil
+		},
+	)(artifactsEither)
 }

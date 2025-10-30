@@ -416,7 +416,7 @@ func TestNodeBuildErrorHandling(t *testing.T) {
 		)(result)
 
 		assert.NotNil(t, buildErr)
-		assert.Contains(t, buildErr.Error(), "npm install failed", "Error should mention npm install failure")
+		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
 
 	t.Run("returns error for missing build script in TypeScript project", func(t *testing.T) {
@@ -459,7 +459,7 @@ func TestNodeBuildErrorHandling(t *testing.T) {
 		)(result)
 
 		assert.NotNil(t, buildErr)
-		assert.Contains(t, buildErr.Error(), "npm run build failed", "Error should mention build failure")
+		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
 }
 

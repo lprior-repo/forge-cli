@@ -13,15 +13,66 @@ import (
 	E "github.com/IBM/fp-go/either"
 )
 
-// PythonBuild is a pure function that builds Python Lambda functions
-func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
-	artifact, err := func() (Artifact, error) {
-		outputPath := cfg.OutputPath
-		if outputPath == "" {
-			outputPath = filepath.Join(cfg.SourceDir, "lambda.zip")
-		}
+// PythonBuildSpec represents the pure specification for a Python build
+// PURE: No side effects, deterministic output from inputs
+type PythonBuildSpec struct {
+	OutputPath       string
+	SourceDir        string
+	RequirementsPath string
+	HasRequirements  bool
+	Env              []string
+	DependencyCmd    []string // Command to install dependencies
+	UsesUV           bool     // Whether uv is available
+}
 
-		// Create temporary directory for dependencies
+// GeneratePythonBuildSpec creates a build specification from config
+// PURE: Calculation - same inputs always produce same outputs
+func GeneratePythonBuildSpec(cfg Config, hasUV bool, hasRequirements bool) PythonBuildSpec {
+	outputPath := cfg.OutputPath
+	if outputPath == "" {
+		outputPath = filepath.Join(cfg.SourceDir, "lambda.zip")
+	}
+
+	requirementsPath := filepath.Join(cfg.SourceDir, "requirements.txt")
+
+	var depCmd []string
+	if hasRequirements {
+		if hasUV {
+			// Use uv pip install (much faster)
+			depCmd = []string{
+				"uv", "pip", "install",
+				"-r", requirementsPath,
+				"--target", "{tempDir}", // Placeholder for temp dir
+				"--python-platform", "linux",
+				"--python-version", "3.11",
+			}
+		} else {
+			// Fallback to pip
+			depCmd = []string{
+				"pip", "install",
+				"-r", requirementsPath,
+				"-t", "{tempDir}", // Placeholder for temp dir
+				"--upgrade",
+			}
+		}
+	}
+
+	return PythonBuildSpec{
+		OutputPath:       outputPath,
+		SourceDir:        cfg.SourceDir,
+		RequirementsPath: requirementsPath,
+		HasRequirements:  hasRequirements,
+		Env:              envSlice(cfg.Env),
+		DependencyCmd:    depCmd,
+		UsesUV:           hasUV,
+	}
+}
+
+// ExecutePythonBuildSpec executes a Python build specification
+// ACTION: Performs I/O operations (file system, process execution)
+func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[error, Artifact] {
+	artifact, err := func() (Artifact, error) {
+		// I/O: Create temporary directory for dependencies
 		tempDir, err := os.MkdirTemp("", "forge-python-*")
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to create temp dir: %w", err)
@@ -30,45 +81,21 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 			_ = os.RemoveAll(tempDir) // Best effort cleanup
 		}()
 
-		// Check for requirements.txt
-		requirementsPath := filepath.Join(cfg.SourceDir, "requirements.txt")
-		if _, err := os.Stat(requirementsPath); err == nil {
-			// Install dependencies using uv (faster than pip)
-			// First, check if uv is available
-			if _, err := exec.LookPath("uv"); err == nil {
-				// Use uv pip install (much faster)
-				cmd := exec.CommandContext(ctx, "uv", "pip", "install",
-					"-r", requirementsPath,
-					"--target", tempDir,
-					"--python-platform", "linux",
-					"--python-version", "3.11",
-				)
-				cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
-				cmd.Dir = cfg.SourceDir
+		// I/O: Install dependencies if requirements.txt exists
+		if spec.HasRequirements {
+			// Replace placeholder with actual temp dir
+			cmd := make([]string, len(spec.DependencyCmd))
+			for i, arg := range spec.DependencyCmd {
+				cmd[i] = strings.ReplaceAll(arg, "{tempDir}", tempDir)
+			}
 
-				output, err := cmd.CombinedOutput()
-				if err != nil {
-					return Artifact{}, fmt.Errorf("uv pip install failed: %w\nOutput: %s", err, string(output))
-				}
-			} else {
-				// Fallback to pip if uv is not installed
-				cmd := exec.CommandContext(ctx, "pip", "install",
-					"-r", requirementsPath,
-					"-t", tempDir,
-					"--upgrade",
-				)
-				cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
-				cmd.Dir = cfg.SourceDir
-
-				output, err := cmd.CombinedOutput()
-				if err != nil {
-					return Artifact{}, fmt.Errorf("pip install failed: %w\nOutput: %s", err, string(output))
-				}
+			if err := executeCommand(ctx, cmd, spec.Env, spec.SourceDir); err != nil {
+				return Artifact{}, err
 			}
 		}
 
-		// Create zip file
-		zipFile, err := os.Create(outputPath)
+		// I/O: Create zip file
+		zipFile, err := os.Create(spec.OutputPath)
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to create zip: %w", err)
 		}
@@ -81,17 +108,19 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 			_ = zipWriter.Close() // Best effort close in defer
 		}()
 
-		// Add dependencies from temp directory
-		if err := addDirToZip(zipWriter, tempDir, ""); err != nil {
-			return Artifact{}, fmt.Errorf("failed to add dependencies: %w", err)
+		// I/O: Add dependencies from temp directory
+		if spec.HasRequirements {
+			if err := addDirToZip(zipWriter, tempDir, ""); err != nil {
+				return Artifact{}, fmt.Errorf("failed to add dependencies: %w", err)
+			}
 		}
 
-		// Add source code
-		if err := addDirToZip(zipWriter, cfg.SourceDir, ""); err != nil {
+		// I/O: Add source code
+		if err := addDirToZip(zipWriter, spec.SourceDir, ""); err != nil {
 			return Artifact{}, fmt.Errorf("failed to add source code: %w", err)
 		}
 
-		// Close zip before calculating checksum
+		// I/O: Close zip before calculating checksum
 		if err := zipWriter.Close(); err != nil {
 			return Artifact{}, fmt.Errorf("failed to close zip writer: %w", err)
 		}
@@ -99,20 +128,20 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 			return Artifact{}, fmt.Errorf("failed to close zip file: %w", err)
 		}
 
-		// Calculate checksum
-		checksum, err := calculateChecksum(outputPath)
+		// I/O: Calculate checksum
+		checksum, err := calculateChecksum(spec.OutputPath)
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
-		// Get file size
-		size, err := getFileSize(outputPath)
+		// I/O: Get file size
+		size, err := getFileSize(spec.OutputPath)
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to get file size: %w", err)
 		}
 
 		return Artifact{
-			Path:     outputPath,
+			Path:     spec.OutputPath,
 			Checksum: checksum,
 			Size:     size,
 		}, nil
@@ -124,7 +153,26 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 	return E.Right[error](artifact)
 }
 
+// PythonBuild composes pure specification generation with impure execution
+// COMPOSITION: Pure core + Imperative shell
+func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+	// I/O: Check for uv availability (this is I/O but minimal)
+	_, hasUV := exec.LookPath("uv")
+
+	// I/O: Check for requirements.txt
+	requirementsPath := filepath.Join(cfg.SourceDir, "requirements.txt")
+	_, err := os.Stat(requirementsPath)
+	hasRequirements := err == nil
+
+	// PURE: Generate build specification
+	spec := GeneratePythonBuildSpec(cfg, hasUV == nil, hasRequirements)
+
+	// ACTION: Execute build
+	return ExecutePythonBuildSpec(ctx, spec)
+}
+
 // envSlice converts the env map to a slice
+// PURE: Calculation
 func envSlice(envMap map[string]string) []string {
 	var env []string
 	for k, v := range envMap {
@@ -134,6 +182,7 @@ func envSlice(envMap map[string]string) []string {
 }
 
 // addDirToZip recursively adds directory contents to zip
+// ACTION: Performs I/O (file system reads, zip writes)
 func addDirToZip(zipWriter *zip.Writer, baseDir, prefix string) error {
 	return filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -178,6 +227,7 @@ func addDirToZip(zipWriter *zip.Writer, baseDir, prefix string) error {
 }
 
 // shouldSkipFile determines if a file should be excluded from the zip
+// PURE: Calculation - deterministic based on filename
 func shouldSkipFile(name string) bool {
 	skipSuffixes := []string{
 		".pyc",

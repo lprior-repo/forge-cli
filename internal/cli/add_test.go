@@ -391,13 +391,18 @@ func TestWriteGeneratedFiles_ErrorHandling(t *testing.T) {
 
 // TestAddCommand_FlagDefaults tests command flag defaults
 func TestAddCommand_FlagDefaults(t *testing.T) {
-	// Reset flags to defaults
-	addToFunc = ""
-	addRaw = false
-	addNoModule = false
+	cmd := NewAddCmd()
 
-	// Verify defaults
-	assert.Empty(t, addToFunc)
-	assert.False(t, addRaw)
-	assert.False(t, addNoModule)
+	// Verify flags exist and have correct defaults
+	toFlag := cmd.Flags().Lookup("to")
+	assert.NotNil(t, toFlag)
+	assert.Equal(t, "", toFlag.DefValue)
+
+	rawFlag := cmd.Flags().Lookup("raw")
+	assert.NotNil(t, rawFlag)
+	assert.Equal(t, "false", rawFlag.DefValue)
+
+	noModuleFlag := cmd.Flags().Lookup("no-module")
+	assert.NotNil(t, noModuleFlag)
+	assert.Equal(t, "false", noModuleFlag.DefValue)
 }

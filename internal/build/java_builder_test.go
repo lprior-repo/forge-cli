@@ -296,7 +296,7 @@ func TestJavaBuildErrorHandling(t *testing.T) {
 			func(a Artifact) error { return nil },
 		)(result)
 
-		assert.Contains(t, buildErr.Error(), "mvn package failed", "Error should mention Maven failure")
+		assert.Contains(t, buildErr.Error(), "command failed", "Error should mention command failure")
 	})
 }
 

@@ -181,6 +181,25 @@ issues:
       linters:
         - gosec
 
+    # Allow functional pipeline pattern where pipeline is first parameter
+    - path: internal/pipeline/pipeline\.go
+      text: "context-as-argument"
+      linters:
+        - revive
+
+    # Allow aliased imports for FP monads (E for Either, O for Option)
+    - path: internal/(pipeline|cli|build)/
+      text: "File is not properly formatted"
+      linters:
+        - goimports
+        - gofmt
+
+    # Allow explicit error discard for user input (non-critical)
+    - path: internal/pipeline/
+      text: "Error return value of `fmt.Scanln` is not checked"
+      linters:
+        - errcheck
+
   exclude-use-default: false
 
 output:

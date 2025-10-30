@@ -4,46 +4,67 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	E "github.com/IBM/fp-go/either"
 )
 
-// JavaBuild is a pure function that builds Java Lambda functions using Maven
-func JavaBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+// JavaBuildSpec represents the pure specification for a Java build
+// PURE: No side effects, deterministic output from inputs
+type JavaBuildSpec struct {
+	OutputPath string
+	SourceDir  string
+	TargetDir  string
+	Env        []string
+	BuildCmd   []string // Maven build command
+}
+
+// GenerateJavaBuildSpec creates a build specification from config
+// PURE: Calculation - same inputs always produce same outputs
+func GenerateJavaBuildSpec(cfg Config) JavaBuildSpec {
+	outputPath := cfg.OutputPath
+	if outputPath == "" {
+		outputPath = filepath.Join(cfg.SourceDir, "target", "lambda.jar")
+	}
+
+	targetDir := filepath.Join(cfg.SourceDir, "target")
+
+	// Maven clean package command
+	buildCmd := []string{"mvn", "clean", "package", "-DskipTests"}
+
+	return JavaBuildSpec{
+		OutputPath: outputPath,
+		SourceDir:  cfg.SourceDir,
+		TargetDir:  targetDir,
+		Env:        envSlice(cfg.Env),
+		BuildCmd:   buildCmd,
+	}
+}
+
+// ExecuteJavaBuildSpec executes a Java build specification
+// ACTION: Performs I/O operations (file system, process execution)
+func ExecuteJavaBuildSpec(ctx context.Context, spec JavaBuildSpec) E.Either[error, Artifact] {
 	artifact, err := func() (Artifact, error) {
-		outputPath := cfg.OutputPath
-		if outputPath == "" {
-			outputPath = filepath.Join(cfg.SourceDir, "target", "lambda.jar")
-		}
-
-		// Check for pom.xml
-		pomPath := filepath.Join(cfg.SourceDir, "pom.xml")
+		// I/O: Check for pom.xml
+		pomPath := filepath.Join(spec.SourceDir, "pom.xml")
 		if _, err := os.Stat(pomPath); os.IsNotExist(err) {
-			return Artifact{}, fmt.Errorf("pom.xml not found in %s", cfg.SourceDir)
+			return Artifact{}, fmt.Errorf("pom.xml not found in %s", spec.SourceDir)
 		}
 
-		// Clean and package with Maven
-		cmd := exec.CommandContext(ctx, "mvn", "clean", "package", "-DskipTests")
-		cmd.Env = append(os.Environ(), envSlice(cfg.Env)...)
-		cmd.Dir = cfg.SourceDir
-
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			return Artifact{}, fmt.Errorf("mvn package failed: %w\nOutput: %s", err, string(output))
+		// I/O: Clean and package with Maven
+		if err := executeCommand(ctx, spec.BuildCmd, spec.Env, spec.SourceDir); err != nil {
+			return Artifact{}, err
 		}
 
-		// Find the jar file in target directory
-		targetDir := filepath.Join(cfg.SourceDir, "target")
-		jarPath, err := findJar(targetDir)
+		// I/O: Find the jar file in target directory
+		jarPath, err := findJar(spec.TargetDir)
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to find jar: %w", err)
 		}
 
-		// Copy to output path if different
-		if jarPath != outputPath {
-			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		// I/O: Copy to output path if different
+		if jarPath != spec.OutputPath {
+			if err := os.MkdirAll(filepath.Dir(spec.OutputPath), 0755); err != nil {
 				return Artifact{}, fmt.Errorf("failed to create output directory: %w", err)
 			}
 
@@ -52,25 +73,26 @@ func JavaBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 				return Artifact{}, fmt.Errorf("failed to read jar: %w", err)
 			}
 
-			if err := os.WriteFile(outputPath, input, 0644); err != nil {
+			//nolint:gosec // G306: JAR file permissions are standard
+			if err := os.WriteFile(spec.OutputPath, input, 0644); err != nil {
 				return Artifact{}, fmt.Errorf("failed to write jar: %w", err)
 			}
 		}
 
-		// Calculate checksum
-		checksum, err := calculateChecksum(outputPath)
+		// I/O: Calculate checksum
+		checksum, err := calculateChecksum(spec.OutputPath)
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
-		// Get file size
-		size, err := getFileSize(outputPath)
+		// I/O: Get file size
+		size, err := getFileSize(spec.OutputPath)
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to get file size: %w", err)
 		}
 
 		return Artifact{
-			Path:     outputPath,
+			Path:     spec.OutputPath,
 			Checksum: checksum,
 			Size:     size,
 		}, nil
@@ -82,7 +104,18 @@ func JavaBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 	return E.Right[error](artifact)
 }
 
+// JavaBuild composes pure specification generation with impure execution
+// COMPOSITION: Pure core + Imperative shell
+func JavaBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+	// PURE: Generate build specification
+	spec := GenerateJavaBuildSpec(cfg)
+
+	// ACTION: Execute build
+	return ExecuteJavaBuildSpec(ctx, spec)
+}
+
 // findJar finds the first JAR file in the target directory (excluding sources and javadoc jars)
+// ACTION: Performs I/O (directory reading)
 func findJar(targetDir string) (string, error) {
 	entries, err := os.ReadDir(targetDir)
 	if err != nil {
@@ -108,6 +141,7 @@ func findJar(targetDir string) (string, error) {
 }
 
 // contains checks if a string contains a substring
+// PURE: Calculation - deterministic string matching
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && s[len(s)-len(substr)-len(".jar"):len(s)-len(".jar")] == substr)
 }

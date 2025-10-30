@@ -348,12 +348,14 @@ func TestPythonBuildErrorHandling(t *testing.T) {
 		)(result)
 
 		assert.NotNil(t, buildErr)
-		// Error should mention either "pip install failed" or "uv pip install failed"
+		// Error should mention command failure (from executeCommand)
 		errMsg := buildErr.Error()
 		t.Logf("Actual error message: %s", errMsg)
 		assert.True(t,
-			strings.Contains(errMsg, "pip install failed") || strings.Contains(errMsg, "uv pip install failed"),
-			"Error should mention pip/uv install failure. Got: %s", errMsg,
+			strings.Contains(errMsg, "command failed") ||
+			strings.Contains(errMsg, "pip install failed") ||
+			strings.Contains(errMsg, "uv pip install failed"),
+			"Error should mention command/pip/uv install failure. Got: %s", errMsg,
 		)
 	})
 }

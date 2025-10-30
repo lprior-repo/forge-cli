@@ -102,18 +102,19 @@ func runDeploy(autoApprove bool, namespace string) error {
 	// Create Terraform executor using pure functional composition
 	tfPath := findTerraformPath()
 	tfExec := terraform.NewExecutor(tfPath)
-	exec := adaptTerraformExecutor(tfExec)
+	tfExecutor := adaptTerraformExecutor(tfExec)
 
-	// Compose functional pipeline:
+	// Compose functional pipeline using event-based stages:
 	// Scan → Stubs → Build → TF Init → TF Plan → TF Apply → TF Outputs
-	deployPipeline := pipeline.New(
-		pipeline.ConventionScan(),
-		pipeline.ConventionStubs(),
-		pipeline.ConventionBuild(),
-		pipeline.ConventionTerraformInit(exec),
-		pipeline.ConventionTerraformPlan(exec, namespace),
-		pipeline.ConventionTerraformApply(exec, autoApprove),
-		pipeline.ConventionTerraformOutputs(exec),
+	// Event-based stages return events as data instead of printing
+	deployPipeline := pipeline.NewEventPipeline(
+		pipeline.ConventionScanV2(),
+		pipeline.ConventionStubsV2(),
+		pipeline.ConventionBuildV2(),
+		pipeline.ConventionTerraformInitV2(tfExecutor),
+		pipeline.ConventionTerraformPlanV2(tfExecutor, namespace),
+		pipeline.ConventionTerraformApplyV2(tfExecutor, autoApprove),
+		pipeline.ConventionTerraformOutputsV2(tfExecutor),
 	)
 
 	// Initial state (immutable)
@@ -124,10 +125,10 @@ func runDeploy(autoApprove bool, namespace string) error {
 		Config:     nil, // Will hold discovered functions
 	}
 
-	// Run pipeline (returns Either[error, State])
-	result := pipeline.Run(deployPipeline, ctx, initialState)
+	// Run event-based pipeline (returns Either[error, StageResult])
+	result := pipeline.RunWithEvents(deployPipeline, ctx, initialState)
 
-	// Handle result using functional pattern
+	// Handle result using functional pattern with StageResult
 	return E.Fold(
 		func(err error) error {
 			out.Error("Deployment failed: %v", err)
@@ -139,14 +140,17 @@ func runDeploy(autoApprove bool, namespace string) error {
 			out.Print("  • Run 'forge build' separately to test builds")
 			return fmt.Errorf("deployment failed: %w", err)
 		},
-		func(finalState pipeline.State) error {
+		func(stageResult pipeline.StageResult) error {
+			// Print all collected events
+			pipeline.PrintEvents(stageResult.Events)
+
 			out.Success("Deployment completed successfully")
 			if namespace != "" {
 				out.Info("Namespace: %s", namespace)
 			}
-			if len(finalState.Outputs) > 0 {
+			if len(stageResult.State.Outputs) > 0 {
 				out.Header("Terraform Outputs")
-				for key, value := range finalState.Outputs {
+				for key, value := range stageResult.State.Outputs {
 					out.Print("  %s = %v", key, value)
 				}
 			}

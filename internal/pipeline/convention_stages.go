@@ -1,3 +1,4 @@
+// Package pipeline provides convention-based Lambda function deployment stages
 package pipeline
 
 import (
@@ -5,8 +6,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
-	O "github.com/IBM/fp-go/option"
 	"github.com/lewis/forge/internal/build"
 	"github.com/lewis/forge/internal/discovery"
 )
@@ -62,6 +63,42 @@ func ConventionStubs() Stage {
 	}
 }
 
+// BuildResult represents the result of building a function
+type BuildResult struct {
+	name     string
+	artifact Artifact
+}
+
+// buildFunction is a helper that builds a single function and returns Either
+func buildFunction(ctx context.Context, registry build.Registry, buildDir string) func(discovery.Function) E.Either[error, BuildResult] {
+	return func(fn discovery.Function) E.Either[error, BuildResult] {
+		fmt.Printf("[%s] Building...\n", fn.Name)
+
+		// Get builder from registry and convert Option to Either
+		builderEither := E.FromOption[build.BuildFunc](
+			func() error { return fmt.Errorf("unsupported runtime: %s", fn.Runtime) },
+		)(build.GetBuilder(registry, fn.Runtime))
+
+		// Chain the build operation
+		return E.Chain(func(builder build.BuildFunc) E.Either[error, BuildResult] {
+			cfg := discovery.ToBuildConfig(fn, buildDir)
+			return E.Chain(func(artifact build.Artifact) E.Either[error, BuildResult] {
+				sizeMB := float64(artifact.Size) / 1024 / 1024
+				fmt.Printf("[%s] ✓ Built: %s (%.2f MB)\n", fn.Name, filepath.Base(artifact.Path), sizeMB)
+
+				return E.Right[error](BuildResult{
+					name: fn.Name,
+					artifact: Artifact{
+						Path:     artifact.Path,
+						Checksum: artifact.Checksum,
+						Size:     artifact.Size,
+					},
+				})
+			})(builder(ctx, cfg))
+		})(builderEither)
+	}
+}
+
 // ConventionBuild creates a stage that builds all discovered functions
 func ConventionBuild() Stage {
 	return func(ctx context.Context, s State) E.Either[error, State] {
@@ -73,63 +110,37 @@ func ConventionBuild() Stage {
 			return E.Left[State](fmt.Errorf("invalid state: functions not found"))
 		}
 
-		// Initialize artifacts map if needed
-		if s.Artifacts == nil {
-			s.Artifacts = make(map[string]Artifact)
-		}
-
 		registry := build.NewRegistry()
 		buildDir := filepath.Join(s.ProjectDir, ".forge", "build")
 
-		for _, fn := range functions {
-			fmt.Printf("[%s] Building...\n", fn.Name)
+		// Use functional fold to build artifacts map
+		artifactsEither := A.Reduce(
+			func(acc E.Either[error, map[string]Artifact], fn discovery.Function) E.Either[error, map[string]Artifact] {
+				return E.Chain(func(artifacts map[string]Artifact) E.Either[error, map[string]Artifact] {
+					return E.Map[error](func(result BuildResult) map[string]Artifact {
+						// Immutable update - create new map
+						newArtifacts := make(map[string]Artifact, len(artifacts)+1)
+						for k, v := range artifacts {
+							newArtifacts[k] = v
+						}
+						newArtifacts[result.name] = result.artifact
+						return newArtifacts
+					})(buildFunction(ctx, registry, buildDir)(fn))
+				})(acc)
+			},
+			E.Right[error](s.Artifacts),
+		)(functions)
 
-			// Get builder from registry (returns Option)
-			builderOpt := build.GetBuilder(registry, fn.Runtime)
-			if O.IsNone(builderOpt) {
-				return E.Left[State](fmt.Errorf("unsupported runtime: %s", fn.Runtime))
-			}
-
-			// Extract builder using Fold
-			builder := O.Fold(
-				func() build.BuildFunc { return nil },
-				func(b build.BuildFunc) build.BuildFunc { return b },
-			)(builderOpt)
-
-			// Convert to build config (pure function - no method)
-			cfg := discovery.ToBuildConfig(fn, buildDir)
-
-			// Execute build (returns Either)
-			result := builder(ctx, cfg)
-
-			// Handle result using functional error handling
-			if E.IsLeft(result) {
-				err := E.Fold(
-					func(e error) error { return e },
-					func(a build.Artifact) error { return nil },
-				)(result)
-				return E.Left[State](fmt.Errorf("failed to build %s: %w", fn.Name, err))
-			}
-
-			// Extract artifact
-			artifact := E.Fold(
-				func(e error) build.Artifact { return build.Artifact{} },
-				func(a build.Artifact) build.Artifact { return a },
-			)(result)
-
-			// Store artifact in state
-			s.Artifacts[fn.Name] = Artifact{
-				Path:     artifact.Path,
-				Checksum: artifact.Checksum,
-				Size:     artifact.Size,
-			}
-
-			sizeMB := float64(artifact.Size) / 1024 / 1024
-			fmt.Printf("[%s] ✓ Built: %s (%.2f MB)\n", fn.Name, filepath.Base(artifact.Path), sizeMB)
-		}
-
+		// Return new state with updated artifacts
 		fmt.Println()
-		return E.Right[error](s)
+		return E.Map[error](func(artifacts map[string]Artifact) State {
+			return State{
+				ProjectDir: s.ProjectDir,
+				Artifacts:  artifacts,
+				Outputs:    s.Outputs,
+				Config:     s.Config,
+			}
+		})(artifactsEither)
 	}
 }
 
@@ -183,9 +194,9 @@ func ConventionTerraformApply(exec TerraformExecutor, autoApprove bool) Stage {
 		if !autoApprove {
 			fmt.Print("\nDo you want to apply these changes? (yes/no): ")
 			var response string
-			fmt.Scanln(&response)
+			_, _ = fmt.Scanln(&response) // #nosec G104 - user input error is non-critical
 			if response != "yes" {
-				return E.Left[State](fmt.Errorf("deployment cancelled by user"))
+				return E.Left[State](fmt.Errorf("deployment canceled by user"))
 			}
 		}
 
@@ -221,11 +232,19 @@ func ConventionTerraformOutputs(exec TerraformExecutor) Stage {
 	}
 }
 
-// Terraform operation function types - pure functional approach
+// TerraformInitFunc initializes Terraform in a directory
 type TerraformInitFunc func(ctx context.Context, dir string) error
+
+// TerraformPlanFunc plans infrastructure changes
 type TerraformPlanFunc func(ctx context.Context, dir string) (bool, error)
+
+// TerraformPlanWithVarsFunc plans infrastructure changes with variables
 type TerraformPlanWithVarsFunc func(ctx context.Context, dir string, vars map[string]string) (bool, error)
+
+// TerraformApplyFunc applies infrastructure changes
 type TerraformApplyFunc func(ctx context.Context, dir string) error
+
+// TerraformOutputFunc retrieves Terraform outputs
 type TerraformOutputFunc func(ctx context.Context, dir string) (map[string]interface{}, error)
 
 // TerraformExecutor is a collection of terraform functions (not methods!)

@@ -81,53 +81,46 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 
 // Generate creates Terraform code from configuration (PURE CALCULATION)
 func (g *Generator) Generate(config generators.ResourceConfig, state generators.ProjectState) E.Either[error, generators.GeneratedCode] {
-	// Validate first
-	validateResult := g.Validate(config)
-	if E.IsLeft(validateResult) {
-		err := E.Fold(
-			func(e error) error { return e },
-			func(generators.ResourceConfig) error { return nil },
-		)(validateResult)
-		return E.Left[generators.GeneratedCode](err)
-	}
+	// Validate first, then chain generation - automatic error short-circuiting
+	return E.Chain(func(validConfig generators.ResourceConfig) E.Either[error, generators.GeneratedCode] {
+		var files []generators.FileToWrite
 
-	var files []generators.FileToWrite
+		// 1. Generate main S3 resource file
+		if validConfig.Module {
+			files = append(files, generators.FileToWrite{
+				Path:    "s3.tf",
+				Content: generateModuleCode(validConfig),
+				Mode:    generators.WriteModeAppend,
+			})
+		} else {
+			files = append(files, generators.FileToWrite{
+				Path:    "s3.tf",
+				Content: generateRawResourceCode(validConfig),
+				Mode:    generators.WriteModeAppend,
+			})
+		}
 
-	// 1. Generate main S3 resource file
-	if config.Module {
+		// 2. Generate outputs
 		files = append(files, generators.FileToWrite{
-			Path:    "s3.tf",
-			Content: generateModuleCode(config),
+			Path:    "outputs.tf",
+			Content: generateOutputs(validConfig),
 			Mode:    generators.WriteModeAppend,
 		})
-	} else {
-		files = append(files, generators.FileToWrite{
-			Path:    "s3.tf",
-			Content: generateRawResourceCode(config),
-			Mode:    generators.WriteModeAppend,
+
+		// 3. If integration, update Lambda function file
+		if validConfig.Integration != nil {
+			lambdaFile := fmt.Sprintf("lambda_%s.tf", validConfig.Integration.TargetFunction)
+			files = append(files, generators.FileToWrite{
+				Path:    lambdaFile,
+				Content: generateIntegrationCode(validConfig),
+				Mode:    generators.WriteModeAppend,
+			})
+		}
+
+		return E.Right[error](generators.GeneratedCode{
+			Files: files,
 		})
-	}
-
-	// 2. Generate outputs
-	files = append(files, generators.FileToWrite{
-		Path:    "outputs.tf",
-		Content: generateOutputs(config),
-		Mode:    generators.WriteModeAppend,
-	})
-
-	// 3. If integration, update Lambda function file
-	if config.Integration != nil {
-		lambdaFile := fmt.Sprintf("lambda_%s.tf", config.Integration.TargetFunction)
-		files = append(files, generators.FileToWrite{
-			Path:    lambdaFile,
-			Content: generateIntegrationCode(config),
-			Mode:    generators.WriteModeAppend,
-		})
-	}
-
-	return E.Right[error](generators.GeneratedCode{
-		Files: files,
-	})
+	})(g.Validate(config))
 }
 
 // Validate checks if configuration is valid (PURE CALCULATION)

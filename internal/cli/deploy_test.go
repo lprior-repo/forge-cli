@@ -62,7 +62,7 @@ func TestRunDeploy(t *testing.T) {
 
 		err := runDeploy(true, "")
 		assert.Error(t, err)
-		// Build fails before we get to infra check
-		assert.Contains(t, err.Error(), "failed to build")
+		// Build fails with command execution error
+		assert.Contains(t, err.Error(), "deployment failed")
 	})
 }

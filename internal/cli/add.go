@@ -15,14 +15,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	addToFunc   string
-	addRaw      bool
-	addNoModule bool
-)
+// NewAddCmd creates the 'add' command
+func NewAddCmd() *cobra.Command {
+	var (
+		addToFunc   string
+		addRaw      bool
+		addNoModule bool
+	)
 
-// addCmd represents the add command
-var addCmd = &cobra.Command{
+	addCmd := &cobra.Command{
 	Use:   "add <resource-type> <name>",
 	Short: "Add AWS resources with generated Terraform code",
 	Long: `
@@ -74,32 +75,33 @@ Smart defaults, best practices, and Lambda integrations built-in.
   ├── sqs_orders_queue.tf      # Generated resource
   └── sqs_orders_queue_iam.tf  # Generated IAM policies
 `,
-	Args: cobra.ExactArgs(2),
-	RunE: runAdd,
-}
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runAdd(cmd, args, addToFunc, addRaw, addNoModule)
+		},
+	}
 
-// NewAddCmd creates the 'add' command
-func NewAddCmd() *cobra.Command {
 	addCmd.Flags().StringVar(&addToFunc, "to", "", "Target Lambda function for integration")
 	addCmd.Flags().BoolVar(&addRaw, "raw", false, "Generate raw Terraform resources instead of modules")
 	addCmd.Flags().BoolVar(&addNoModule, "no-module", false, "Alias for --raw")
+
 	return addCmd
 }
 
 // runAdd executes the add command (I/O ACTION)
-func runAdd(cmd *cobra.Command, args []string) error {
+func runAdd(cmd *cobra.Command, args []string, toFunc string, raw bool, noModule bool) error {
 	ctx := cmd.Context()
 	resourceType := args[0]
 	resourceName := args[1]
 
 	// Determine module preference
-	useModule := !addRaw && !addNoModule
+	useModule := !raw && !noModule
 
 	// Create resource intent
 	intent := generators.ResourceIntent{
 		Type:      generators.ResourceType(resourceType),
 		Name:      resourceName,
-		ToFunc:    addToFunc,
+		ToFunc:    toFunc,
 		UseModule: useModule,
 		Flags:     make(map[string]string),
 	}
@@ -112,17 +114,6 @@ func runAdd(cmd *cobra.Command, args []string) error {
 
 	// Discover existing project state
 	fmt.Println("🔍 Discovering project resources...")
-	stateResult := discoverProjectState(projectRoot)
-	if E.IsLeft(stateResult) {
-		return E.Fold(
-			func(e error) error { return e },
-			func(generators.ProjectState) error { return nil },
-		)(stateResult)
-	}
-	state := E.Fold(
-		func(error) generators.ProjectState { return generators.ProjectState{} },
-		func(s generators.ProjectState) generators.ProjectState { return s },
-	)(stateResult)
 
 	// Get generator for resource type
 	registry := createGeneratorRegistry()
@@ -131,72 +122,55 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unsupported resource type: %s", intent.Type)
 	}
 
-	// Prompt for configuration (with defaults for MVP)
-	fmt.Printf("📋 Configuring %s '%s'...\n", intent.Type, intent.Name)
-	configResult := generator.Prompt(ctx, intent, state)
-	if E.IsLeft(configResult) {
-		return E.Fold(
-			func(e error) error { return e },
-			func(generators.ResourceConfig) error { return nil },
-		)(configResult)
-	}
-	config := E.Fold(
-		func(error) generators.ResourceConfig { return generators.ResourceConfig{} },
-		func(c generators.ResourceConfig) generators.ResourceConfig { return c },
-	)(configResult)
-
-	// Generate Terraform code
-	fmt.Println("🔨 Generating Terraform code...")
-	codeResult := generator.Generate(config, state)
-	if E.IsLeft(codeResult) {
-		return E.Fold(
-			func(e error) error { return e },
-			func(generators.GeneratedCode) error { return nil },
-		)(codeResult)
-	}
-	code := E.Fold(
-		func(error) generators.GeneratedCode { return generators.GeneratedCode{} },
-		func(c generators.GeneratedCode) generators.GeneratedCode { return c },
-	)(codeResult)
-
-	// Write files to disk
 	infraDir := filepath.Join(projectRoot, "infra")
-	fmt.Println("📝 Writing files...")
-	writtenResult := writeGeneratedFiles(code, infraDir)
-	if E.IsLeft(writtenResult) {
-		return E.Fold(
-			func(e error) error { return e },
-			func(generators.WrittenFiles) error { return nil },
-		)(writtenResult)
-	}
-	written := E.Fold(
-		func(error) generators.WrittenFiles { return generators.WrittenFiles{} },
-		func(w generators.WrittenFiles) generators.WrittenFiles { return w },
+
+	// Chain all operations - automatic error short-circuiting
+	writtenResult := E.Chain(func(state generators.ProjectState) E.Either[error, generators.WrittenFiles] {
+		// Prompt for configuration (with defaults for MVP)
+		fmt.Printf("📋 Configuring %s '%s'...\n", intent.Type, intent.Name)
+		return E.Chain(func(config generators.ResourceConfig) E.Either[error, generators.WrittenFiles] {
+			// Generate Terraform code
+			fmt.Println("🔨 Generating Terraform code...")
+			return E.Chain(func(code generators.GeneratedCode) E.Either[error, generators.WrittenFiles] {
+				// Write files to disk
+				fmt.Println("📝 Writing files...")
+				return writeGeneratedFiles(code, infraDir)
+			})(generator.Generate(config, state))
+		})(generator.Prompt(ctx, intent, state))
+	})(discoverProjectState(projectRoot))
+
+	// Handle final result - report success or return error
+	return E.Fold(
+		func(e error) error {
+			// Error case - return error
+			return e
+		},
+		func(written generators.WrittenFiles) error {
+			// Success case - report results
+			fmt.Println("\n✅ Successfully added", intent.Type, intent.Name)
+			if len(written.Created) > 0 {
+				fmt.Println("\nCreated files:")
+				for _, file := range written.Created {
+					fmt.Printf("  + %s\n", file)
+				}
+			}
+			if len(written.Updated) > 0 {
+				fmt.Println("\nUpdated files:")
+				for _, file := range written.Updated {
+					fmt.Printf("  ~ %s\n", file)
+				}
+			}
+
+			// Next steps
+			fmt.Println("\nNext steps:")
+			fmt.Println("  1. Review generated Terraform in infra/")
+			fmt.Println("  2. Run: terraform init")
+			fmt.Println("  3. Run: terraform plan")
+			fmt.Println("  4. Run: terraform apply")
+
+			return nil
+		},
 	)(writtenResult)
-
-	// Report results
-	fmt.Println("\n✅ Successfully added", intent.Type, intent.Name)
-	if len(written.Created) > 0 {
-		fmt.Println("\nCreated files:")
-		for _, file := range written.Created {
-			fmt.Printf("  + %s\n", file)
-		}
-	}
-	if len(written.Updated) > 0 {
-		fmt.Println("\nUpdated files:")
-		for _, file := range written.Updated {
-			fmt.Printf("  ~ %s\n", file)
-		}
-	}
-
-	// Next steps
-	fmt.Println("\nNext steps:")
-	fmt.Println("  1. Review generated Terraform in infra/")
-	fmt.Println("  2. Run: terraform init")
-	fmt.Println("  3. Run: terraform plan")
-	fmt.Println("  4. Run: terraform apply")
-
-	return nil
 }
 
 // createGeneratorRegistry creates registry with all generators (PURE)
