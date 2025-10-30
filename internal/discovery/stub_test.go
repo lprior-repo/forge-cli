@@ -86,7 +86,7 @@ func TestCreateStubZip(t *testing.T) {
 
 		// Make directory read-only
 		require.NoError(t, os.Chmod(parentDir, 0o444))
-		defer os.Chmod(parentDir, 0o755) // Cleanup
+		defer func() { _ = os.Chmod(parentDir, 0o755) }() // Cleanup
 
 		outputPath := filepath.Join(parentDir, "test.zip")
 		err := CreateStubZip(outputPath)

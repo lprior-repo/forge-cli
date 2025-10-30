@@ -13,8 +13,10 @@ import (
 	"github.com/lewis/forge/internal/generators"
 )
 
-// Generator implements generators.Generator for SQS queues.
-type Generator struct{}
+type (
+	// Generator implements generators.Generator for SQS queues.
+	Generator struct{}
+)
 
 // New creates a new SQS generator.
 func New() *Generator {
@@ -139,9 +141,12 @@ func generateModuleCode(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 	queueName := config.Name
 
-	visibilityTimeout, _ := config.Variables["visibility_timeout_seconds"].(int)
-	messageRetention, _ := config.Variables["message_retention_seconds"].(int)
-	createDLQ, _ := config.Variables["create_dlq"].(bool)
+	visibilityTimeout, ok := config.Variables["visibility_timeout_seconds"].(int)
+	_ = ok
+	messageRetention, ok := config.Variables["message_retention_seconds"].(int)
+	_ = ok
+	createDLQ, ok := config.Variables["create_dlq"].(bool)
+	_ = ok
 
 	var parts []string
 
@@ -180,8 +185,10 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 	resourceName := sanitizeName(config.Name)
 	queueName := config.Name
 
-	visibilityTimeout, _ := config.Variables["visibility_timeout_seconds"].(int)
-	messageRetention, _ := config.Variables["message_retention_seconds"].(int)
+	visibilityTimeout, ok := config.Variables["visibility_timeout_seconds"].(int)
+	_ = ok
+	messageRetention, ok := config.Variables["message_retention_seconds"].(int)
+	_ = ok
 
 	var parts []string
 

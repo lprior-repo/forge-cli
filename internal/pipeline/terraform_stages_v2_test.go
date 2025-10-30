@@ -490,21 +490,16 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 			Artifacts:  make(map[string]Artifact),
 		}
 
-		result := RunWithEvents(pipeline, t.Context(), initialState)
+		runResult := RunWithEvents(pipeline, t.Context(), initialState)
 
-		require.True(t, E.IsRight(result))
+		require.True(t, E.IsRight(runResult.Result))
 		assert.True(t, initCalled, "Init should be called")
 		assert.True(t, planCalled, "Plan should be called")
 		assert.True(t, applyCalled, "Apply should be called")
 		assert.True(t, outputCalled, "Output should be called")
 
-		stageResult := E.Fold(
-			func(e error) StageResult { return StageResult{} },
-			func(r StageResult) StageResult { return r },
-		)(result)
-
 		// Should have collected events from all stages
-		assert.NotEmpty(t, stageResult.Events)
+		assert.NotEmpty(t, runResult.Events)
 
 		// Count events from each stage
 		eventCounts := map[string]int{
@@ -514,7 +509,7 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 			"output": 0,
 		}
 
-		for _, event := range stageResult.Events {
+		for _, event := range runResult.Events {
 			if event.Message == "[terraform] Initialized" {
 				eventCounts["init"]++
 			}
@@ -535,7 +530,11 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 		assert.Positive(t, eventCounts["output"], "Should have output events")
 
 		// Verify final state has outputs
-		assert.NotEmpty(t, stageResult.State.Outputs)
+		finalState := E.Fold(
+			func(e error) State { return State{} },
+			func(s State) State { return s },
+		)(runResult.Result)
+		assert.NotEmpty(t, finalState.Outputs)
 	})
 
 	t.Run("pipeline stops on init failure", func(t *testing.T) {
@@ -558,9 +557,9 @@ func TestTerraformPipelineV2Integration(t *testing.T) {
 
 		initialState := State{ProjectDir: "/test/project"}
 
-		result := RunWithEvents(pipeline, t.Context(), initialState)
+		runResult := RunWithEvents(pipeline, t.Context(), initialState)
 
-		require.True(t, E.IsLeft(result))
+		require.True(t, E.IsLeft(runResult.Result))
 		assert.False(t, planCalled, "Plan should not be called after init fails")
 	})
 }

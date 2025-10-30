@@ -74,8 +74,17 @@ func Run(p Pipeline, ctx context.Context, initial State) E.Either[error, State] 
 	return result
 }
 
+// RunResult separates Either result from events (pure data).
+// Events are ALWAYS available regardless of success or failure.
+type RunResult struct {
+	Result E.Either[error, State] // Success or failure
+	Events []StageEvent           // Events collected during execution
+}
+
 // PURE: Functional composition of event stages with event collection.
-func RunWithEvents(p EventPipeline, ctx context.Context, initial State) E.Either[error, StageResult] {
+// Returns RunResult so events are accessible in both success and error cases.
+// The caller (CLI layer) handles event printing (I/O at the edge).
+func RunWithEvents(p EventPipeline, ctx context.Context, initial State) RunResult {
 	// Start with empty events and initial state
 	allEvents := []StageEvent{}
 	currentState := initial
@@ -86,12 +95,16 @@ func RunWithEvents(p EventPipeline, ctx context.Context, initial State) E.Either
 
 		// Check for errors
 		if E.IsLeft(result) {
-			// Return error with events collected so far
-			return E.MapLeft[StageResult](func(err error) error {
-				// Print events before erroring
-				PrintEvents(allEvents)
-				return err
-			})(result)
+			// Extract error and return with events collected so far
+			err := E.Fold(
+				func(e error) error { return e },
+				func(r StageResult) error { return nil },
+			)(result)
+
+			return RunResult{
+				Result: E.Left[State](err),
+				Events: allEvents,
+			}
 		}
 
 		// Extract the stage result
@@ -107,11 +120,11 @@ func RunWithEvents(p EventPipeline, ctx context.Context, initial State) E.Either
 		currentState = stageResult.State
 	}
 
-	// Return final result with all collected events
-	return E.Right[error](StageResult{
-		State:  currentState,
+	// Return success with all collected events
+	return RunResult{
+		Result: E.Right[error](currentState),
 		Events: allEvents,
-	})
+	}
 }
 
 // Chain composes multiple pipelines into one.

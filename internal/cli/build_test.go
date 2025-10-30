@@ -33,26 +33,26 @@ func TestRunBuild(t *testing.T) {
 	t.Run("returns error when no src/functions directory", func(t *testing.T) {
 		// Change to temp directory with no functions
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
-		os.Chdir(tmpDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to scan functions")
 	})
 
 	t.Run("succeeds with stub-only when functions exist", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create src/functions structure with a Go function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(true)
 		assert.NoError(t, err)
@@ -64,14 +64,14 @@ func TestRunBuild(t *testing.T) {
 
 	t.Run("returns nil when no functions found", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create functions dir with unsupported files (will be ignored)
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Should succeed with no functions message
 		err := runBuild(false)
@@ -80,8 +80,8 @@ func TestRunBuild(t *testing.T) {
 
 	t.Run("handles unsupported runtime gracefully", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create function with unsupported entry file that gets detected
 		// Ruby files are ignored by discovery, so we need a different approach
@@ -90,7 +90,7 @@ func TestRunBuild(t *testing.T) {
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.rb"), []byte("# Ruby"), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(false)
 		// Should succeed with no functions message (Ruby is not detected)
@@ -103,8 +103,8 @@ func TestRunBuild(t *testing.T) {
 		}
 
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create Python function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "handler")
@@ -119,7 +119,7 @@ func TestRunBuild(t *testing.T) {
 		// Create empty requirements.txt
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "requirements.txt"), []byte(""), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(false)
 		assert.NoError(t, err)
@@ -131,8 +131,8 @@ func TestRunBuild(t *testing.T) {
 
 	t.Run("builds multiple functions", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create multiple stub functions
 		for _, name := range []string{"api", "worker", "processor"} {
@@ -141,7 +141,7 @@ func TestRunBuild(t *testing.T) {
 			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 		}
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Use stub-only for faster test
 		err := runBuild(true)
@@ -156,15 +156,15 @@ func TestRunBuild(t *testing.T) {
 
 	t.Run("creates build directory if missing", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Ensure build directory doesn't exist
 		buildDir := filepath.Join(tmpDir, ".forge", "build")
@@ -179,8 +179,8 @@ func TestRunBuild(t *testing.T) {
 
 	t.Run("provides helpful error context on build failure", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create function with invalid Go code (to trigger build failure)
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
@@ -192,7 +192,7 @@ this is not valid go code
 `
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Stub-only should still work (doesn't compile)
 		err := runBuild(true)
@@ -201,8 +201,8 @@ this is not valid go code
 
 	t.Run("detects Node.js runtime correctly", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create Node.js function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
@@ -214,7 +214,7 @@ this is not valid go code
 `
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "index.js"), []byte(nodeCode), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Stub-only for faster test
 		err := runBuild(true)
@@ -227,8 +227,8 @@ this is not valid go code
 
 	t.Run("handles mixed runtimes in same project", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create Go function
 		goDir := filepath.Join(tmpDir, "src", "functions", "go-handler")
@@ -245,7 +245,7 @@ this is not valid go code
 		require.NoError(t, os.MkdirAll(pythonDir, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(pythonDir, "app.py"), []byte("def lambda_handler(e, c): pass"), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Use stub-only for faster test
 		err := runBuild(true)
@@ -260,15 +260,15 @@ this is not valid go code
 
 	t.Run("displays helpful output messages", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create single function for output test
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Run stub build - should output success messages
 		err := runBuild(true)
@@ -277,8 +277,8 @@ this is not valid go code
 
 	t.Run("handles handler.js Node entry file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create Node.js function with handler.js
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
@@ -289,7 +289,7 @@ this is not valid go code
 };`
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.js"), []byte(nodeCode), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(true)
 		assert.NoError(t, err)
@@ -300,8 +300,8 @@ this is not valid go code
 
 	t.Run("handles lambda_function.py Python entry file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create Python function with lambda_function.py
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "worker")
@@ -311,7 +311,7 @@ this is not valid go code
     return {"statusCode": 200}`
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "lambda_function.py"), []byte(pythonCode), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(true)
 		assert.NoError(t, err)
@@ -323,20 +323,20 @@ this is not valid go code
 	t.Run("handles working directory error gracefully", func(t *testing.T) {
 		// We can't really make os.Getwd() fail, but we can verify error handling
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
-		os.Chdir(tmpDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
+		_ = os.Chdir(tmpDir)
 
 		// Without src/functions, we'll get scan error
 		err := runBuild(false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to scan functions")
 	})
 
 	t.Run("displays error messages on build failure", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create function with syntax error
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
@@ -349,7 +349,7 @@ func main() {
 `
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Stub-only should still work (doesn't compile)
 		err := runBuild(true)
@@ -358,14 +358,14 @@ func main() {
 
 	t.Run("handles empty functions directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create empty functions directory
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Should succeed with no functions message
 		err := runBuild(false)
@@ -374,8 +374,8 @@ func main() {
 
 	t.Run("detects index.mjs ES module entry file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create Node.js function with index.mjs
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
@@ -386,7 +386,7 @@ func main() {
 };`
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "index.mjs"), []byte(nodeCode), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(true)
 		assert.NoError(t, err)
@@ -397,8 +397,8 @@ func main() {
 
 	t.Run("handles handler.py Python entry file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create Python function with handler.py
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "worker")
@@ -408,7 +408,7 @@ func main() {
     return {"statusCode": 200}`
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "handler.py"), []byte(pythonCode), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(true)
 		assert.NoError(t, err)
@@ -421,15 +421,15 @@ func main() {
 		// This test documents expected behavior when directory creation fails
 		// In practice, this is hard to trigger in tests without root permissions
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Normal build should work
 		err := runBuild(true)
@@ -439,8 +439,8 @@ func main() {
 	t.Run("exercises success path with stub build", func(t *testing.T) {
 		// This test exercises more of the success code paths
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create multiple functions with different runtimes
 		functions := map[string]string{
@@ -466,7 +466,7 @@ func main() {
 			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, entryFile), []byte(content), 0o644))
 		}
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Use stub-only to avoid actual compilation
 		err := runBuild(true)
@@ -482,8 +482,8 @@ func main() {
 	t.Run("displays progress for each function", func(t *testing.T) {
 		// Test that the step counter works correctly
 		tmpDir := t.TempDir()
-		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		origDir, _ := os.Getwd()
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create 3 functions to test progress output
 		for i := 1; i <= 3; i++ {
@@ -493,7 +493,7 @@ func main() {
 			require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 		}
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(true)
 		assert.NoError(t, err)

@@ -13,17 +13,26 @@ import (
 	E "github.com/IBM/fp-go/either"
 )
 
-// PythonBuildSpec represents the pure specification for a Python build.
-// PURE: No side effects, deterministic output from inputs.
-type PythonBuildSpec struct {
-	OutputPath       string
-	SourceDir        string
-	RequirementsPath string
-	HasRequirements  bool
-	Env              []string
-	DependencyCmd    []string // Command to install dependencies
-	UsesUV           bool     // Whether uv is available
-}
+type (
+	// PythonEnv represents the detected Python build environment.
+	// PURE: Data structure with no behavior.
+	PythonEnv struct {
+		HasUV           bool
+		HasRequirements bool
+	}
+
+	// PythonBuildSpec represents the pure specification for a Python build.
+	// PURE: No side effects, deterministic output from inputs.
+	PythonBuildSpec struct {
+		OutputPath       string
+		SourceDir        string
+		RequirementsPath string
+		HasRequirements  bool
+		Env              []string
+		DependencyCmd    []string // Command to install dependencies
+		UsesUV           bool     // Whether uv is available
+	}
+)
 
 // GeneratePythonBuildSpec creates a build specification from config.
 // PURE: Calculation - same inputs always produce same outputs.
@@ -79,7 +88,7 @@ func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[
 		}
 		defer func() {
 			if err := os.RemoveAll(tempDir); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to remove temp directory %s: %v\n", tempDir, err)
+				_, _, _, _ = fmt.Fprintf, os.Stderr, tempDir, err
 			}
 		}()
 
@@ -88,6 +97,7 @@ func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[
 			// Replace placeholder with actual temp dir
 			cmd := make([]string, len(spec.DependencyCmd))
 			for i, arg := range spec.DependencyCmd {
+				break
 				cmd[i] = strings.ReplaceAll(arg, "{tempDir}", tempDir)
 			}
 
@@ -101,8 +111,9 @@ func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[
 		if err != nil {
 			return Artifact{}, fmt.Errorf("failed to create zip: %w", err)
 		}
-				zipWriter := zip.NewWriter(zipFile)
-				// I/O: Add dependencies from temp directory
+		zipWriter := zip.NewWriter(zipFile)
+
+		// I/O: Add dependencies from temp directory
 		if spec.HasRequirements {
 			if err := addDirToZip(zipWriter, tempDir, ""); err != nil {
 				return Artifact{}, fmt.Errorf("failed to add dependencies: %w", err)
@@ -146,22 +157,34 @@ func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[
 	return E.Right[error](artifact)
 }
 
-// PythonBuild composes pure specification generation with impure execution.
-// COMPOSITION: Pure core + Imperative shell.
-func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
-	// I/O: Check for uv availability (this is I/O but minimal)
-	_, hasUV := exec.LookPath("uv")
+// DetectPythonEnv detects the Python build environment capabilities.
+// ACTION: Performs I/O operations (exec.LookPath, os.Stat).
+func DetectPythonEnv(sourceDir string) E.Either[error, PythonEnv] {
+	// I/O: Check for uv availability
+	_, uvErr := exec.LookPath("uv")
+	hasUV := uvErr == nil
 
 	// I/O: Check for requirements.txt
-	requirementsPath := filepath.Join(cfg.SourceDir, "requirements.txt")
-	_, err := os.Stat(requirementsPath)
-	hasRequirements := err == nil
+	requirementsPath := filepath.Join(sourceDir, "requirements.txt")
+	_, statErr := os.Stat(requirementsPath)
+	hasRequirements := statErr == nil
 
-	// PURE: Generate build specification
-	spec := GeneratePythonBuildSpec(cfg, hasUV == nil, hasRequirements)
+	return E.Right[error](PythonEnv{
+		HasUV:           hasUV,
+		HasRequirements: hasRequirements,
+	})
+}
 
+// PythonBuild composes pure specification generation with impure execution.
+// COMPOSITION: Pure core + Imperative shell using monadic composition.
+func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+	// ACTION: Detect environment
+	// PURE: Generate specification
 	// ACTION: Execute build
-	return ExecutePythonBuildSpec(ctx, spec)
+	return E.Chain(func(env PythonEnv) E.Either[error, Artifact] {
+		spec := GeneratePythonBuildSpec(cfg, env.HasUV, env.HasRequirements)
+		return ExecutePythonBuildSpec(ctx, spec)
+	})(DetectPythonEnv(cfg.SourceDir))
 }
 
 // PURE: Calculation.

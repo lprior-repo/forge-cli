@@ -18,7 +18,7 @@ func TestRunDeployWithMockTerraform(t *testing.T) {
 	t.Run("deploys successfully with auto-approve", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create minimal project structure
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
@@ -29,12 +29,12 @@ func TestRunDeployWithMockTerraform(t *testing.T) {
 		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(infraDir, "main.tf"), []byte("# terraform"), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// This will fail at Terraform step but should pass early stages
 		err := runDeploy(true, "")
 		// Expect error at terraform execution (not mocked)
-		assert.Error(t, err)
+		require.Error(t, err)
 		// But should contain deployment context, not scan/build errors
 		if err != nil {
 			assert.Contains(t, err.Error(), "deployment failed")
@@ -44,17 +44,17 @@ func TestRunDeployWithMockTerraform(t *testing.T) {
 	t.Run("accepts namespace parameter", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte("package main"), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Should pass namespace through pipeline
 		err := runDeploy(true, "test-namespace")
-		assert.Error(t, err) // Will fail at terraform execution
+		require.Error(t, err) // Will fail at terraform execution
 	})
 }
 
@@ -63,12 +63,12 @@ func TestRunDestroyWithMockTerraform(t *testing.T) {
 	t.Run("fails gracefully when not in project directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runDestroy(false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to load config")
 	})
 }
@@ -78,7 +78,7 @@ func TestRunBuildErrorPaths(t *testing.T) {
 	t.Run("handles build failure gracefully", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create function with invalid code
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
@@ -88,7 +88,7 @@ this is invalid go code that will not compile
 `
 		require.NoError(t, os.WriteFile(filepath.Join(functionsDir, "main.go"), []byte(invalidGo), 0o644))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Stub build should succeed (doesn't compile)
 		err := runBuild(true)
@@ -101,9 +101,9 @@ func TestNewCmdProjectCreation(t *testing.T) {
 	t.Run("creates project with auto-state flag (skip actual provisioning)", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Test that auto-state flag is recognized (will fail at AWS provisioning)
 		err := createProject("test-project", "provided.al2023", true)
@@ -121,13 +121,13 @@ func TestNewCmdProjectCreation(t *testing.T) {
 	t.Run("uses environment variables for region detection", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Set AWS_REGION
 		os.Setenv("AWS_REGION", "eu-west-1")
 		defer os.Unsetenv("AWS_REGION")
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := createProject("test-project-eu", "provided.al2023", false)
 		require.NoError(t, err)
@@ -138,14 +138,14 @@ func TestNewCmdProjectCreation(t *testing.T) {
 	t.Run("uses AWS_DEFAULT_REGION when AWS_REGION not set", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Ensure AWS_REGION is not set
 		os.Unsetenv("AWS_REGION")
 		os.Setenv("AWS_DEFAULT_REGION", "ap-southeast-1")
 		defer os.Unsetenv("AWS_DEFAULT_REGION")
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := createProject("test-project-ap", "provided.al2023", false)
 		require.NoError(t, err)
@@ -156,13 +156,13 @@ func TestNewCmdProjectCreation(t *testing.T) {
 	t.Run("defaults to us-east-1 when no env vars set", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Ensure no AWS region env vars
 		os.Unsetenv("AWS_REGION")
 		os.Unsetenv("AWS_DEFAULT_REGION")
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := createProject("test-project-default", "provided.al2023", false)
 		require.NoError(t, err)
@@ -173,15 +173,15 @@ func TestNewCmdProjectCreation(t *testing.T) {
 	t.Run("fails when project directory already exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Create directory first
 		require.NoError(t, os.MkdirAll("existing-project", 0o755))
 
 		err := createProject("existing-project", "provided.al2023", false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "already exists")
 	})
 }
@@ -192,13 +192,13 @@ func TestAddCommandEdgeCases(t *testing.T) {
 		// We can't easily force os.Getwd() to fail, but we test the path
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create infra directory
 		infraDir := filepath.Join(tmpDir, "infra")
 		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewAddCmd()
 		args := []string{"sqs", "test-queue"}
@@ -228,9 +228,9 @@ func TestPipelineIntegration(t *testing.T) {
 			Outputs:    make(map[string]interface{}),
 		}
 
-		result := pipeline.RunWithEvents(pipe, t.Context(), initialState)
+		runResult := pipeline.RunWithEvents(pipe, t.Context(), initialState)
 
-		assert.True(t, E.IsRight(result))
+		assert.True(t, E.IsRight(runResult.Result))
 	})
 
 	t.Run("pipeline handles failure", func(t *testing.T) {
@@ -245,9 +245,9 @@ func TestPipelineIntegration(t *testing.T) {
 			ProjectDir: "/test",
 		}
 
-		result := pipeline.RunWithEvents(pipe, t.Context(), initialState)
+		runResult := pipeline.RunWithEvents(pipe, t.Context(), initialState)
 
-		assert.True(t, E.IsLeft(result))
+		assert.True(t, E.IsLeft(runResult.Result))
 	})
 }
 
@@ -256,36 +256,36 @@ func TestCommandOutputFormatting(t *testing.T) {
 	t.Run("build command shows helpful output on error", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// No src/functions directory
 		err := runBuild(false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to scan functions")
 	})
 
 	t.Run("deploy command shows helpful output on error", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runDeploy(false, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("destroy command shows helpful output on error", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runDestroy(false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to load config")
 	})
 }
@@ -302,8 +302,8 @@ func TestFlagInteractions(t *testing.T) {
 		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
-		os.Chdir(tmpDir)
+		defer func() { _ = os.Chdir(origDir) }()
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewAddCmd()
 		args := []string{"sqs", "test-queue"}
@@ -318,19 +318,19 @@ func TestFlagInteractions(t *testing.T) {
 		cmd.SetArgs([]string{})
 
 		err := cmd.Execute()
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("build command with stub-only and no functions", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Create empty functions directory
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runBuild(true)
 		assert.NoError(t, err) // Should succeed with no functions message
@@ -342,9 +342,9 @@ func TestCreateStackEdgeCases(t *testing.T) {
 	t.Run("createStack with all default values", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Create forge.hcl
 		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
@@ -358,13 +358,13 @@ func TestCreateStackEdgeCases(t *testing.T) {
 	t.Run("createStack fails when not in project", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// No forge.hcl
 		err := createStack("stack", "provided.al2023", "description")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not in a Forge project")
 	})
 }

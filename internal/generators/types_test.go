@@ -191,21 +191,21 @@ func TestWriteMode(t *testing.T) {
 	})
 }
 
-// TestRegistry tests generator registry.
+// TestRegistry tests generator registry with immutable copy-on-write semantics.
 func TestRegistry(t *testing.T) {
 	t.Run("creates empty registry", func(t *testing.T) {
 		registry := NewRegistry()
 
 		assert.NotNil(t, registry)
-		assert.NotNil(t, registry.generators)
-		assert.Empty(t, registry.generators)
+		assert.Empty(t, registry)
 	})
 
 	t.Run("registers and retrieves generator", func(t *testing.T) {
 		registry := NewRegistry()
 		mockGen := &mockGenerator{}
 
-		registry.Register(ResourceSQS, mockGen)
+		// Register returns new registry (immutable)
+		registry = registry.Register(ResourceSQS, mockGen)
 
 		gen, ok := registry.Get(ResourceSQS)
 		assert.True(t, ok)
@@ -220,12 +220,13 @@ func TestRegistry(t *testing.T) {
 	})
 
 	t.Run("registers multiple generators", func(t *testing.T) {
-		registry := NewRegistry()
 		sqsGen := &mockGenerator{}
 		snsGen := &mockGenerator{}
 
-		registry.Register(ResourceSQS, sqsGen)
-		registry.Register(ResourceSNS, snsGen)
+		// Functional chaining - each Register returns new registry
+		registry := NewRegistry().
+			Register(ResourceSQS, sqsGen).
+			Register(ResourceSNS, snsGen)
 
 		gen1, ok1 := registry.Get(ResourceSQS)
 		gen2, ok2 := registry.Get(ResourceSNS)
@@ -237,16 +238,60 @@ func TestRegistry(t *testing.T) {
 	})
 
 	t.Run("overwrites generator on re-register", func(t *testing.T) {
-		registry := NewRegistry()
 		gen1 := &mockGenerator{}
 		gen2 := &mockGenerator{}
 
-		registry.Register(ResourceSQS, gen1)
-		registry.Register(ResourceSQS, gen2) // Overwrite
+		// Each Register returns new registry
+		registry := NewRegistry().
+			Register(ResourceSQS, gen1).
+			Register(ResourceSQS, gen2) // Overwrite
 
 		gen, ok := registry.Get(ResourceSQS)
 		assert.True(t, ok)
 		assert.Equal(t, gen2, gen)
+	})
+
+	t.Run("original registry unchanged after Register (immutability)", func(t *testing.T) {
+		original := NewRegistry()
+		mockGen := &mockGenerator{}
+
+		// Register returns NEW registry, original unchanged
+		modified := original.Register(ResourceSQS, mockGen)
+
+		// Original should be empty
+		_, ok := original.Get(ResourceSQS)
+		assert.False(t, ok, "original registry should be unchanged")
+
+		// Modified should have generator
+		gen, ok := modified.Get(ResourceSQS)
+		assert.True(t, ok, "new registry should have generator")
+		assert.Equal(t, mockGen, gen)
+	})
+
+	t.Run("supports functional composition", func(t *testing.T) {
+		// Build registry step by step with intermediate values
+		r1 := NewRegistry()
+		r2 := r1.Register(ResourceSQS, &mockGenerator{})
+		r3 := r2.Register(ResourceSNS, &mockGenerator{})
+		r4 := r3.Register(ResourceDynamoDB, &mockGenerator{})
+
+		// Each registry is independent
+		assert.Empty(t, r1)
+		assert.Len(t, r2, 1)
+		assert.Len(t, r3, 2)
+		assert.Len(t, r4, 3)
+
+		// r1 still empty
+		_, ok := r1.Get(ResourceSQS)
+		assert.False(t, ok)
+
+		// r4 has all three
+		_, ok1 := r4.Get(ResourceSQS)
+		_, ok2 := r4.Get(ResourceSNS)
+		_, ok3 := r4.Get(ResourceDynamoDB)
+		assert.True(t, ok1)
+		assert.True(t, ok2)
+		assert.True(t, ok3)
 	})
 }
 

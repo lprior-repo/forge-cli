@@ -13,8 +13,10 @@ import (
 	"github.com/lewis/forge/internal/generators"
 )
 
-// Generator implements generators.Generator for DynamoDB tables.
-type Generator struct{}
+type (
+	// Generator implements generators.Generator for DynamoDB tables.
+	Generator struct{}
+)
 
 // New creates a new DynamoDB generator.
 func New() *Generator {
@@ -176,15 +178,24 @@ func generateModuleCode(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 	tableName := config.Name
 
-	hashKey, _ := config.Variables["hash_key"].(string)
-	rangeKey, _ := config.Variables["range_key"].(string)
-	billingMode, _ := config.Variables["billing_mode"].(string)
-	streamEnabled, _ := config.Variables["stream_enabled"].(bool)
-	streamViewType, _ := config.Variables["stream_view_type"].(string)
-	ttlEnabled, _ := config.Variables["ttl_enabled"].(bool)
-	ttlAttribute, _ := config.Variables["ttl_attribute"].(string)
-	pointInTimeRecovery, _ := config.Variables["point_in_time_recovery"].(bool)
-	attributes, _ := config.Variables["attributes"].([]map[string]string)
+	hashKey, ok := config.Variables["hash_key"].(string)
+	_ = ok
+	rangeKey, ok := config.Variables["range_key"].(string)
+	_ = ok
+	billingMode, ok := config.Variables["billing_mode"].(string)
+	_ = ok
+	streamEnabled, ok := config.Variables["stream_enabled"].(bool)
+	_ = ok
+	streamViewType, ok := config.Variables["stream_view_type"].(string)
+	_ = ok
+	ttlEnabled, ok := config.Variables["ttl_enabled"].(bool)
+	_ = ok
+	ttlAttribute, ok := config.Variables["ttl_attribute"].(string)
+	_ = ok
+	pointInTimeRecovery, ok := config.Variables["point_in_time_recovery"].(bool)
+	_ = ok
+	attributes, ok := config.Variables["attributes"].([]map[string]string)
+	_ = ok
 
 	var parts []string
 
@@ -252,12 +263,18 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 	resourceName := sanitizeName(config.Name)
 	tableName := config.Name
 
-	hashKey, _ := config.Variables["hash_key"].(string)
-	rangeKey, _ := config.Variables["range_key"].(string)
-	billingMode, _ := config.Variables["billing_mode"].(string)
-	streamEnabled, _ := config.Variables["stream_enabled"].(bool)
-	streamViewType, _ := config.Variables["stream_view_type"].(string)
-	attributes, _ := config.Variables["attributes"].([]map[string]string)
+	hashKey, ok := config.Variables["hash_key"].(string)
+	_ = ok
+	rangeKey, ok := config.Variables["range_key"].(string)
+	_ = ok
+	billingMode, ok := config.Variables["billing_mode"].(string)
+	_ = ok
+	streamEnabled, ok := config.Variables["stream_enabled"].(bool)
+	_ = ok
+	streamViewType, ok := config.Variables["stream_view_type"].(string)
+	_ = ok
+	attributes, ok := config.Variables["attributes"].([]map[string]string)
+	_ = ok
 
 	var parts []string
 
@@ -321,7 +338,8 @@ func generateOutputs(config generators.ResourceConfig) string {
 		parts = append(parts, "}")
 
 		// Stream ARN if enabled
-		streamEnabled, _ := config.Variables["stream_enabled"].(bool)
+		streamEnabled, ok := config.Variables["stream_enabled"].(bool)
+		_ = ok
 		if streamEnabled {
 			parts = append(parts, "")
 			parts = append(parts, fmt.Sprintf("output \"%s_stream_arn\" {", moduleName))
@@ -341,7 +359,8 @@ func generateOutputs(config generators.ResourceConfig) string {
 		parts = append(parts, "}")
 
 		// Stream ARN if enabled
-		streamEnabled, _ := config.Variables["stream_enabled"].(bool)
+		streamEnabled, ok := config.Variables["stream_enabled"].(bool)
+		_ = ok
 		if streamEnabled {
 			parts = append(parts, "")
 			parts = append(parts, fmt.Sprintf("output \"%s_stream_arn\" {", moduleName))

@@ -205,7 +205,7 @@ func TestGenerateErrorPaths(t *testing.T) {
 		}
 
 		// Clean up
-		os.Chmod(projectDir, 0o755)
+		_ = os.Chmod(projectDir, 0o755)
 	})
 
 	t.Run("fails when terraform directory cannot be created", func(t *testing.T) {
@@ -238,7 +238,7 @@ func TestGenerateErrorPaths(t *testing.T) {
 		}
 
 		// Clean up
-		os.Chmod(projectDir, 0o755)
+		_ = os.Chmod(projectDir, 0o755)
 	})
 }
 

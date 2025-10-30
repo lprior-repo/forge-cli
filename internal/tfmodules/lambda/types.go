@@ -2,9 +2,10 @@
 // Generated from https://github.com/terraform-aws-modules/terraform-aws-lambda v7.0
 package lambda
 
-// Module represents the terraform-aws-modules/lambda/aws module.
-// All fields use pointers to distinguish between "not set" (nil) and "set to zero value".
-type Module struct {
+type (
+	// Module represents the terraform-aws-modules/lambda/aws module.
+	// All fields use pointers to distinguish between "not set" (nil) and "set to zero value".
+	Module struct {
 	// Source is the Terraform module source
 	Source string `json:"source" hcl:"source,attr"`
 
@@ -290,10 +291,10 @@ type Module struct {
 
 	// SkipDestroy prevents deletion at destroy time
 	SkipDestroy *bool `json:"skip_destroy,omitempty" hcl:"skip_destroy,attr"`
-}
+	}
 
-// CORSConfig represents CORS configuration for Function URL.
-type CORSConfig struct {
+	// CORSConfig represents CORS configuration for Function URL.
+	CORSConfig struct {
 	// AllowCredentials allows credentials
 	AllowCredentials *bool `json:"allow_credentials,omitempty" hcl:"allow_credentials,attr"`
 
@@ -311,10 +312,10 @@ type CORSConfig struct {
 
 	// MaxAge is the cache duration in seconds
 	MaxAge *int `json:"max_age,omitempty" hcl:"max_age,attr"`
-}
+	}
 
-// PolicyStatement represents an IAM policy statement.
-type PolicyStatement struct {
+	// PolicyStatement represents an IAM policy statement.
+	PolicyStatement struct {
 	// Effect is Allow or Deny
 	Effect *string `json:"effect,omitempty" hcl:"effect,attr"`
 
@@ -323,10 +324,10 @@ type PolicyStatement struct {
 
 	// Resources are the resources this statement applies to
 	Resources []string `json:"resources,omitempty" hcl:"resources,attr"`
-}
+	}
 
-// EventSourceMapping represents an event source mapping configuration.
-type EventSourceMapping struct {
+	// EventSourceMapping represents an event source mapping configuration.
+	EventSourceMapping struct {
 	// EventSourceARN is the ARN of the event source
 	EventSourceARN string `json:"event_source_arn" hcl:"event_source_arn,attr"`
 
@@ -345,10 +346,10 @@ type EventSourceMapping struct {
 
 	// FilterCriteria defines event filtering
 	FilterCriteria map[string]interface{} `json:"filter_criteria,omitempty" hcl:"filter_criteria,attr"`
-}
+	}
 
-// AllowedTrigger represents an allowed trigger configuration.
-type AllowedTrigger struct {
+	// AllowedTrigger represents an allowed trigger configuration.
+	AllowedTrigger struct {
 	// Service is the AWS service
 	Service string `json:"service" hcl:"service,attr"`
 
@@ -357,7 +358,8 @@ type AllowedTrigger struct {
 
 	// Principal is the service principal
 	Principal *string `json:"principal,omitempty" hcl:"principal,attr"`
-}
+	}
+)
 
 // NewModule creates a new Lambda module with sensible defaults.
 func NewModule(name string) *Module {

@@ -141,10 +141,13 @@ func runDeploy(autoApprove bool, namespace string) error {
 		Config:     nil, // Will hold discovered functions
 	}
 
-	// Run event-based pipeline (returns Either[error, StageResult])
-	result := pipeline.RunWithEvents(deployPipeline, ctx, initialState)
+	// Run event-based pipeline (returns RunResult with events separated)
+	runResult := pipeline.RunWithEvents(deployPipeline, ctx, initialState)
 
-	// Handle result using functional pattern with StageResult
+	// Print events (I/O at the edge) - available in both success and error cases
+	pipeline.PrintEvents(runResult.Events)
+
+	// Handle result using functional pattern
 	return E.Fold(
 		func(err error) error {
 			out.Error("Deployment failed: %v", err)
@@ -156,23 +159,20 @@ func runDeploy(autoApprove bool, namespace string) error {
 			out.Print("  • Run 'forge build' separately to test builds")
 			return fmt.Errorf("deployment failed: %w", err)
 		},
-		func(stageResult pipeline.StageResult) error {
-			// Print all collected events
-			pipeline.PrintEvents(stageResult.Events)
-
+		func(finalState pipeline.State) error {
 			out.Success("Deployment completed successfully")
 			if namespace != "" {
 				out.Info("Namespace: %s", namespace)
 			}
-			if len(stageResult.State.Outputs) > 0 {
+			if len(finalState.Outputs) > 0 {
 				out.Header("Terraform Outputs")
-				for key, value := range stageResult.State.Outputs {
+				for key, value := range finalState.Outputs {
 					out.Print("  %s = %v", key, value)
 				}
 			}
 			return nil
 		},
-	)(result)
+	)(runResult.Result)
 }
 
 // findTerraformPath finds the terraform binary.

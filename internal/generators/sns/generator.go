@@ -13,8 +13,10 @@ import (
 	"github.com/lewis/forge/internal/generators"
 )
 
-// Generator implements generators.Generator for SNS topics.
-type Generator struct{}
+type (
+	// Generator implements generators.Generator for SNS topics.
+	Generator struct{}
+)
 
 // New creates a new SNS generator.
 func New() *Generator {
@@ -137,8 +139,10 @@ func generateModuleCode(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 	topicName := config.Name
 
-	displayName, _ := config.Variables["display_name"].(string)
-	fifoTopic, _ := config.Variables["fifo_topic"].(bool)
+	displayName, ok := config.Variables["display_name"].(string)
+	_ = ok
+	fifoTopic, ok := config.Variables["fifo_topic"].(bool)
+	_ = ok
 
 	var parts []string
 
@@ -159,7 +163,8 @@ func generateModuleCode(config generators.ResourceConfig) string {
 		parts = append(parts, "  # FIFO topic configuration")
 		parts = append(parts, "  fifo_topic                  = true")
 
-		contentBasedDedup, _ := config.Variables["content_based_deduplication"].(bool)
+		contentBasedDedup, ok := config.Variables["content_based_deduplication"].(bool)
+		_ = ok
 		if contentBasedDedup {
 			parts = append(parts, "  content_based_deduplication = true")
 		}
@@ -181,8 +186,10 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 	resourceName := sanitizeName(config.Name)
 	topicName := config.Name
 
-	displayName, _ := config.Variables["display_name"].(string)
-	fifoTopic, _ := config.Variables["fifo_topic"].(bool)
+	displayName, ok := config.Variables["display_name"].(string)
+	_ = ok
+	fifoTopic, ok := config.Variables["fifo_topic"].(bool)
+	_ = ok
 
 	var parts []string
 
@@ -199,7 +206,8 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 		parts = append(parts, "")
 		parts = append(parts, "  fifo_topic = true")
 
-		contentBasedDedup, _ := config.Variables["content_based_deduplication"].(bool)
+		contentBasedDedup, ok := config.Variables["content_based_deduplication"].(bool)
+		_ = ok
 		if contentBasedDedup {
 			parts = append(parts, "  content_based_deduplication = true")
 		}

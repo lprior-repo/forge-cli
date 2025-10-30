@@ -450,7 +450,7 @@ func TestRunAdd(t *testing.T) {
 		args := []string{"invalid-type", "test-resource"}
 
 		err = runAdd(cmd, args, "", false, false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported resource type")
 	})
 
@@ -466,7 +466,7 @@ func TestRunAdd(t *testing.T) {
 		args := []string{"sqs", "test-queue"}
 
 		err = runAdd(cmd, args, "", false, false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "infra/ directory not found")
 	})
 
@@ -509,7 +509,7 @@ func TestRunAdd(t *testing.T) {
 		// This will fail because processor-function doesn't exist
 		// We're testing error handling here
 		err = runAdd(cmd, args, "processor-function", false, false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
 

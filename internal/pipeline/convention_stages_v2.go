@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
 	O "github.com/IBM/fp-go/option"
 
@@ -81,7 +82,15 @@ func ConventionStubsV2() EventStage {
 	}
 }
 
+// BuildAccumulator holds the accumulated state during functional reduce.
+// This is pure data with no mutations - each iteration creates a new accumulator.
+type BuildAccumulator struct {
+	Artifacts map[string]Artifact
+	Events    []StageEvent
+}
+
 // ConventionBuildV2 creates an event-based stage that builds all discovered functions.
+// PURE: Uses functional reduce pattern to avoid map mutations.
 func ConventionBuildV2() EventStage {
 	return func(ctx context.Context, s State) E.Either[error, StageResult] {
 		// Extract functions from state
@@ -93,92 +102,118 @@ func ConventionBuildV2() EventStage {
 		registry := build.NewRegistry()
 		buildDir := filepath.Join(s.ProjectDir, ".forge", "build")
 
-		// Build events
-		events := []StageEvent{
-			NewEvent(EventLevelInfo, "==> Building Lambda functions..."),
-		}
-
-		// Build new artifacts map (immutable)
-		newArtifacts := make(map[string]Artifact)
-		// Copy existing artifacts
-		for k, v := range s.Artifacts {
-			newArtifacts[k] = v
-		}
-
-		// Build each function and add to new artifacts map
-		for _, fn := range functions {
-			events = append(events, NewEvent(EventLevelInfo, fmt.Sprintf("[%s] Building...", fn.Name)))
-
-			// Get builder from registry (returns Option)
-			builderOpt := build.GetBuilder(registry, fn.Runtime)
-			if O.IsNone(builderOpt) {
-				return E.Left[StageResult](fmt.Errorf("unsupported runtime: %s", fn.Runtime))
-			}
-
-			// Extract builder using Fold
-			builder := O.Fold(
-				func() build.BuildFunc { return nil },
-				func(b build.BuildFunc) build.BuildFunc { return b },
-			)(builderOpt)
-
-			// Convert to build config with validation (returns Either)
-			cfgResult := discovery.ToBuildConfig(fn, buildDir)
-
-			// Handle config validation error
-			if E.IsLeft(cfgResult) {
-				err := E.Fold(
-					func(e error) error { return e },
-					func(c build.Config) error { return nil },
-				)(cfgResult)
-				return E.Left[StageResult](fmt.Errorf("invalid build config for %s: %w", fn.Name, err))
-			}
-
-			// Extract config
-			cfg := E.Fold(
-				func(error) build.Config { return build.Config{} },
-				func(c build.Config) build.Config { return c },
-			)(cfgResult)
-
-			// Execute build (returns Either)
-			result := builder(ctx, cfg)
-
-			// Handle result using functional error handling
-			if E.IsLeft(result) {
-				err := E.Fold(
-					func(e error) error { return e },
-					func(a build.Artifact) error { return nil },
-				)(result)
-				return E.Left[StageResult](fmt.Errorf("failed to build %s: %w", fn.Name, err))
-			}
-
-			// Extract artifact
-			artifact := E.Fold(
-				func(e error) build.Artifact { return build.Artifact{} },
-				func(a build.Artifact) build.Artifact { return a },
-			)(result)
-
-			// Add to new artifacts map (immutable)
-			newArtifacts[fn.Name] = Artifact{
-				Path:     artifact.Path,
-				Checksum: artifact.Checksum,
-				Size:     artifact.Size,
-			}
-
-			sizeMB := float64(artifact.Size) / 1024 / 1024
-			events = append(events, NewEvent(EventLevelSuccess, fmt.Sprintf("[%s] Built: %s (%.2f MB)", fn.Name, filepath.Base(artifact.Path), sizeMB)))
-		}
-
-		events = append(events, NewEvent(EventLevelInfo, ""))
-
-		// Return new State (immutable)
-		return E.Right[error](StageResult{
-			State: State{
-				ProjectDir: s.ProjectDir,
-				Artifacts:  newArtifacts,
-				Outputs:    s.Outputs,
-				Config:     s.Config,
+		// Initial accumulator with existing artifacts and initial events
+		initialAcc := BuildAccumulator{
+			Artifacts: s.Artifacts, // Copy existing artifacts
+			Events: []StageEvent{
+				NewEvent(EventLevelInfo, "==> Building Lambda functions..."),
 			},
-			Events: events,
-		})
+		}
+
+		// PURE: Functional reduce over functions
+		// Each iteration creates a NEW accumulator (copy-on-write semantics)
+		buildResult := A.Reduce(
+			func(acc E.Either[error, BuildAccumulator], fn discovery.Function) E.Either[error, BuildAccumulator] {
+				// Chain the accumulator - short-circuits on first error (railway pattern)
+				return E.Chain(func(current BuildAccumulator) E.Either[error, BuildAccumulator] {
+					// Add "Building..." event
+					buildingEvent := NewEvent(EventLevelInfo, fmt.Sprintf("[%s] Building...", fn.Name))
+
+					// Get builder from registry (returns Option)
+					builderOpt := build.GetBuilder(registry, fn.Runtime)
+					if O.IsNone(builderOpt) {
+						return E.Left[BuildAccumulator](fmt.Errorf("unsupported runtime: %s", fn.Runtime))
+					}
+
+					// Extract builder using Fold
+					builder := O.Fold(
+						func() build.BuildFunc { return nil },
+						func(b build.BuildFunc) build.BuildFunc { return b },
+					)(builderOpt)
+
+					// Convert to build config with validation (returns Either)
+					cfgResult := discovery.ToBuildConfig(fn, buildDir)
+
+					// Handle config validation error
+					if E.IsLeft(cfgResult) {
+						err := E.Fold(
+							func(e error) error { return e },
+							func(c build.Config) error { return nil },
+						)(cfgResult)
+						return E.Left[BuildAccumulator](fmt.Errorf("invalid build config for %s: %w", fn.Name, err))
+					}
+
+					// Extract config
+					cfg := E.Fold(
+						func(error) build.Config { return build.Config{} },
+						func(c build.Config) build.Config { return c },
+					)(cfgResult)
+
+					// Execute build (returns Either)
+					result := builder(ctx, cfg)
+
+					// Handle result using functional error handling
+					if E.IsLeft(result) {
+						err := E.Fold(
+							func(e error) error { return e },
+							func(a build.Artifact) error { return nil },
+						)(result)
+						return E.Left[BuildAccumulator](fmt.Errorf("failed to build %s: %w", fn.Name, err))
+					}
+
+					// Extract artifact
+					artifact := E.Fold(
+						func(e error) build.Artifact { return build.Artifact{} },
+						func(a build.Artifact) build.Artifact { return a },
+					)(result)
+
+					// PURE: Create NEW artifacts map (copy-on-write)
+					newArtifacts := make(map[string]Artifact, len(current.Artifacts)+1)
+					for k, v := range current.Artifacts {
+						newArtifacts[k] = v
+					}
+					newArtifacts[fn.Name] = Artifact{
+						Path:     artifact.Path,
+						Checksum: artifact.Checksum,
+						Size:     artifact.Size,
+					}
+
+					// Create success event
+					sizeMB := float64(artifact.Size) / 1024 / 1024
+					successEvent := NewEvent(EventLevelSuccess, fmt.Sprintf("[%s] Built: %s (%.2f MB)", fn.Name, filepath.Base(artifact.Path), sizeMB))
+
+					// PURE: Create NEW events slice (copy-on-write)
+					newEvents := make([]StageEvent, 0, len(current.Events)+2)
+					newEvents = append(newEvents, current.Events...)
+					newEvents = append(newEvents, buildingEvent, successEvent)
+
+					// Return new accumulator (immutable)
+					return E.Right[error](BuildAccumulator{
+						Artifacts: newArtifacts,
+						Events:    newEvents,
+					})
+				})(acc)
+			},
+			E.Right[error](initialAcc), // Starting value
+		)(functions)
+
+		// Extract final accumulator or return error
+		return E.Chain(func(acc BuildAccumulator) E.Either[error, StageResult] {
+			// Add final empty line event
+			finalEvents := make([]StageEvent, 0, len(acc.Events)+1)
+			finalEvents = append(finalEvents, acc.Events...)
+			finalEvents = append(finalEvents, NewEvent(EventLevelInfo, ""))
+
+			// Return new State (immutable)
+			return E.Right[error](StageResult{
+				State: State{
+					ProjectDir: s.ProjectDir,
+					Artifacts:  acc.Artifacts,
+					Outputs:    s.Outputs,
+					Config:     s.Config,
+				},
+				Events: finalEvents,
+			})
+		})(buildResult)
 	}
 }

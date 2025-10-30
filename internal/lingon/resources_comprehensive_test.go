@@ -69,8 +69,8 @@ func TestCreateLambdaFunctionResources(t *testing.T) {
 				Path: "./src",
 			},
 			VPC: &VPCConfig{
-				SubnetIds:        []string{"subnet-123", "subnet-456"},
-				SecurityGroupIds: []string{"sg-123"},
+				SubnetIDs:        []string{"subnet-123", "subnet-456"},
+				SecurityGroupIDs: []string{"sg-123"},
 			},
 		}
 

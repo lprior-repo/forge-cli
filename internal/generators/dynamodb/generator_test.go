@@ -19,27 +19,11 @@ func extractConfig(result E.Either[error, generators.ResourceConfig]) generators
 	)(result)
 }
 
-// Helper function to extract error from Either.
-func extractError(result E.Either[error, generators.ResourceConfig]) error {
-	return E.Fold(
-		func(e error) error { return e },
-		func(generators.ResourceConfig) error { return nil },
-	)(result)
-}
-
 // Helper function to extract generated code.
 func extractCode(result E.Either[error, generators.GeneratedCode]) generators.GeneratedCode {
 	return E.Fold(
 		func(error) generators.GeneratedCode { return generators.GeneratedCode{} },
 		func(c generators.GeneratedCode) generators.GeneratedCode { return c },
-	)(result)
-}
-
-// Helper function to extract error from GeneratedCode Either.
-func extractCodeError(result E.Either[error, generators.GeneratedCode]) error {
-	return E.Fold(
-		func(e error) error { return e },
-		func(generators.GeneratedCode) error { return nil },
 	)(result)
 }
 

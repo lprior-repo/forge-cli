@@ -352,22 +352,17 @@ func TestRunWithEvents(t *testing.T) {
 			Artifacts:  make(map[string]Artifact),
 		}
 
-		result := RunWithEvents(pipeline, t.Context(), initialState)
+		runResult := RunWithEvents(pipeline, t.Context(), initialState)
 
-		require.True(t, E.IsRight(result), "Pipeline should succeed")
-
-		stageResult := E.Fold(
-			func(e error) StageResult { return StageResult{} },
-			func(r StageResult) StageResult { return r },
-		)(result)
+		require.True(t, E.IsRight(runResult.Result), "Pipeline should succeed")
 
 		// Should have collected events from both stages
-		assert.NotEmpty(t, stageResult.Events, "Should have events from multiple stages")
+		assert.NotEmpty(t, runResult.Events, "Should have events from multiple stages")
 
 		// Count events by stage
 		scanEvents := 0
 		stubEvents := 0
-		for _, event := range stageResult.Events {
+		for _, event := range runResult.Events {
 			if event.Message == "==> Scanning for Lambda functions..." {
 				scanEvents++
 			}
@@ -380,7 +375,11 @@ func TestRunWithEvents(t *testing.T) {
 		assert.Positive(t, stubEvents, "Should have stub events")
 
 		// Verify final state
-		functions, ok := stageResult.State.Config.([]discovery.Function)
+		finalState := E.Fold(
+			func(e error) State { return State{} },
+			func(s State) State { return s },
+		)(runResult.Result)
+		functions, ok := finalState.Config.([]discovery.Function)
 		require.True(t, ok)
 		assert.Len(t, functions, 1)
 	})
@@ -397,9 +396,9 @@ func TestRunWithEvents(t *testing.T) {
 			ProjectDir: tmpDir,
 		}
 
-		result := RunWithEvents(pipeline, t.Context(), initialState)
+		runResult := RunWithEvents(pipeline, t.Context(), initialState)
 
-		require.True(t, E.IsLeft(result), "Pipeline should fail")
+		require.True(t, E.IsLeft(runResult.Result), "Pipeline should fail")
 
 		// Events up to the failure should still be collected
 		// (though in this case, the error happens before events are returned)
@@ -424,17 +423,16 @@ func TestRunWithEvents(t *testing.T) {
 			Artifacts:  make(map[string]Artifact),
 		}
 
-		result := RunWithEvents(pipeline, t.Context(), initialState)
+		runResult := RunWithEvents(pipeline, t.Context(), initialState)
 
-		require.True(t, E.IsRight(result))
-
-		stageResult := E.Fold(
-			func(e error) StageResult { return StageResult{} },
-			func(r StageResult) StageResult { return r },
-		)(result)
+		require.True(t, E.IsRight(runResult.Result))
 
 		// Final state should have functions from scan stage
-		functions, ok := stageResult.State.Config.([]discovery.Function)
+		finalState := E.Fold(
+			func(e error) State { return State{} },
+			func(s State) State { return s },
+		)(runResult.Result)
+		functions, ok := finalState.Config.([]discovery.Function)
 		require.True(t, ok)
 		assert.Len(t, functions, 1)
 

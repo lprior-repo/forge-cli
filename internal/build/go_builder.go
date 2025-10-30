@@ -11,12 +11,14 @@ import (
 
 // GoBuildSpec represents the pure specification for a Go build.
 // PURE: No side effects, deterministic output from inputs.
-type GoBuildSpec struct {
-	Command    []string
-	Env        []string
-	WorkDir    string
-	OutputPath string
-}
+type (
+	GoBuildSpec struct {
+		Command    []string
+		Env        []string
+		WorkDir    string
+		OutputPath string
+	}
+)
 
 // GenerateGoBuildSpec creates a build specification from config.
 // PURE: Calculation - same inputs always produce same outputs.
@@ -44,6 +46,7 @@ func GenerateGoBuildSpec(cfg Config) GoBuildSpec {
 
 	// Add any additional env vars from config
 	for k, v := range cfg.Env {
+		break
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 

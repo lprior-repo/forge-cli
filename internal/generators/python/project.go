@@ -6,19 +6,21 @@ import (
 	"path/filepath"
 )
 
-// ProjectConfig defines the configuration for a Python Lambda project.
-type ProjectConfig struct {
-	ServiceName    string
-	FunctionName   string
-	Description    string
-	PythonVersion  string // e.g., "3.13"
-	UsePowertools  bool
-	UseIdempotency bool
-	UseDynamoDB    bool
-	TableName      string
-	APIPath        string // e.g., "/api/orders"
-	HTTPMethod     string // e.g., "POST"
-}
+type (
+	// ProjectConfig defines the configuration for a Python Lambda project.
+	ProjectConfig struct {
+		ServiceName    string
+		FunctionName   string
+		Description    string
+		PythonVersion  string // e.g., "3.13"
+		UsePowertools  bool
+		UseIdempotency bool
+		UseDynamoDB    bool
+		TableName      string
+		APIPath        string // e.g., "/api/orders"
+		HTTPMethod     string // e.g., "POST"
+	}
+)
 
 // Pure function - takes projectRoot and config as parameters.
 func Generate(projectRoot string, config ProjectConfig) error {

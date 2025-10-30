@@ -13,8 +13,10 @@ import (
 	"github.com/lewis/forge/internal/generators"
 )
 
-// Generator implements generators.Generator for S3 buckets.
-type Generator struct{}
+type (
+	// Generator implements generators.Generator for S3 buckets.
+	Generator struct{}
+)
 
 // New creates a new S3 generator.
 func New() *Generator {
@@ -147,10 +149,14 @@ func generateModuleCode(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
 	bucketName := config.Name
 
-	versioningEnabled, _ := config.Variables["versioning_enabled"].(bool)
-	blockPublicACLs, _ := config.Variables["block_public_acls"].(bool)
-	forceDestroy, _ := config.Variables["force_destroy"].(bool)
-	encryption, _ := config.Variables["server_side_encryption"].(string)
+	versioningEnabled, ok := config.Variables["versioning_enabled"].(bool)
+	_ = ok
+	blockPublicACLs, ok := config.Variables["block_public_acls"].(bool)
+	_ = ok
+	forceDestroy, ok := config.Variables["force_destroy"].(bool)
+	_ = ok
+	encryption, ok := config.Variables["server_side_encryption"].(string)
+	_ = ok
 
 	var parts []string
 
@@ -209,8 +215,10 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 	resourceName := sanitizeName(config.Name)
 	bucketName := config.Name
 
-	versioningEnabled, _ := config.Variables["versioning_enabled"].(bool)
-	forceDestroy, _ := config.Variables["force_destroy"].(bool)
+	versioningEnabled, ok := config.Variables["versioning_enabled"].(bool)
+	_ = ok
+	forceDestroy, ok := config.Variables["force_destroy"].(bool)
+	_ = ok
 
 	var parts []string
 

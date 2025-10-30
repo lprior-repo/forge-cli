@@ -94,9 +94,9 @@ func TestMockExecutorCustomBehavior(t *testing.T) {
 		}
 
 		// Execute operations
-		exec.Init(t.Context(), "/tmp/test")
-		exec.Plan(t.Context(), "/tmp/test")
-		exec.Apply(t.Context(), "/tmp/test")
+		_ = exec.Init(t.Context(), "/tmp/test")
+		_, _ = exec.Plan(t.Context(), "/tmp/test")
+		_ = exec.Apply(t.Context(), "/tmp/test")
 
 		// Verify all were called
 		assert.True(t, initCalled, "Init should have been called")
@@ -115,7 +115,7 @@ func TestMockExecutorCustomBehavior(t *testing.T) {
 		}
 
 		// Call with options
-		exec.Init(t.Context(), "/tmp/test", Upgrade(true), Backend(false))
+		_ = exec.Init(t.Context(), "/tmp/test", Upgrade(true), Backend(false))
 
 		// Verify options were received
 		assert.Len(t, receivedOpts, 2, "Should receive 2 options")
@@ -304,19 +304,19 @@ func BenchmarkMockExecutor(b *testing.B) {
 
 	b.Run("Init", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			exec.Init(ctx, "/tmp/test")
+			_ = exec.Init(ctx, "/tmp/test")
 		}
 	})
 
 	b.Run("Plan", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			exec.Plan(ctx, "/tmp/test")
+			_, _ = exec.Plan(ctx, "/tmp/test")
 		}
 	})
 
 	b.Run("Apply", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			exec.Apply(ctx, "/tmp/test")
+			_ = exec.Apply(ctx, "/tmp/test")
 		}
 	})
 }

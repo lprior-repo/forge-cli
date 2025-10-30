@@ -487,16 +487,6 @@ func getAWSRegion(t *testing.T, opts *terraform.Options) string {
 	return region
 }
 
-func copyDir(t *testing.T, src, dst string) {
-	t.Helper()
-
-	// Use rsync or cp -r with proper syntax
-	// cp -r src/. dst/ copies contents of src into dst
-	cmd := exec.Command("cp", "-r", src+"/.", dst+"/")
-	output, err := cmd.CombinedOutput()
-	require.NoError(t, err, "Failed to copy directory: %s", string(output))
-}
-
 func createSimplePythonLambda(t *testing.T, dir string) {
 	t.Helper()
 

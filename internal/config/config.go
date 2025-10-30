@@ -9,24 +9,26 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsimple"
 )
 
-// Config represents the forge.hcl configuration file.
-type Config struct {
-	Project  *ProjectBlock  `hcl:"project,block"`
-	Defaults *DefaultsBlock `hcl:"defaults,block"`
-}
+type (
+	// Config represents the forge.hcl configuration file.
+	Config struct {
+		Project  *ProjectBlock  `hcl:"project,block"`
+		Defaults *DefaultsBlock `hcl:"defaults,block"`
+	}
 
-// ProjectBlock contains project-wide configuration.
-type ProjectBlock struct {
-	Name   string `hcl:"name"`
-	Region string `hcl:"region"`
-}
+	// ProjectBlock contains project-wide configuration.
+	ProjectBlock struct {
+		Name   string `hcl:"name"`
+		Region string `hcl:"region"`
+	}
 
-// DefaultsBlock contains default values for stacks.
-type DefaultsBlock struct {
-	Runtime string `hcl:"runtime,optional"`
-	Timeout int    `hcl:"timeout,optional"`
-	Memory  int    `hcl:"memory,optional"`
-}
+	// DefaultsBlock contains default values for stacks.
+	DefaultsBlock struct {
+		Runtime string `hcl:"runtime,optional"`
+		Timeout int    `hcl:"timeout,optional"`
+		Memory  int    `hcl:"memory,optional"`
+	}
+)
 
 // ACTION: I/O operation that reads file and applies pure transformations.
 func Load(projectRoot string) (*Config, error) {

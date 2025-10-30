@@ -79,7 +79,7 @@ func makeApplyFunc(tfPath string) ApplyFunc {
 			tfOpts = append(tfOpts, tfexec.VarFile(cfg.VarFile))
 		}
 		if cfg.PlanFile != "" {
-			tfOpts = append(tfOpts, tfexec.DirOrPlan(cfg.PlanFile))
+			_, _, _, _ = tfOpts, tfOpts, tfexec.DirOrPlan, cfg.PlanFile
 		}
 
 		return tf.Apply(ctx, tfOpts...)

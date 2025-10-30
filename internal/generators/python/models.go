@@ -1,6 +1,8 @@
 package python
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // generateEnvVars generates environment variables model.
 func generateEnvVars(config ProjectConfig) string {

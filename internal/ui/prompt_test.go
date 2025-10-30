@@ -323,7 +323,7 @@ func TestPrompterSelect(t *testing.T) {
 		prompter := NewPrompter(reader, writer)
 
 		options := []string{"One", "Two"}
-		prompter.Select("Select", options)
+		_, _, _ = prompter.Select("Select", options)
 
 		output := writer.String()
 		assert.Contains(t, output, "Invalid selection")
@@ -336,7 +336,7 @@ func TestPrompterSelect(t *testing.T) {
 		prompter := NewPrompter(reader, writer)
 
 		options := []string{"X", "Y"}
-		prompter.Select("Pick", options)
+		_, _, _ = prompter.Select("Pick", options)
 
 		output := writer.String()
 		assert.Contains(t, output, "Invalid selection")

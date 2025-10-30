@@ -142,21 +142,21 @@ func TestRunDeployErrorCases(t *testing.T) {
 	t.Run("fails when no forge.hcl exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
 
 		// Try to deploy without forge.hcl (convention-based discovery)
 		err = runDeploy(false, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		// Convention-based discovery may fail at different stages
 	})
 
 	t.Run("fails when no functions found", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
@@ -167,14 +167,14 @@ func TestRunDeployErrorCases(t *testing.T) {
 
 		// Try to deploy with no functions (convention-based expects src/functions/)
 		err = runDeploy(false, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		// Convention-based discovery expects src/functions/* directories
 	})
 
 	t.Run("deploys with namespace parameter", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
@@ -206,14 +206,14 @@ func TestRunDestroyErrorCases(t *testing.T) {
 	t.Run("fails when no forge.hcl exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
 
 		// Try to destroy without forge.hcl
 		err = runDestroy(false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to load config")
 	})
 }
@@ -272,7 +272,7 @@ func TestCreateProjectErrorCases(t *testing.T) {
 	t.Run("fails when directory already exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
@@ -283,7 +283,7 @@ func TestCreateProjectErrorCases(t *testing.T) {
 
 		// Try to create project in same location
 		err = createProject("test-project", "go1.x", false)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "already exists")
 	})
 }
@@ -293,14 +293,14 @@ func TestCreateStackErrorCases(t *testing.T) {
 	t.Run("fails when not in forge project", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
 
 		// Try to create stack without forge.hcl
 		err = createStack("my-stack", "go1.x", "My stack")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not in a Forge project")
 	})
 }
@@ -310,7 +310,7 @@ func TestRunDeployWithMultipleFunctions(t *testing.T) {
 	t.Run("deploys multiple functions via convention-based discovery", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
@@ -344,7 +344,7 @@ func TestRunDeployWithAutoApprove(t *testing.T) {
 	t.Run("deploys with auto-approve flag", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
@@ -376,7 +376,7 @@ func TestRunDestroyWithMultipleStacks(t *testing.T) {
 	t.Run("prints multiple stack names when destroying all", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		err := os.Chdir(tmpDir)
 		require.NoError(t, err)
@@ -477,7 +477,7 @@ func TestCommandIntegration(t *testing.T) {
 	t.Run("new command creates projects", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Change to tmpDir since createProject creates in current directory
 		err := os.Chdir(tmpDir)
@@ -495,7 +495,7 @@ func TestCommandIntegration(t *testing.T) {
 	t.Run("new command creates stacks", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
 		// Change to tmpDir
 		err := os.Chdir(tmpDir)

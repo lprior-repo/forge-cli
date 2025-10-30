@@ -365,7 +365,7 @@ func TestGenerateProjectErrorPaths(t *testing.T) {
 		// Make directory read-only after forge.hcl is written
 		err = os.Chmod(projectDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(projectDir, 0o755) // Clean up
+		defer func() { _ = os.Chmod(projectDir, 0o755) }() // Clean up
 
 		err = GenerateProject(projectDir, opts)
 		require.Error(t, err)
@@ -395,7 +395,7 @@ func TestGenerateProjectErrorPaths(t *testing.T) {
 		// Make directory read-only
 		err = os.Chmod(projectDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(projectDir, 0o755) // Clean up
+		defer func() { _ = os.Chmod(projectDir, 0o755) }() // Clean up
 
 		err = GenerateProject(projectDir, opts)
 		require.Error(t, err)
@@ -464,7 +464,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up permissions
-		os.Chmod(stackDir, 0o755)
+		_ = os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when handler.py cannot be written - Python", func(t *testing.T) {
@@ -494,7 +494,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0o755)
+		_ = os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when requirements.txt cannot be written - Python", func(t *testing.T) {
@@ -531,7 +531,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0o755)
+		_ = os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when index.js cannot be written - Node", func(t *testing.T) {
@@ -561,7 +561,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0o755)
+		_ = os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when package.json cannot be written - Node", func(t *testing.T) {
@@ -598,7 +598,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0o755)
+		_ = os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when Java directory structure cannot be created", func(t *testing.T) {
@@ -628,7 +628,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0o755)
+		_ = os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when Handler.java cannot be written", func(t *testing.T) {
@@ -659,7 +659,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(javaDir, 0o755)
+		_ = os.Chmod(javaDir, 0o755)
 	})
 
 	t.Run("fails when pom.xml cannot be written", func(t *testing.T) {
@@ -697,7 +697,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		require.Error(t, err)
 
 		// Clean up
-		os.Chmod(stackDir, 0o755)
+		_ = os.Chmod(stackDir, 0o755)
 	})
 
 	t.Run("fails when go.mod cannot be written", func(t *testing.T) {
@@ -724,7 +724,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		// Make directory read-only
 		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0o755)
+		defer func() { _ = os.Chmod(stackDir, 0o755) }()
 
 		opts := &StackOptions{
 			Name:    "test-stack",
@@ -763,7 +763,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		// Make directory read-only
 		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0o755)
+		defer func() { _ = os.Chmod(stackDir, 0o755) }()
 
 		err = GenerateStack(tmpDir, opts)
 		require.Error(t, err)
@@ -797,7 +797,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		// Make directory read-only
 		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0o755)
+		defer func() { _ = os.Chmod(stackDir, 0o755) }()
 
 		err = GenerateStack(tmpDir, opts)
 		require.Error(t, err)
@@ -831,7 +831,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		// Make directory read-only
 		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0o755)
+		defer func() { _ = os.Chmod(stackDir, 0o755) }()
 
 		err = GenerateStack(tmpDir, opts)
 		require.Error(t, err)
@@ -866,7 +866,7 @@ func TestGenerateStackErrorPaths(t *testing.T) {
 		// Make stack directory read-only
 		err = os.Chmod(stackDir, 0o555)
 		require.NoError(t, err)
-		defer os.Chmod(stackDir, 0o755)
+		defer func() { _ = os.Chmod(stackDir, 0o755) }()
 
 		err = GenerateStack(tmpDir, opts)
 		require.Error(t, err)

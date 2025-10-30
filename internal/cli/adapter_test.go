@@ -11,48 +11,50 @@ import (
 )
 
 // mockExecutorState holds the state for mock terraform operations.
-type mockExecutorState struct {
-	initCalled    bool
-	planCalled    bool
-	applyCalled   bool
-	outputCalled  bool
-	initErr       error
-	planResult    bool
-	planErr       error
-	applyErr      error
-	outputs       map[string]interface{}
-	outputErr     error
-	lastInitOpts  []terraform.InitOption
-	lastPlanOpts  []terraform.PlanOption
-	lastApplyOpts []terraform.ApplyOption
-}
+type (
+	mockExecutorState struct {
+		initCalled    bool
+		planCalled    bool
+		applyCalled   bool
+		outputCalled  bool
+		initErr       error
+		planResult    bool
+		planErr       error
+		applyErr      error
+		outputs       map[string]interface{}
+		outputErr     error
+		lastInitOpts  []terraform.InitOption
+		lastPlanOpts  []terraform.PlanOption
+		lastApplyOpts []terraform.ApplyOption
+	}
+)
 
 // newMockExecutor creates a mock terraform.Executor with customizable behavior.
 func newMockExecutor(state *mockExecutorState) terraform.Executor {
 	return terraform.Executor{
-		Init: func(_ context.Context, dir string, opts ...terraform.InitOption) error {
+		Init: func(_ context.Context, _ string, opts ...terraform.InitOption) error {
 			state.initCalled = true
 			state.lastInitOpts = opts
 			return state.initErr
 		},
-		Plan: func(_ context.Context, dir string, opts ...terraform.PlanOption) (bool, error) {
+		Plan: func(_ context.Context, _ string, opts ...terraform.PlanOption) (bool, error) {
 			state.planCalled = true
 			state.lastPlanOpts = opts
 			return state.planResult, state.planErr
 		},
-		Apply: func(_ context.Context, dir string, opts ...terraform.ApplyOption) error {
+		Apply: func(_ context.Context, _ string, opts ...terraform.ApplyOption) error {
 			state.applyCalled = true
 			state.lastApplyOpts = opts
 			return state.applyErr
 		},
-		Destroy: func(_ context.Context, dir string, opts ...terraform.DestroyOption) error {
+		Destroy: func(_ context.Context, _ string, opts ...terraform.DestroyOption) error {
 			return nil
 		},
-		Output: func(_ context.Context, dir string) (map[string]interface{}, error) {
+		Output: func(_ context.Context, _ string) (map[string]interface{}, error) {
 			state.outputCalled = true
 			return state.outputs, state.outputErr
 		},
-		Validate: func(ctx context.Context, dir string) error {
+		Validate: func(_ context.Context, dir string) error {
 			return nil
 		},
 	}

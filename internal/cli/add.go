@@ -176,13 +176,13 @@ func runAdd(cmd *cobra.Command, args []string, toFunc string, raw, noModule bool
 }
 
 // createGeneratorRegistry creates registry with all generators (PURE).
-func createGeneratorRegistry() *generators.Registry {
-	registry := generators.NewRegistry()
-	registry.Register(generators.ResourceSQS, sqs.New())
-	registry.Register(generators.ResourceDynamoDB, dynamodb.New())
-	registry.Register(generators.ResourceSNS, sns.New())
-	registry.Register(generators.ResourceS3, s3.New())
-	return registry
+// Uses functional chaining with immutable copy-on-write semantics.
+func createGeneratorRegistry() generators.Registry {
+	return generators.NewRegistry().
+		Register(generators.ResourceSQS, sqs.New()).
+		Register(generators.ResourceDynamoDB, dynamodb.New()).
+		Register(generators.ResourceSNS, sns.New()).
+		Register(generators.ResourceS3, s3.New())
 }
 
 // discoverProjectState scans project for existing resources (I/O ACTION).
@@ -255,6 +255,7 @@ func writeGeneratedFiles(code generators.GeneratedCode, infraDir string) E.Eithe
 				written.Skipped = append(written.Skipped, file.Path)
 				continue
 			}
+			//nolint:gosec // User-generated file permissions
 			if err := os.WriteFile(filePath, []byte(file.Content), 0o644); err != nil {
 				return E.Left[generators.WrittenFiles](
 					fmt.Errorf("failed to create %s: %w", file.Path, err),

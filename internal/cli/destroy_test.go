@@ -54,20 +54,20 @@ func TestRunDestroy(t *testing.T) {
 	t.Run("returns error when config loading fails", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
 		// Change to directory without forge.hcl
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runDestroy(true)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to load config")
 	})
 
 	t.Run("succeeds with auto-approve and valid config", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
 		// Create minimal forge.hcl
 		forgeHCL := `
@@ -82,7 +82,7 @@ project {
 		infraDir := filepath.Join(tmpDir, "infra")
 		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// This will fail with terraform not found or terraform errors, but config loading should succeed
 		err := runDestroy(true)
@@ -98,12 +98,12 @@ project {
 		// This test documents the expected behavior
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
-		os.Chdir(tmpDir)
+		defer func() { _ = os.Chdir(originalDir) }()
+		_ = os.Chdir(tmpDir)
 
 		// Without forge.hcl, we'll get config error
 		err := runDestroy(true)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 

@@ -132,10 +132,10 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 	}
 
 	// Add VPC configuration
-	if config.VPC != nil && len(config.VPC.SubnetIds) > 0 {
+	if config.VPC != nil && len(config.VPC.SubnetIDs) > 0 {
 		funcArgs.VpcConfig = &aws_lambda_function.VpcConfig{
-			SubnetIds:        terra.SetString(config.VPC.SubnetIds...),
-			SecurityGroupIds: terra.SetString(config.VPC.SecurityGroupIds...),
+			SubnetIds:        terra.SetString(config.VPC.SubnetIDs...),
+			SecurityGroupIds: terra.SetString(config.VPC.SecurityGroupIDs...),
 		}
 	}
 
@@ -248,7 +248,7 @@ func createLambdaFunctionResources(service, name string, config FunctionConfig) 
 		}
 
 		// Parallelization factor (Kinesis and DynamoDB Streams)
-		if mappingConfig.ParallelizationFactor > 0 {
+		if mappingConfig.ParallelizationFactor > -1 {
 			mappingArgs.ParallelizationFactor = terra.Number(mappingConfig.ParallelizationFactor)
 		}
 

@@ -10,17 +10,26 @@ import (
 	E "github.com/IBM/fp-go/either"
 )
 
-// NodeBuildSpec represents the pure specification for a Node.js build.
-// PURE: No side effects, deterministic output from inputs.
-type NodeBuildSpec struct {
-	OutputPath     string
-	SourceDir      string
-	HasPackageJSON bool
-	HasTypeScript  bool
-	Env            []string
-	InstallCmd     []string // npm install command
-	BuildCmd       []string // npm run build command (for TypeScript)
-}
+type (
+	// NodeEnv represents the detected Node.js build environment.
+	// PURE: Data structure with no behavior.
+	NodeEnv struct {
+		HasPackageJSON bool
+		HasTypeScript  bool
+	}
+
+	// NodeBuildSpec represents the pure specification for a Node.js build.
+	// PURE: No side effects, deterministic output from inputs.
+	NodeBuildSpec struct {
+		OutputPath     string
+		SourceDir      string
+		HasPackageJSON bool
+		HasTypeScript  bool
+		Env            []string
+		InstallCmd     []string // npm install command
+		BuildCmd       []string // npm run build command (for TypeScript)
+	}
+)
 
 // GenerateNodeBuildSpec creates a build specification from config.
 // PURE: Calculation - same inputs always produce same outputs.
@@ -115,22 +124,33 @@ func ExecuteNodeBuildSpec(ctx context.Context, spec NodeBuildSpec) E.Either[erro
 	return E.Right[error](artifact)
 }
 
-// NodeBuild composes pure specification generation with impure execution.
-// COMPOSITION: Pure core + Imperative shell.
-func NodeBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+// DetectNodeEnv detects the Node.js build environment capabilities.
+// ACTION: Performs I/O operations (os.Stat).
+func DetectNodeEnv(sourceDir string) E.Either[error, NodeEnv] {
 	// I/O: Check for package.json
-	packageJSONPath := filepath.Join(cfg.SourceDir, "package.json")
+	packageJSONPath := filepath.Join(sourceDir, "package.json")
 	_, err1 := os.Stat(packageJSONPath)
 	hasPackageJSON := err1 == nil
 
 	// I/O: Check for tsconfig.json (TypeScript)
-	tsconfigPath := filepath.Join(cfg.SourceDir, "tsconfig.json")
+	tsconfigPath := filepath.Join(sourceDir, "tsconfig.json")
 	_, err2 := os.Stat(tsconfigPath)
 	hasTypeScript := err2 == nil
 
-	// PURE: Generate build specification
-	spec := GenerateNodeBuildSpec(cfg, hasPackageJSON, hasTypeScript)
+	return E.Right[error](NodeEnv{
+		HasPackageJSON: hasPackageJSON,
+		HasTypeScript:  hasTypeScript,
+	})
+}
 
+// NodeBuild composes pure specification generation with impure execution.
+// COMPOSITION: Pure core + Imperative shell using monadic composition.
+func NodeBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
+	// ACTION: Detect environment
+	// PURE: Generate specification
 	// ACTION: Execute build
-	return ExecuteNodeBuildSpec(ctx, spec)
+	return E.Chain(func(env NodeEnv) E.Either[error, Artifact] {
+		spec := GenerateNodeBuildSpec(cfg, env.HasPackageJSON, env.HasTypeScript)
+		return ExecuteNodeBuildSpec(ctx, spec)
+	})(DetectNodeEnv(cfg.SourceDir))
 }

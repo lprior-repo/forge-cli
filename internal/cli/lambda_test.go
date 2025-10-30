@@ -138,7 +138,7 @@ func TestCreatePythonLambda(t *testing.T) {
 		}
 
 		err := createPythonLambda("/nonexistent/path/that/does/not/exist", "test", opts)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -147,9 +147,9 @@ func TestCreateLambdaProject(t *testing.T) {
 	t.Run("creates Python Lambda project", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		opts := LambdaProjectOptions{
 			Runtime:       "python",
@@ -168,9 +168,9 @@ func TestCreateLambdaProject(t *testing.T) {
 	t.Run("returns error for unsupported Go runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		opts := LambdaProjectOptions{
 			Runtime:      "go",
@@ -179,16 +179,16 @@ func TestCreateLambdaProject(t *testing.T) {
 		}
 
 		err := createLambdaProject("test-function", opts)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not yet implemented")
 	})
 
 	t.Run("returns error for unsupported Node.js runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		opts := LambdaProjectOptions{
 			Runtime:      "nodejs",
@@ -197,16 +197,16 @@ func TestCreateLambdaProject(t *testing.T) {
 		}
 
 		err := createLambdaProject("test-function", opts)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not yet implemented")
 	})
 
 	t.Run("handles unsupported runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		opts := LambdaProjectOptions{
 			Runtime:      "rust",
@@ -215,16 +215,16 @@ func TestCreateLambdaProject(t *testing.T) {
 		}
 
 		err := createLambdaProject("test-function", opts)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported runtime")
 	})
 
 	t.Run("fails when directory already exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Create directory first
 		projectDir := filepath.Join(tmpDir, "existing-project")
@@ -237,16 +237,16 @@ func TestCreateLambdaProject(t *testing.T) {
 		}
 
 		err := createLambdaProject("existing-project", opts)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "already exists")
 	})
 
 	t.Run("sets default service name from project name", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		opts := LambdaProjectOptions{
 			Runtime:      "python",
@@ -264,9 +264,9 @@ func TestCreateLambdaProject(t *testing.T) {
 	t.Run("sets default description", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		opts := LambdaProjectOptions{
 			Runtime:      "python",
@@ -284,9 +284,9 @@ func TestCreateLambdaProject(t *testing.T) {
 	t.Run("sets default table name", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		opts := LambdaProjectOptions{
 			Runtime:      "python",
@@ -308,9 +308,9 @@ func TestLambdaCmdExecution(t *testing.T) {
 	t.Run("executes with Python runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--runtime", "python"})
@@ -324,54 +324,54 @@ func TestLambdaCmdExecution(t *testing.T) {
 	t.Run("fails with invalid runtime", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--runtime", "ruby"})
 
 		err := cmd.Execute()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid runtime")
 	})
 
 	t.Run("fails with Go runtime (not implemented)", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--runtime", "go"})
 
 		err := cmd.Execute()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not yet implemented")
 	})
 
 	t.Run("fails with Node.js runtime (not implemented)", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--runtime", "nodejs"})
 
 		err := cmd.Execute()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not yet implemented")
 	})
 
 	t.Run("accepts custom service name", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--service", "custom-service"})
@@ -385,9 +385,9 @@ func TestLambdaCmdExecution(t *testing.T) {
 	t.Run("accepts custom function name", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--function", "custom-handler"})
@@ -401,9 +401,9 @@ func TestLambdaCmdExecution(t *testing.T) {
 	t.Run("respects powertools flag", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--powertools=false"})
@@ -417,9 +417,9 @@ func TestLambdaCmdExecution(t *testing.T) {
 	t.Run("respects dynamodb flag", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--dynamodb=false"})
@@ -433,9 +433,9 @@ func TestLambdaCmdExecution(t *testing.T) {
 	t.Run("accepts custom table name", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--table", "custom-table"})
@@ -449,9 +449,9 @@ func TestLambdaCmdExecution(t *testing.T) {
 	t.Run("accepts custom API path and method", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() { _ = os.Chdir(origDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewLambdaCmd()
 		cmd.SetArgs([]string{"test-project", "--api-path", "/custom/path", "--method", "GET"})
@@ -467,7 +467,7 @@ func TestLambdaCmdExecution(t *testing.T) {
 		cmd.SetArgs([]string{}) // No project name
 
 		err := cmd.Execute()
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 

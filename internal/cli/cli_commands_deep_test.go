@@ -18,13 +18,13 @@ func TestRunBuildEdgeCases(t *testing.T) {
 	t.Run("handles no functions found gracefully", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
 		// Create empty functions directory
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Should handle empty directory
 		err := runBuild(false)
@@ -37,7 +37,7 @@ func TestRunBuildEdgeCases(t *testing.T) {
 	t.Run("respects skip-cache flag", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
 		// Create a simple Go function
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "test")
@@ -48,7 +48,7 @@ func TestRunBuildEdgeCases(t *testing.T) {
 			0o644,
 		))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Build with skip-cache should work
 		err := runBuild(true)
@@ -62,13 +62,13 @@ func TestRunDeployEdgeCases(t *testing.T) {
 	t.Run("validates namespace format", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
 		// Create minimal structure
 		functionsDir := filepath.Join(tmpDir, "src", "functions")
 		require.NoError(t, os.MkdirAll(functionsDir, 0o755))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Test with various namespace values
 		namespaces := []string{"pr-123", "dev", "staging", ""}
@@ -82,7 +82,7 @@ func TestRunDeployEdgeCases(t *testing.T) {
 	t.Run("handles missing infra directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
 		// Create functions but no infra
 		functionsDir := filepath.Join(tmpDir, "src", "functions", "api")
@@ -93,10 +93,10 @@ func TestRunDeployEdgeCases(t *testing.T) {
 			0o644,
 		))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		err := runDeploy(true, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		// Should mention missing infra or terraform
 		_ = err
 	})
@@ -107,19 +107,19 @@ func TestRunDestroyEdgeCases(t *testing.T) {
 	t.Run("handles missing infra directory for destroy", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Destroy without infra directory
 		err := runDestroy(false)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("handles namespace in destroy", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
 		// Create minimal infra
 		infraDir := filepath.Join(tmpDir, "infra")
@@ -130,7 +130,7 @@ func TestRunDestroyEdgeCases(t *testing.T) {
 			0o644,
 		))
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Test with namespace environment variable
 		_ = os.Setenv("TF_VAR_namespace", "pr-123")
@@ -144,9 +144,9 @@ func TestRunDestroyEdgeCases(t *testing.T) {
 	t.Run("handles destroy confirmation flow", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Auto-approve false tests confirmation path
 		err := runDestroy(false)
@@ -333,7 +333,7 @@ func TestCommandOutput(t *testing.T) {
 
 		w.Close()
 		var buf bytes.Buffer
-		buf.ReadFrom(r)
+		_, _ = buf.ReadFrom(r)
 
 		assert.NoError(t, err)
 		output := buf.String()

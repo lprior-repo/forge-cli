@@ -56,8 +56,8 @@ func TestCreateProject(t *testing.T) {
 	t.Run("creates project successfully", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
-		os.Chdir(tmpDir)
+		defer func() { _ = os.Chdir(originalDir) }()
+		_ = os.Chdir(tmpDir)
 
 		err := createProject("test-project", "provided.al2023", false)
 		require.NoError(t, err)
@@ -72,9 +72,9 @@ func TestCreateStack(t *testing.T) {
 	t.Run("creates stack successfully in project", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
 		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
@@ -92,9 +92,9 @@ func TestCreateStack(t *testing.T) {
 	t.Run("creates Python stack", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
 		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
@@ -111,9 +111,9 @@ func TestCreateStack(t *testing.T) {
 	t.Run("creates Node stack", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
 		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
@@ -130,9 +130,9 @@ func TestCreateStack(t *testing.T) {
 	t.Run("creates Java stack", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
 		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
@@ -155,9 +155,9 @@ func TestNewNewCmdExecution(t *testing.T) {
 	t.Run("executes RunE with project name argument", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewNewCmd()
 		cmd.SetArgs([]string{"test-project"})
@@ -172,9 +172,9 @@ func TestNewNewCmdExecution(t *testing.T) {
 	t.Run("executes RunE with --stack flag", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		// Create forge.hcl to indicate we're in a project
 		require.NoError(t, os.WriteFile("forge.hcl", []byte("service = \"test\""), 0o644))
@@ -192,15 +192,15 @@ func TestNewNewCmdExecution(t *testing.T) {
 	t.Run("returns error when stack flag provided without value", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		originalDir, _ := os.Getwd()
-		defer os.Chdir(originalDir)
+		defer func() { _ = os.Chdir(originalDir) }()
 
-		os.Chdir(tmpDir)
+		_ = os.Chdir(tmpDir)
 
 		cmd := NewNewCmd()
 		cmd.SetArgs([]string{}) // No project name, no stack name
 
 		err := cmd.Execute()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "--stack flag is required")
 	})
 }

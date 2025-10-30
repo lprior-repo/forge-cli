@@ -24,13 +24,15 @@ const (
 	RuntimePython = "python3.13"
 )
 
-// Function represents a discovered Lambda function.
-type Function struct {
-	Name       string // Function name (directory name)
-	Path       string // Absolute path to function source
-	Runtime    string // Detected runtime
-	EntryPoint string // Entry file (main.go, index.js, app.py, etc.)
-}
+type (
+	// Function represents a discovered Lambda function.
+	Function struct {
+		Name       string // Function name (directory name)
+		Path       string // Absolute path to function source
+		Runtime    string // Detected runtime
+		EntryPoint string // Entry file (main.go, index.js, app.py, etc.)
+	}
+)
 
 // Pure functional approach - no methods, no state.
 func ScanFunctions(projectRoot string) ([]Function, error) {

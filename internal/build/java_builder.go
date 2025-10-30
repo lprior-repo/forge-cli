@@ -11,13 +11,15 @@ import (
 
 // JavaBuildSpec represents the pure specification for a Java build.
 // PURE: No side effects, deterministic output from inputs.
-type JavaBuildSpec struct {
-	OutputPath string
-	SourceDir  string
-	TargetDir  string
-	Env        []string
-	BuildCmd   []string // Maven build command
-}
+type (
+	JavaBuildSpec struct {
+		OutputPath string
+		SourceDir  string
+		TargetDir  string
+		Env        []string
+		BuildCmd   []string // Maven build command
+	}
+)
 
 // GenerateJavaBuildSpec creates a build specification from config.
 // PURE: Calculation - same inputs always produce same outputs.

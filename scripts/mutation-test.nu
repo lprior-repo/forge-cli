@@ -57,28 +57,30 @@ def parse_mutation_output [
 
     let summary_line = ($summary | first)
 
-    # Parse score with error handling
-    let score = (
+    # Parse all values in one go with comprehensive pattern
+    # Example: "The mutation score is 0.647059 (22 passed, 12 failed, 4 duplicated, 0 skipped, total is 34)"
+    let parsed = (
         try {
             $summary_line
-            | parse "mutation score is {score}"
-            | get score
+            | parse "The mutation score is {score} ({passed} passed, {failed} failed, {duplicated} duplicated, {skipped} skipped, total is {total})"
             | first
-            | into float
+        } catch {
+            null
+        }
+    )
+
+    # Extract values with defaults
+    let score = (
+        try {
+            $parsed | get score | into float
         } catch {
             0.0
         }
     )
 
-    # Parse counts with error handling
     let passed = (
         try {
-            $summary_line
-            | parse "{passed} passed"
-            | get passed
-            | first
-            | str trim
-            | into int
+            $parsed | get passed | into int
         } catch {
             0
         }
@@ -86,12 +88,7 @@ def parse_mutation_output [
 
     let failed = (
         try {
-            $summary_line
-            | parse "{failed} failed"
-            | get failed
-            | first
-            | str trim
-            | into int
+            $parsed | get failed | into int
         } catch {
             0
         }
@@ -99,12 +96,7 @@ def parse_mutation_output [
 
     let duplicated = (
         try {
-            $summary_line
-            | parse "{duplicated} duplicated"
-            | get duplicated
-            | first
-            | str trim
-            | into int
+            $parsed | get duplicated | into int
         } catch {
             0
         }
@@ -112,12 +104,7 @@ def parse_mutation_output [
 
     let skipped = (
         try {
-            $summary_line
-            | parse "{skipped} skipped"
-            | get skipped
-            | first
-            | str trim
-            | into int
+            $parsed | get skipped | into int
         } catch {
             0
         }
@@ -125,12 +112,7 @@ def parse_mutation_output [
 
     let total = (
         try {
-            $summary_line
-            | parse "total is {total}"
-            | get total
-            | first
-            | str trim
-            | into int
+            $parsed | get total | into int
         } catch {
             0
         }
@@ -222,9 +204,13 @@ def run_package_mutation_test [
     }
 
     # Run go-mutesting with timeout
+    # IMPORTANT: go-mutesting must be run from WITHIN the package directory
+    # with "." as the target, not with a package path argument
+    # Use full path to go-mutesting to avoid PATH issues
+    let go_mutesting = (which go-mutesting | get path.0? | default $"($env.HOME)/go/bin/go-mutesting")
     let output = (
-        ^timeout $timeout_secs go-mutesting --do-not-remove-tmp-folder $pkg
-        | complete
+        cd $pkg;
+        ^timeout $timeout_secs $go_mutesting --do-not-remove-tmp-folder . | complete
     )
 
     # Handle timeout (exit code 124 from timeout command)

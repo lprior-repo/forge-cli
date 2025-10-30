@@ -159,7 +159,7 @@ func TestGeneratePythonBuildSpec(t *testing.T) {
 
 		spec := GeneratePythonBuildSpec(cfg, false, false)
 
-		assert.Equal(t, filepath.Join("/tmp/test", "lambda.zip"), spec.OutputPath)
+		assert.Equal(t, "/tmp/test/lambda.zip", spec.OutputPath)
 		assert.Equal(t, "/tmp/test", spec.SourceDir)
 		assert.False(t, spec.HasRequirements)
 		assert.False(t, spec.UsesUV)
@@ -399,7 +399,7 @@ func TestPythonBuildErrorHandling(t *testing.T) {
 			func(_ Artifact) error { return nil },
 		)(result)
 
-		assert.Error(t, buildErr)
+		require.Error(t, buildErr)
 		// Error should mention command failure (from executeCommand)
 		errMsg := buildErr.Error()
 		t.Logf("Actual error message: %s", errMsg)

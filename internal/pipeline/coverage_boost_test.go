@@ -218,17 +218,12 @@ func TestRunWithEventsEdgeCases(t *testing.T) {
 		}
 
 		pipeline := NewEventPipeline(stage1, stage2)
-		result := RunWithEvents(pipeline, t.Context(), State{})
+		runResult := RunWithEvents(pipeline, t.Context(), State{})
 
-		require.True(t, E.IsRight(result))
-
-		stageResult := E.Fold(
-			func(e error) StageResult { return StageResult{} },
-			func(r StageResult) StageResult { return r },
-		)(result)
+		require.True(t, E.IsRight(runResult.Result))
 
 		// All events should be collected
-		assert.Len(t, stageResult.Events, 4)
+		assert.Len(t, runResult.Events, 4)
 	})
 
 	t.Run("collects events before error", func(t *testing.T) {
@@ -246,9 +241,12 @@ func TestRunWithEventsEdgeCases(t *testing.T) {
 		}
 
 		pipeline := NewEventPipeline(stage1, stage2)
-		result := RunWithEvents(pipeline, t.Context(), State{})
+		runResult := RunWithEvents(pipeline, t.Context(), State{})
 
-		assert.True(t, E.IsLeft(result))
+		assert.True(t, E.IsLeft(runResult.Result))
+		// Events from stage1 should still be available even on error
+		assert.Len(t, runResult.Events, 1)
+		assert.Equal(t, "Stage 1 event", runResult.Events[0].Message)
 	})
 }
 
