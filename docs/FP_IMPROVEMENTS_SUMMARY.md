@@ -18,9 +18,9 @@ Upon audit, discovered that the pipeline stages were already following immutable
 - `internal/pipeline/convention_stages.go` - ✅ Immutable
 - `internal/pipeline/terraform_stages.go` - ✅ Immutable
 
-### ✅ P0: Build Function Purity (PARTIALLY COMPLETE)
+### ✅ P0: Build Function Purity (COMPLETE)
 
-**Status:** Go and Python refactored successfully
+**Status:** All four runtimes refactored successfully
 
 #### What Was Fixed
 
@@ -52,21 +52,19 @@ Fixed test expectations to handle new error messages from generic `executeComman
 
 All 60+ build tests passing ✅
 
-#### Remaining Work
-
-**Node Builder** (`internal/build/node_builder.go`):
-- TODO: Create `NodeBuildSpec` struct
-- TODO: Implement `GenerateNodeBuildSpec()` - PURE
-- TODO: Implement `ExecuteNodeBuildSpec()` - ACTION
-- TODO: Refactor `NodeBuild()` to compose pure + impure
+**Node.js Builder** (`internal/build/node_builder.go`):
+- Created `NodeBuildSpec` struct for pure build specifications
+- Implemented `GenerateNodeBuildSpec()` - **PURE** function that generates npm commands
+- Implemented `ExecuteNodeBuildSpec()` - **ACTION** function that performs I/O
+- Refactored `NodeBuild()` to compose pure + impure
+- Handles both JavaScript and TypeScript projects
 
 **Java Builder** (`internal/build/java_builder.go`):
-- TODO: Create `JavaBuildSpec` struct
-- TODO: Implement `GenerateJavaBuildSpec()` - PURE
-- TODO: Implement `ExecuteJavaBuildSpec()` - ACTION
-- TODO: Refactor `JavaBuild()` to compose pure + impure
-
-**Estimated Effort:** 2-3 hours (similar pattern to Go/Python)
+- Created `JavaBuildSpec` struct for pure build specifications
+- Implemented `GenerateJavaBuildSpec()` - **PURE** function that generates Maven commands
+- Implemented `ExecuteJavaBuildSpec()` - **ACTION** function that performs I/O
+- Refactored `JavaBuild()` to compose pure + impure
+- Includes `findJar()` - ACTION for locating built artifacts
 
 ## Pending Work
 
@@ -153,8 +151,8 @@ See `docs/FP_AUDIT_CLEANUP.md` for full list:
 
 | Audit Point | Before | After | Target |
 |-------------|--------|-------|--------|
-| Overall Score | 6.5/10 | **7.5/10** | 9/10 |
-| Build Package | 5/10 | **8/10** | 9/10 |
+| Overall Score | 6.5/10 | **8.0/10** | 9/10 |
+| Build Package | 5/10 | **9/10** | 9/10 |
 | Pipeline Package | 4/10 | **5/10** | 9/10 |
 
 **Improvements:**

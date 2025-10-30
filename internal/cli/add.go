@@ -8,6 +8,9 @@ import (
 
 	E "github.com/IBM/fp-go/either"
 	"github.com/lewis/forge/internal/generators"
+	"github.com/lewis/forge/internal/generators/dynamodb"
+	"github.com/lewis/forge/internal/generators/s3"
+	"github.com/lewis/forge/internal/generators/sns"
 	"github.com/lewis/forge/internal/generators/sqs"
 	"github.com/spf13/cobra"
 )
@@ -32,9 +35,9 @@ Smart defaults, best practices, and Lambda integrations built-in.
 
 📦 Supported Resource Types:
   sqs          - SQS queue with DLQ, encryption, monitoring
-  dynamodb     - DynamoDB table (coming soon)
-  sns          - SNS topic (coming soon)
-  s3           - S3 bucket with versioning (coming soon)
+  dynamodb     - DynamoDB table with streams and backup
+  sns          - SNS topic with subscriptions
+  s3           - S3 bucket with versioning and encryption
 
 🎯 What You Get:
   • Production-ready Terraform modules
@@ -200,7 +203,9 @@ func runAdd(cmd *cobra.Command, args []string) error {
 func createGeneratorRegistry() *generators.Registry {
 	registry := generators.NewRegistry()
 	registry.Register(generators.ResourceSQS, sqs.New())
-	// Future: register other generators here
+	registry.Register(generators.ResourceDynamoDB, dynamodb.New())
+	registry.Register(generators.ResourceSNS, sns.New())
+	registry.Register(generators.ResourceS3, s3.New())
 	return registry
 }
 

@@ -41,10 +41,19 @@ func TestCreateGeneratorRegistry(t *testing.T) {
 
 	assert.NotNil(t, registry)
 
-	// Should have SQS generator registered
-	gen, ok := registry.Get(generators.ResourceSQS)
-	assert.True(t, ok, "SQS generator should be registered")
-	assert.NotNil(t, gen)
+	// Should have all generators registered
+	generators := []generators.ResourceType{
+		generators.ResourceSQS,
+		generators.ResourceDynamoDB,
+		generators.ResourceSNS,
+		generators.ResourceS3,
+	}
+
+	for _, resourceType := range generators {
+		gen, ok := registry.Get(resourceType)
+		assert.True(t, ok, "%s generator should be registered", resourceType)
+		assert.NotNil(t, gen)
+	}
 }
 
 // TestDiscoverProjectState tests project state discovery
