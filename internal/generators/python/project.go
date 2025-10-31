@@ -73,10 +73,9 @@ func createDirectoryStructure(projectRoot string, config ProjectConfig) error {
 // generateProjectFiles generates all project files.
 func generateProjectFiles(projectRoot string, config ProjectConfig) error {
 	files := map[string]func() string{
-		"pyproject.toml":                          func() string { return generatePyProjectToml(config) },
+		"requirements.txt":                        func() string { return generateRequirementsTxt(config) },
 		"README.md":                               func() string { return generateReadme(config) },
 		".gitignore":                              func() string { return generateGitignore(config) },
-		"Makefile":                                func() string { return generateMakefile(config) },
 		"service/__init__.py":                     generateEmptyInit,
 		"service/handlers/__init__.py":            generateEmptyInit,
 		"service/handlers/models/__init__.py":     generateEmptyInit,
@@ -115,65 +114,33 @@ func generateProjectFiles(projectRoot string, config ProjectConfig) error {
 	return nil
 }
 
-// generatePyProjectToml generates pyproject.toml with Poetry configuration.
-func generatePyProjectToml(config ProjectConfig) string {
-	pythonConstraint := "^" + config.PythonVersion
-
-	content := fmt.Sprintf(`[build-system]
-requires = ["poetry>=2.0.1"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
-name = "%s"
-version = "1.0.0"
-description = "%s"
-authors = ["Your Name <you@example.com>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "%s"
-pydantic = "^2.0.0"
-`, config.ServiceName, config.Description, pythonConstraint)
-
-	if config.UsePowertools {
-		content += `aws-lambda-powertools = {extras = ["tracer"], version = "^3.7.0"}
-aws-lambda-env-modeler = "*"
-`
+// generateRequirementsTxt generates requirements.txt with production dependencies.
+// UV will install these during the build step.
+func generateRequirementsTxt(config ProjectConfig) string {
+	deps := []string{
+		"pydantic>=2.0.0",
+		"boto3>=1.26.0",
 	}
 
-	content += `boto3 = "^1.26.0"
-`
+	if config.UsePowertools {
+		deps = append(deps, "aws-lambda-powertools[tracer]>=3.7.0")
+		deps = append(deps, "aws-lambda-env-modeler")
+	}
 
 	if config.UseDynamoDB {
-		content += `mypy-boto3-dynamodb = "*"
-`
+		deps = append(deps, "mypy-boto3-dynamodb")
 	}
 
 	if config.UseIdempotency {
-		content += `cachetools = "*"
-`
+		deps = append(deps, "cachetools")
 	}
 
-	content += `
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
-pytest-mock = "*"
-pytest-cov = "*"
-ruff = "*"
-mypy = "*"
+	content := "# Production dependencies\n"
+	content += "# Install with: uv pip install -r requirements.txt\n\n"
 
-[tool.ruff]
-line-length = 150
-target-version = "py` + config.PythonVersion[:2] + `13"
-
-[tool.ruff.lint]
-select = ["E", "W", "F", "I", "C", "B"]
-ignore = ["E203", "E266", "E501", "W191"]
-
-[tool.ruff.format]
-quote-style = "single"
-indent-style = "space"
-`
+	for _, dep := range deps {
+		content += dep + "\n"
+	}
 
 	return content
 }
@@ -189,55 +156,126 @@ func generateReadme(config ProjectConfig) string {
 ### Prerequisites
 
 - Python %s
-- Poetry 2.0+
+- [UV](https://github.com/astral-sh/uv) (fast Python package installer)
+- [Task](https://taskfile.dev/) (task runner)
 - AWS CLI configured
+- Terraform >= 1.0
 
-### Installation
+### Quick Start
 
 '''bash
-poetry install
+# Install UV (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Run full test cycle
+task full-test
+
+# Build Lambda package
+task build
+
+# Deploy to AWS
+task deploy
 '''
 
 ### Development
 
 '''bash
-# Run tests
-poetry run pytest
+# Install dev dependencies
+task install
+
+# Run tests with coverage
+task test
 
 # Format code
-poetry run ruff format .
+task format
+
+# Lint code
+task lint
 
 # Type check
-poetry run mypy service/
+task type-check
 '''
 
 ### Deployment
 
 '''bash
-# Deploy to AWS
-cdk deploy
+# Deploy infrastructure
+task deploy
+
+# Show deployment status
+task status
+
+# View outputs
+task outputs
+
+# Test API
+task test-api
+
+# Destroy infrastructure
+task destroy
 '''
 
 ## Project Structure
 
 '''
-service/
-├── handlers/       # Lambda handler entry points
-├── logic/          # Business logic layer
-├── dal/            # Data access layer
-└── models/         # Pydantic models
+.
+├── service/
+│   ├── handlers/       # Lambda handler entry points
+│   ├── logic/          # Business logic layer
+│   ├── dal/            # Data access layer (if using DynamoDB)
+│   └── models/         # Pydantic models
+├── tests/
+│   ├── unit/          # Unit tests
+│   ├── integration/   # Integration tests
+│   └── e2e/           # End-to-end tests
+├── terraform/         # Infrastructure as Code
+│   ├── main.tf        # Provider configuration
+│   ├── variables.tf   # Input variables
+│   ├── lambda.tf      # Lambda module
+│   ├── apigateway.tf  # API Gateway module
+│   └── outputs.tf     # Stack outputs
+└── Taskfile.yml       # Task definitions
 '''
 
 ## API
 
 - **%s %s** - %s
+
+## Architecture
+
+This project uses:
+- **terraform-aws-modules/lambda** for type-safe Lambda configuration
+- **terraform-aws-modules/apigateway-v2** for HTTP API
+%s
+- **UV** for fast Python dependency management
+- **Task** for streamlined development workflow
+
+## Testing
+
+'''bash
+# Run all tests
+task test
+
+# Run specific test file
+pytest tests/unit/test_handler.py -v
+
+# Run with coverage
+task test
+'''
 `, config.ServiceName, config.Description, config.PythonVersion,
-		config.HTTPMethod, config.APIPath, config.Description)
+		config.HTTPMethod, config.APIPath, config.Description,
+		func() string {
+			if config.UseDynamoDB {
+				return "- **terraform-aws-modules/dynamodb-table** for DynamoDB\n"
+			}
+			return ""
+		}())
 }
 
 // generateGitignore generates .gitignore.
 func generateGitignore(config ProjectConfig) string {
-	return `__pycache__/
+	return `# Python
+__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -261,45 +299,36 @@ wheels/
 .coverage
 htmlcov/
 .tox/
+
+# Virtual environments
 .env
 .venv
 env/
 venv/
+
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+
+# OS
 .DS_Store
-cdk.out/
+
+# Build artifacts
 .build/
-`
-}
 
-// generateMakefile generates Makefile.
-func generateMakefile(config ProjectConfig) string {
-	return `.PHONY: install test format lint deploy clean
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfplan
+terraform/crash.log
 
-install:
-	poetry install
-
-test:
-	poetry run pytest tests/ -v
-
-format:
-	poetry run ruff format .
-
-lint:
-	poetry run ruff check .
-	poetry run mypy service/
-
-deploy:
-	cdk deploy
-
-clean:
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
-	rm -rf .pytest_cache .coverage htmlcov/ dist/ build/
+# AWS
+response.json
 `
 }
 
