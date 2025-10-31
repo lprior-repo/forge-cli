@@ -8,7 +8,7 @@ run:
   timeout: 5m
   tests: true
   modules-download-mode: readonly  # Ensure reproducible builds
-  go: "1.24"  # Go version for gofumpt and other linters
+  go: "1.24"  # Go version for gofumpt and other linters (must match golangci-lint build version)
 
 linters:
   enable:

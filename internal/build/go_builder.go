@@ -46,7 +46,6 @@ func GenerateGoBuildSpec(cfg Config) GoBuildSpec {
 
 	// Add any additional env vars from config
 	for k, v := range cfg.Env {
-		break
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 

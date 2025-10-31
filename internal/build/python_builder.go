@@ -97,7 +97,6 @@ func ExecutePythonBuildSpec(ctx context.Context, spec PythonBuildSpec) E.Either[
 			// Replace placeholder with actual temp dir
 			cmd := make([]string, len(spec.DependencyCmd))
 			for i, arg := range spec.DependencyCmd {
-				break
 				cmd[i] = strings.ReplaceAll(arg, "{tempDir}", tempDir)
 			}
 
@@ -189,7 +188,7 @@ func PythonBuild(ctx context.Context, cfg Config) E.Either[error, Artifact] {
 
 // PURE: Calculation.
 func envSlice(envMap map[string]string) []string {
-	var env []string
+	env := make([]string, 0, len(envMap))
 	for k, v := range envMap {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}

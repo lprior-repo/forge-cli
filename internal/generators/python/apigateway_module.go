@@ -23,6 +23,10 @@ func GenerateAPIGatewayModule(config ProjectConfig) *apigatewayv2.Module {
 	// Set description
 	api.Description = &config.Description
 
+	// Disable custom domain features (Route53/ACM)
+	createDomainName := false
+	api.CreateDomainName = &createDomainName
+
 	// Enable CORS
 	corsConfig := &apigatewayv2.CORSConfiguration{
 		AllowOrigins: []string{"*"},
@@ -66,7 +70,7 @@ func GenerateAPIGatewayModule(config ProjectConfig) *apigatewayv2.Module {
 		},
 	}
 
-	// Configure access logging for default stage
+	// Configure access logging for default stage with throttling
 	logDestination := "${aws_cloudwatch_log_group.api_gateway.arn}"
 	logFormat := `{
   "requestId": "$context.requestId",
@@ -78,10 +82,17 @@ func GenerateAPIGatewayModule(config ProjectConfig) *apigatewayv2.Module {
   "protocol": "$context.protocol",
   "responseLength": "$context.responseLength"
 }`
+	// Add throttling settings to prevent API abuse
+	throttleSettings := &apigatewayv2.ThrottleSettings{
+		BurstLimit: intPtr(100),
+		RateLimit:  float64Ptr(50.0),
+	}
+
 	api.Stages = map[string]apigatewayv2.Stage{
 		"$default": {
-			Name:       stringPtr("$default"),
-			AutoDeploy: &autoDeploy,
+			Name:             stringPtr("$default"),
+			AutoDeploy:       &autoDeploy,
+			ThrottleSettings: throttleSettings,
 			AccessLogSettings: &apigatewayv2.AccessLogSettings{
 				DestinationARN: logDestination,
 				Format:         logFormat,
@@ -116,6 +127,9 @@ module "%s" {
   description   = "%s"
   protocol_type = "%s"
 
+  # Disable custom domain features (Route53/ACM)
+  create_domain_name = false
+
   cors_configuration = {
     allow_origins = %s
     allow_methods = %s
@@ -131,6 +145,12 @@ module "%s" {
         timeout_milliseconds   = 12000
       }
     }
+  }
+
+  # Throttling to prevent API abuse
+  throttle_settings = {
+    burst_limit = 100
+    rate_limit  = 50
   }
 
   tags = {
@@ -170,6 +190,7 @@ resource "aws_lambda_permission" "api_gateway" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${module.%s.api_execution_arn}/*/*"
 }
+
 `, lambdaModuleName, moduleName)
 
 	return hcl
@@ -194,4 +215,16 @@ func formatStringList(items []string) string {
 // PURE: Helper function for pointer creation.
 func stringPtr(s string) *string {
 	return &s
+}
+
+// intPtr returns a pointer to an int.
+// PURE: Helper function for pointer creation.
+func intPtr(i int) *int {
+	return &i
+}
+
+// float64Ptr returns a pointer to a float64.
+// PURE: Helper function for pointer creation.
+func float64Ptr(f float64) *float64 {
+	return &f
 }

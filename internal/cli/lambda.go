@@ -184,9 +184,9 @@ func createLambdaProject(projectName string, opts LambdaProjectOptions) error {
 	case "python":
 		return createPythonLambda(projectDir, projectName, opts)
 	case "go":
-		return errors.New("Go runtime not yet implemented")
+		return errors.New("go runtime not yet implemented")
 	case "nodejs":
-		return errors.New("Node.js runtime not yet implemented")
+		return errors.New("nodejs runtime not yet implemented")
 	default:
 		return fmt.Errorf("unsupported runtime: %s", opts.Runtime)
 	}

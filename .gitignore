@@ -58,3 +58,39 @@ lambda.zip
 # Temporary files
 tmp/
 temp/
+*.tmp
+
+# Forge build artifacts
+.forge/
+*.zip
+
+# Python virtual environments (for testing Python Lambda builds)
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test cache
+.testcache/
+
+# Profiling
+*.prof
+cpu.pprof
+mem.pprof
+
+# Air (Go hot reload)
+.air.toml
+tmp/
+
+# golangci-lint cache
+.golangci-lint/

@@ -416,10 +416,7 @@ func TestRunAdd(t *testing.T) {
 		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
 		// Change to temp directory for test
-		origDir, err := os.Getwd()
-		require.NoError(t, err)
-		defer func() { _ = os.Chdir(origDir) }()
-		require.NoError(t, os.Chdir(tmpDir))
+		t.Chdir(tmpDir)
 
 		cmd := NewAddCmd()
 		args := []string{"sqs", "test-queue"}
@@ -441,10 +438,7 @@ func TestRunAdd(t *testing.T) {
 		infraDir := filepath.Join(tmpDir, "infra")
 		require.NoError(t, os.MkdirAll(infraDir, 0o755))
 
-		origDir, err := os.Getwd()
-		require.NoError(t, err)
-		defer func() { _ = os.Chdir(origDir) }()
-		require.NoError(t, os.Chdir(tmpDir))
+		t.Chdir(tmpDir)
 
 		cmd := NewAddCmd()
 		args := []string{"invalid-type", "test-resource"}
@@ -457,10 +451,7 @@ func TestRunAdd(t *testing.T) {
 	t.Run("fails when infra directory missing", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		origDir, err := os.Getwd()
-		require.NoError(t, err)
-		defer func() { _ = os.Chdir(origDir) }()
-		require.NoError(t, os.Chdir(tmpDir))
+		t.Chdir(tmpDir)
 
 		cmd := NewAddCmd()
 		args := []string{"sqs", "test-queue"}

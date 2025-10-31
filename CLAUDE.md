@@ -423,10 +423,7 @@ task mutation:verbose      # Verbose mutation testing output
 task mutation:package PKG=internal/build  # Test specific package
 ```
 
-**Performance Note**: The codebase includes `internal/lingon/aws/` with 2,671 generated AWS resource packages (~1M lines of code) providing complete type-safe Terraform support. These are excluded from test runs by default for performance (saves ~2 minutes per test run). The test tasks automatically filter these out using:
-```bash
-go list ./internal/... | grep -v '/internal/lingon/aws'
-```
+**Performance Note**: Tests run quickly (~5s for unit tests) with no external dependencies required for the core test suite.
 
 **Mutation Testing**: Uses [go-mutesting](https://github.com/avito-tech/go-mutesting) to verify test suite quality by introducing mutations (bugs) and checking if tests catch them. The mutation score indicates the percentage of mutations killed by tests (higher is better). Requires Nushell (`nu`).
 
@@ -468,16 +465,23 @@ internal/
 ├── build/          # Build system with runtime-specific builders (Go, Python, Node.js)
 │                   # Pure functions, functional decorators (WithCache, WithLogging)
 ├── cli/            # Cobra commands (I/O boundary)
-│                   # Commands: new, init, deploy, destroy, version
+│                   # Commands: new, add, build, deploy, destroy, version
 ├── config/         # HCL configuration loading and validation
-├── lingon/         # Type-safe Terraform generation (Lingon integration)
-│                   # 170+ Lambda params, 80+ API Gateway, 50+ DynamoDB
-│                   # Complete serverless.tf specification support
+├── generators/     # Code generators for Python Lambda projects
+│   └── python/     # Python-specific generators with tfmodules integration
 ├── pipeline/       # Pipeline orchestration using functional composition
 │                   # Railway-oriented programming with Either monad
 ├── scaffold/       # Project and stack scaffolding
 ├── stack/          # Stack detection, dependency graph, topological sort
-└── terraform/      # Terraform executor wrapper (uses hashicorp/terraform-exec)
+├── terraform/      # Terraform executor wrapper (uses hashicorp/terraform-exec)
+└── tfmodules/      # Type-safe Terraform module wrappers
+    ├── apigateway/ # API Gateway v2 module
+    ├── dynamodb/   # DynamoDB table module
+    ├── hclgen/     # HCL generation engine (reflection-based)
+    ├── lambda/     # Lambda function module
+    ├── s3/         # S3 bucket module
+    ├── sns/        # SNS topic module
+    └── sqs/        # SQS queue module
 ```
 
 ### Functional Programming Patterns
@@ -522,43 +526,49 @@ cachedBuild := WithCache(cache)(WithLogging(logger)(baseBuild))
 - **Integration tests** verify Terraform integration
 - **Property-based thinking** (formal property tests coming in Phase 6)
 
-## Lingon Integration (Type-Safe Terraform)
+## Type-Safe Terraform Generation (tfmodules)
 
-Forge supports declarative infrastructure configuration via `forge.yaml` with complete serverless.tf specification:
+Forge uses **type-safe Go structs** to generate Terraform HCL instead of string concatenation or YAML configuration files. This provides compile-time safety, IDE autocomplete, and refactoring support.
 
-### Configuration Format
-```yaml
-service: my-app
-provider:
-  region: us-east-1
+### tfmodules Pattern
+All Terraform modules follow this pattern:
 
-functions:
-  api:
-    handler: index.handler
-    runtime: nodejs20.x
-    timeout: 30
-    memorySize: 1024
-    # ... 170+ Lambda parameters supported
+```go
+// Define module configuration using Go structs
+module := &lambda.Module{
+    FunctionName: "my-api",
+    Runtime:      "python3.13",
+    Handler:      "service.handlers.handle_request.lambda_handler",
+    Timeout:      30,
+    MemorySize:   1024,
+}
 
-apiGateway:
-  name: my-api
-  # ... 80+ API Gateway v2 parameters
-
-tables:
-  users:
-    hashKey: userId
-    # ... 50+ DynamoDB parameters
+// Generate HCL using reflection-based engine
+hcl, err := module.Configuration()
 ```
 
-See `LINGON_SPEC.md` for complete parameter reference (1,500+ lines) and `examples/forge.yaml` for working examples.
+### HCL Generation Engine (hclgen)
 
-### Variable References
-Use `${}` syntax to reference other resources:
-```yaml
-environment:
-  TABLE_NAME: ${tables.users.name}
-  QUEUE_URL: ${queues.jobs.url}
+The `internal/tfmodules/hclgen` package provides reflection-based HCL generation:
+
+```go
+// ToHCL converts any Go struct to Terraform HCL
+func ToHCL(localName, source, version string, config interface{}) (string, error)
 ```
+
+**Features:**
+- Automatic struct field → HCL attribute conversion
+- Terraform reference detection (`${var.namespace}`)
+- Nested block support (maps, slices, structs)
+- Zero-value omission (only set fields are rendered)
+
+### Supported Modules
+- **Lambda**: `internal/tfmodules/lambda` - 170+ parameters
+- **API Gateway v2**: `internal/tfmodules/apigateway` - 80+ parameters
+- **DynamoDB**: `internal/tfmodules/dynamodb` - 50+ parameters
+- **S3**: `internal/tfmodules/s3` - Bucket configuration
+- **SNS**: `internal/tfmodules/sns` - Topic configuration
+- **SQS**: `internal/tfmodules/sqs` - Queue configuration
 
 ## Key Implementation Details
 
@@ -604,11 +614,12 @@ Audit rating: **9/10** (see `CODEBASE_AUDIT.md`)
 3. Add tests in `internal/build/*_test.go`
 4. Update scaffold templates in `internal/scaffold/`
 
-### Adding New Lingon Resource Types
-1. Add config types in `internal/lingon/config_types.go`
-2. Implement generation logic in `internal/lingon/generator.go`
-3. Add validation in `internal/lingon/validation.go`
-4. Write tests in `internal/lingon/generator_test.go`
+### Adding New Terraform Modules
+1. Create new package in `internal/tfmodules/{service}/`
+2. Define module struct with all parameters in `types.go`
+3. Implement `Configuration()` method using `hclgen.ToHCL()`
+4. Write comprehensive tests with 90%+ coverage
+5. Update generators to use the new module
 
 ### Debugging Failed Builds
 - Build logs: check stdout/stderr from builder functions
@@ -617,16 +628,16 @@ Audit rating: **9/10** (see `CODEBASE_AUDIT.md`)
 
 ## Important Notes
 
-- **HCL Configuration**: Project uses `forge.hcl` (project) and `stack.forge.hcl` (per-stack)
-- **YAML Configuration**: Lingon integration uses `forge.yaml` for declarative infrastructure
-- **Terraform State**: Each stack maintains independent Terraform state
+- **Convention-Based**: Zero configuration files - project structure determines behavior
+- **Type-Safe Generation**: Go structs → HCL via reflection-based `hclgen` engine
+- **Terraform State**: Namespace-aware state management for ephemeral environments
 - **CI/CD**: Auto-detects GitHub Actions/GitLab CI and provides native integrations
-- **Inspiration**: Patterns from terraform-exec, Terramate, Atlantis, Lingon
+- **Inspiration**: Patterns from terraform-exec, Terramate, Atlantis, AWS SAM
 
 ## References
 
 - README.md - User-facing documentation
-- LINGON_SPEC.md - Complete Lingon parameter reference (1,500+ lines)
-- CODEBASE_AUDIT.md - Code quality audit (Martin Fowler standards)
 - TDD_PROGRESS.md - Test-driven development journey
-- examples/forge.yaml - Complete working example configuration
+- TECHNICAL_DECISIONS.md - Architecture and design decisions
+- VISION.md - Product vision and philosophy
+- internal/tfmodules/ - Type-safe Terraform module implementations

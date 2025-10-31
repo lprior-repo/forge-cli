@@ -13,6 +13,13 @@ import (
 	"github.com/lewis/forge/internal/generators"
 )
 
+const (
+	// Default batch size for DynamoDB stream processing.
+	defaultBatchSize = 100
+	// Default max concurrency for Lambda event source mapping.
+	defaultMaxConcurrency = 10
+)
+
 type (
 	// Generator implements generators.Generator for DynamoDB tables.
 	Generator struct{}
@@ -24,7 +31,7 @@ func New() *Generator {
 }
 
 // Prompt gathers configuration from user (I/O ACTION).
-func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent, state generators.ProjectState) E.Either[error, generators.ResourceConfig] {
+func (*Generator) Prompt(_ context.Context, intent generators.ResourceIntent, state generators.ProjectState) E.Either[error, generators.ResourceConfig] {
 	// For MVP, use sensible defaults
 	// In Phase 3, this will launch interactive TUI
 
@@ -66,9 +73,9 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 			TargetFunction: intent.ToFunc,
 			EventSource: &generators.EventSourceConfig{
 				ARNExpression:         fmt.Sprintf("module.%s.stream_arn", sanitizeName(intent.Name)),
-				BatchSize:             100,
+				BatchSize:             defaultBatchSize,
 				MaxBatchingWindowSecs: 0,
-				MaxConcurrency:        10,
+				MaxConcurrency:        defaultMaxConcurrency,
 			},
 			IAMPermissions: []generators.IAMPermission{
 				{
@@ -105,7 +112,7 @@ func (g *Generator) Prompt(ctx context.Context, intent generators.ResourceIntent
 }
 
 // Generate creates Terraform code from configuration (PURE CALCULATION).
-func (g *Generator) Generate(config generators.ResourceConfig, state generators.ProjectState) E.Either[error, generators.GeneratedCode] {
+func (gen *Generator) Generate(config generators.ResourceConfig, _ generators.ProjectState) E.Either[error, generators.GeneratedCode] {
 	// Validate first, then chain generation - automatic error short-circuiting
 	return E.Chain(func(validConfig generators.ResourceConfig) E.Either[error, generators.GeneratedCode] {
 		var files []generators.FileToWrite
@@ -145,11 +152,11 @@ func (g *Generator) Generate(config generators.ResourceConfig, state generators.
 		return E.Right[error](generators.GeneratedCode{
 			Files: files,
 		})
-	})(g.Validate(config))
+	})(gen.Validate(config))
 }
 
 // Validate checks if configuration is valid (PURE CALCULATION).
-func (g *Generator) Validate(config generators.ResourceConfig) E.Either[error, generators.ResourceConfig] {
+func (*Generator) Validate(config generators.ResourceConfig) E.Either[error, generators.ResourceConfig] {
 	if config.Name == "" {
 		return E.Left[generators.ResourceConfig](
 			errors.New("table name is required"),
@@ -318,56 +325,57 @@ func generateRawResourceCode(config generators.ResourceConfig) string {
 	return strings.Join(parts, "\n")
 }
 
+// generateOutputBlock creates a single Terraform output block (PURE).
+func generateOutputBlock(name, description, valueExpr string) string {
+	return fmt.Sprintf(`output "%s" {
+  description = "%s"
+  value       = %s
+}`, name, description, valueExpr)
+}
+
 // generateOutputs creates Terraform outputs (PURE).
 func generateOutputs(config generators.ResourceConfig) string {
 	moduleName := sanitizeName(config.Name)
-
 	var parts []string
 
 	parts = append(parts, "# Outputs for "+config.Name)
 
+	// Determine resource reference based on module vs raw resource
+	var tableIDRef, tableARNRef, streamARNRef string
 	if config.Module {
-		parts = append(parts, fmt.Sprintf("output \"%s_table_id\" {", moduleName))
-		parts = append(parts, fmt.Sprintf("  description = \"ID of %s\"", config.Name))
-		parts = append(parts, fmt.Sprintf("  value       = module.%s.dynamodb_table_id", moduleName))
-		parts = append(parts, "}")
-		parts = append(parts, "")
-		parts = append(parts, fmt.Sprintf("output \"%s_table_arn\" {", moduleName))
-		parts = append(parts, fmt.Sprintf("  description = \"ARN of %s\"", config.Name))
-		parts = append(parts, fmt.Sprintf("  value       = module.%s.dynamodb_table_arn", moduleName))
-		parts = append(parts, "}")
-
-		// Stream ARN if enabled
-		streamEnabled, ok := config.Variables["stream_enabled"].(bool)
-		_ = ok
-		if streamEnabled {
-			parts = append(parts, "")
-			parts = append(parts, fmt.Sprintf("output \"%s_stream_arn\" {", moduleName))
-			parts = append(parts, fmt.Sprintf("  description = \"Stream ARN of %s\"", config.Name))
-			parts = append(parts, fmt.Sprintf("  value       = module.%s.dynamodb_table_stream_arn", moduleName))
-			parts = append(parts, "}")
-		}
+		tableIDRef = fmt.Sprintf("module.%s.dynamodb_table_id", moduleName)
+		tableARNRef = fmt.Sprintf("module.%s.dynamodb_table_arn", moduleName)
+		streamARNRef = fmt.Sprintf("module.%s.dynamodb_table_stream_arn", moduleName)
 	} else {
-		parts = append(parts, fmt.Sprintf("output \"%s_table_id\" {", moduleName))
-		parts = append(parts, fmt.Sprintf("  description = \"ID of %s\"", config.Name))
-		parts = append(parts, fmt.Sprintf("  value       = aws_dynamodb_table.%s.id", moduleName))
-		parts = append(parts, "}")
-		parts = append(parts, "")
-		parts = append(parts, fmt.Sprintf("output \"%s_table_arn\" {", moduleName))
-		parts = append(parts, fmt.Sprintf("  description = \"ARN of %s\"", config.Name))
-		parts = append(parts, fmt.Sprintf("  value       = aws_dynamodb_table.%s.arn", moduleName))
-		parts = append(parts, "}")
+		tableIDRef = fmt.Sprintf("aws_dynamodb_table.%s.id", moduleName)
+		tableARNRef = fmt.Sprintf("aws_dynamodb_table.%s.arn", moduleName)
+		streamARNRef = fmt.Sprintf("aws_dynamodb_table.%s.stream_arn", moduleName)
+	}
 
-		// Stream ARN if enabled
-		streamEnabled, ok := config.Variables["stream_enabled"].(bool)
-		_ = ok
-		if streamEnabled {
-			parts = append(parts, "")
-			parts = append(parts, fmt.Sprintf("output \"%s_stream_arn\" {", moduleName))
-			parts = append(parts, fmt.Sprintf("  description = \"Stream ARN of %s\"", config.Name))
-			parts = append(parts, fmt.Sprintf("  value       = aws_dynamodb_table.%s.stream_arn", moduleName))
-			parts = append(parts, "}")
-		}
+	// Generate table ID output
+	parts = append(parts, generateOutputBlock(
+		moduleName+"_table_id",
+		"ID of "+config.Name,
+		tableIDRef,
+	))
+	parts = append(parts, "")
+
+	// Generate table ARN output
+	parts = append(parts, generateOutputBlock(
+		moduleName+"_table_arn",
+		"ARN of "+config.Name,
+		tableARNRef,
+	))
+
+	// Stream ARN if enabled
+	streamEnabled, _ := config.Variables["stream_enabled"].(bool)
+	if streamEnabled {
+		parts = append(parts, "")
+		parts = append(parts, generateOutputBlock(
+			moduleName+"_stream_arn",
+			"Stream ARN of "+config.Name,
+			streamARNRef,
+		))
 	}
 
 	parts = append(parts, "")
