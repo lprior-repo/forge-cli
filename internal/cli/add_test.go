@@ -421,7 +421,7 @@ func TestRunAdd(t *testing.T) {
 		cmd := NewAddCmd()
 		args := []string{"sqs", "test-queue"}
 
-		err = runAdd(cmd, args, "", false, false)
+		err := runAdd(cmd, args, "", false, false)
 		assert.NoError(t, err)
 
 		// Verify SQS file was created (generators use generic names)
@@ -443,7 +443,7 @@ func TestRunAdd(t *testing.T) {
 		cmd := NewAddCmd()
 		args := []string{"invalid-type", "test-resource"}
 
-		err = runAdd(cmd, args, "", false, false)
+		err := runAdd(cmd, args, "", false, false)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported resource type")
 	})
@@ -456,7 +456,7 @@ func TestRunAdd(t *testing.T) {
 		cmd := NewAddCmd()
 		args := []string{"sqs", "test-queue"}
 
-		err = runAdd(cmd, args, "", false, false)
+		err := runAdd(cmd, args, "", false, false)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "infra/ directory not found")
 	})

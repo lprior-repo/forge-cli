@@ -343,5 +343,5 @@ func (m *Module) LocalName() string {
 // Configuration generates the HCL configuration for this module.
 // PURE: Same module configuration always produces the same HCL output.
 func (m *Module) Configuration() (string, error) {
-	return hclgen.ToHCL(m.LocalName(), m.Source, m.Version, m)
+	return hclgen.ToHCLWrite(m.LocalName(), m.Source, m.Version, m)
 }

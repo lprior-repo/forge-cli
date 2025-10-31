@@ -147,12 +147,6 @@ module "%s" {
     }
   }
 
-  # Throttling to prevent API abuse
-  throttle_settings = {
-    burst_limit = 100
-    rate_limit  = 50
-  }
-
   tags = {
     ManagedBy   = "Terraform"
     Generator   = "Forge"
