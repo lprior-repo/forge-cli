@@ -96,7 +96,7 @@ func TestPythonGeneratorIntegration(t *testing.T) {
 	}
 
 	// Verify Terraform files use modules
-	lambdaTf := filepath.Join(projectPath, "terraform/lambda.tf")
+	lambdaTf := filepath.Join(projectPath, "terraform", "lambda.tf")
 	lambdaContent, err := os.ReadFile(lambdaTf)
 	if err != nil {
 		t.Fatalf("Failed to read lambda.tf: %v", err)
@@ -156,7 +156,7 @@ func TestPythonGeneratorMinimal(t *testing.T) {
 	}
 
 	// Verify DynamoDB file is NOT generated
-	dynamoPath := filepath.Join(projectPath, "terraform/dynamodb.tf")
+	dynamoPath := filepath.Join(projectPath, "terraform", "dynamodb.tf")
 	if _, err := os.Stat(dynamoPath); !os.IsNotExist(err) {
 		t.Error("dynamodb.tf should not exist for minimal config")
 	}
@@ -179,7 +179,7 @@ func TestPythonGeneratorMinimal(t *testing.T) {
 
 // Helper function to check if string contains substring.
 func contains(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 && (s == substr || len(s) >= len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || containsInner(s, substr)))
+	return s != "" && substr != "" && (s == substr || len(s) >= len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || containsInner(s, substr)))
 }
 
 func containsInner(s, substr string) bool {

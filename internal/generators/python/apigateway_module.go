@@ -1,3 +1,4 @@
+// Package python provides Python Lambda project generation with type-safe Terraform modules.
 package python
 
 import (
@@ -183,7 +184,7 @@ func formatStringList(items []string) string {
 
 	quoted := make([]string, len(items))
 	for i, item := range items {
-		quoted[i] = fmt.Sprintf("\"%s\"", item)
+		quoted[i] = fmt.Sprintf("%q", item)
 	}
 
 	return "[" + strings.Join(quoted, ", ") + "]"

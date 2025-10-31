@@ -288,13 +288,39 @@ func TestModule_LocalName(t *testing.T) {
 }
 
 func TestModule_Configuration(t *testing.T) {
-	t.Run("returns empty string and nil error as placeholder", func(t *testing.T) {
+	t.Run("generates valid HCL for basic bucket", func(t *testing.T) {
 		module := NewModule("test-bucket")
 
 		config, err := module.Configuration()
 
 		require.NoError(t, err)
-		assert.Empty(t, config)
+		assert.NotEmpty(t, config)
+
+		// Verify basic structure
+		assert.Contains(t, config, `module "test-bucket" {`)
+		assert.Contains(t, config, `source  = "terraform-aws-modules/s3-bucket/aws"`)
+		assert.Contains(t, config, `version = "~> 4.0"`)
+		assert.Contains(t, config, `bucket = "test-bucket"`)
+		assert.Contains(t, config, `block_public_acls = true`)
+		assert.Contains(t, config, `object_ownership = "BucketOwnerEnforced"`)
+	})
+
+	t.Run("generates HCL with all options", func(t *testing.T) {
+		module := NewModule("assets").
+			WithVersioning(true).
+			WithWebsite("index.html", "error.html").
+			WithTags(map[string]string{
+				"Environment": "production",
+			})
+
+		config, err := module.Configuration()
+
+		require.NoError(t, err)
+		assert.Contains(t, config, `bucket = "assets"`)
+		assert.Contains(t, config, `enabled = "true"`)
+		assert.Contains(t, config, `index_document = "index.html"`)
+		assert.Contains(t, config, `error_document = "error.html"`)
+		assert.Contains(t, config, `Environment = "production"`)
 	})
 }
 

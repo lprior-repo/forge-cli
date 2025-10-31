@@ -252,13 +252,39 @@ func TestModule_LocalName(t *testing.T) {
 }
 
 func TestModule_Configuration(t *testing.T) {
-	t.Run("returns empty string and nil error as placeholder", func(t *testing.T) {
+	t.Run("generates valid HCL for basic topic", func(t *testing.T) {
 		module := NewModule("test_topic")
 
 		config, err := module.Configuration()
 
 		require.NoError(t, err)
-		assert.Empty(t, config)
+		assert.NotEmpty(t, config)
+
+		// Verify basic structure
+		assert.Contains(t, config, `module "test_topic" {`)
+		assert.Contains(t, config, `source  = "terraform-aws-modules/sns/aws"`)
+		assert.Contains(t, config, `version = "~> 6.0"`)
+		assert.Contains(t, config, `name = "test_topic"`)
+		assert.Contains(t, config, `create = true`)
+		assert.Contains(t, config, `create_topic_policy = true`)
+	})
+
+	t.Run("generates HCL with all options", func(t *testing.T) {
+		module := NewModule("notifications").
+			WithFIFO(true).
+			WithEncryption("alias/aws/sns").
+			WithTags(map[string]string{
+				"Environment": "production",
+			})
+
+		config, err := module.Configuration()
+
+		require.NoError(t, err)
+		assert.Contains(t, config, `name = "notifications"`)
+		assert.Contains(t, config, `fifo_topic = true`)
+		assert.Contains(t, config, `content_based_deduplication = true`)
+		assert.Contains(t, config, `kms_master_key_id = "alias/aws/sns"`)
+		assert.Contains(t, config, `Environment = "production"`)
 	})
 }
 

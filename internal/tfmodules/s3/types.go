@@ -2,6 +2,10 @@
 // Generated from https://github.com/terraform-aws-modules/terraform-aws-s3-bucket v4.0
 package s3
 
+import (
+	"github.com/lewis/forge/internal/tfmodules/hclgen"
+)
+
 // Module represents the terraform-aws-modules/s3-bucket/aws module.
 // All fields use pointers to distinguish between "not set" (nil) and "set to zero value".
 type Module struct {
@@ -432,7 +436,7 @@ func (m *Module) LocalName() string {
 }
 
 // Configuration generates the HCL configuration for this module.
+// PURE: Same module configuration always produces the same HCL output.
 func (m *Module) Configuration() (string, error) {
-	// TODO: Implement full HCL generation using hclwrite or lingon's marshaling
-	return "", nil
+	return hclgen.ToHCL(m.LocalName(), m.Source, m.Version, m)
 }

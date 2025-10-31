@@ -11,7 +11,7 @@ import (
 func GenerateLambdaModule(config ProjectConfig) *lambda.Module {
 	serviceName := fmt.Sprintf("%s-%s", config.ServiceName, "${var.environment}")
 	handler := "service.handlers.handle_request.lambda_handler"
-	runtime := fmt.Sprintf("python%s", config.PythonVersion)
+	runtime := "python" + config.PythonVersion
 
 	// Create base Lambda module with sensible defaults
 	fn := lambda.NewModule(serviceName)
@@ -38,9 +38,9 @@ func GenerateLambdaModule(config ProjectConfig) *lambda.Module {
 
 	// Environment variables
 	envVars := map[string]string{
+		"ENVIRONMENT":             "${var.environment}",
+		"LOG_LEVEL":               "INFO",
 		"POWERTOOLS_SERVICE_NAME": config.ServiceName,
-		"LOG_LEVEL":                "INFO",
-		"ENVIRONMENT":              "${var.environment}",
 	}
 
 	if config.UseDynamoDB {
@@ -119,14 +119,14 @@ module "%s" {
 	if len(module.EnvironmentVariables) > 0 {
 		hcl += "  environment_variables = {\n"
 		for key, val := range module.EnvironmentVariables {
-			hcl += fmt.Sprintf("    %s = \"%s\"\n", key, val)
+			hcl += fmt.Sprintf("    %s = %q\n", key, val)
 		}
 		hcl += "  }\n\n"
 	}
 
 	// Tracing
 	if module.TracingMode != nil {
-		hcl += fmt.Sprintf("  tracing_mode = \"%s\"\n", *module.TracingMode)
+		hcl += fmt.Sprintf("  tracing_mode = %q\n", *module.TracingMode)
 	}
 
 	// CloudWatch Logs

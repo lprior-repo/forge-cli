@@ -72,7 +72,7 @@ module "%s" {
 	if len(module.Attributes) > 0 {
 		hcl += "  attributes = [\n"
 		for _, attr := range module.Attributes {
-			hcl += fmt.Sprintf("    {\n      name = \"%s\"\n      type = \"%s\"\n    },\n", attr.Name, attr.Type)
+			hcl += fmt.Sprintf("    {\n      name = %q\n      type = %q\n    },\n", attr.Name, attr.Type)
 		}
 		hcl += "  ]\n\n"
 	}
@@ -81,7 +81,7 @@ module "%s" {
 	if module.TTLEnabled != nil {
 		hcl += fmt.Sprintf("  ttl_enabled        = %t\n", *module.TTLEnabled)
 		if module.TTLAttributeName != nil {
-			hcl += fmt.Sprintf("  ttl_attribute_name = \"%s\"\n\n", *module.TTLAttributeName)
+			hcl += fmt.Sprintf("  ttl_attribute_name = %q\n\n", *module.TTLAttributeName)
 		}
 	}
 
@@ -101,7 +101,7 @@ module "%s" {
 	hcl += "    Generator   = \"Forge\"\n"
 	hcl += "    Service     = var.service_name\n"
 	hcl += "    Environment = var.environment\n"
-	hcl += fmt.Sprintf("    Name        = \"%s\"\n", *module.Name)
+	hcl += fmt.Sprintf("    Name        = %q\n", *module.Name)
 	hcl += "  }\n"
 
 	hcl += "}\n\n"

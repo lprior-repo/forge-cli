@@ -22,7 +22,8 @@ type (
 	}
 )
 
-// Pure function - takes projectRoot and config as parameters.
+// Generate creates a complete Python Lambda project with Terraform infrastructure.
+// This is a pure function that takes projectRoot and config as parameters.
 func Generate(projectRoot string, config ProjectConfig) error {
 	// Create directory structure
 	if err := createDirectoryStructure(projectRoot, config); err != nil {
@@ -43,7 +44,7 @@ func Generate(projectRoot string, config ProjectConfig) error {
 }
 
 // createDirectoryStructure creates all necessary directories.
-func createDirectoryStructure(projectRoot string, config ProjectConfig) error {
+func createDirectoryStructure(projectRoot string, _ ProjectConfig) error {
 	dirs := []string{
 		"service",
 		"service/handlers",
@@ -60,9 +61,10 @@ func createDirectoryStructure(projectRoot string, config ProjectConfig) error {
 		"tests/e2e",
 	}
 
+	const dirPerms = 0o750 // rwxr-x---
 	for _, dir := range dirs {
 		path := filepath.Join(projectRoot, dir)
-		if err := os.MkdirAll(path, 0o755); err != nil {
+		if err := os.MkdirAll(path, dirPerms); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
@@ -103,10 +105,11 @@ func generateProjectFiles(projectRoot string, config ProjectConfig) error {
 		files["service/dal/models/db.py"] = func() string { return generateDBModel(config) }
 	}
 
+	const filePerms = 0o600 // rw-------
 	for filePath, generator := range files {
 		fullPath := filepath.Join(projectRoot, filePath)
 		content := generator()
-		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(fullPath, []byte(content), filePerms); err != nil {
 			return fmt.Errorf("failed to write %s: %w", filePath, err)
 		}
 	}
@@ -123,8 +126,10 @@ func generateRequirementsTxt(config ProjectConfig) string {
 	}
 
 	if config.UsePowertools {
-		deps = append(deps, "aws-lambda-powertools[tracer]>=3.7.0")
-		deps = append(deps, "aws-lambda-env-modeler")
+		deps = append(deps,
+			"aws-lambda-powertools[tracer]>=3.7.0",
+			"aws-lambda-env-modeler",
+		)
 	}
 
 	if config.UseDynamoDB {
@@ -273,7 +278,7 @@ task test
 }
 
 // generateGitignore generates .gitignore.
-func generateGitignore(config ProjectConfig) string {
+func generateGitignore(_ ProjectConfig) string {
 	return `# Python
 __pycache__/
 *.py[cod]
@@ -422,7 +427,7 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
 }
 
 // generateBasicHandler generates basic handler without Powertools.
-func generateBasicHandler(config ProjectConfig) string {
+func generateBasicHandler(_ ProjectConfig) string {
 	return `import json
 from typing import Any
 

@@ -313,13 +313,41 @@ func TestModule_LocalName(t *testing.T) {
 }
 
 func TestModule_Configuration(t *testing.T) {
-	t.Run("returns empty string and nil error as placeholder", func(t *testing.T) {
+	t.Run("generates valid HCL for basic table", func(t *testing.T) {
 		module := NewModule("test_table")
 
 		config, err := module.Configuration()
 
 		require.NoError(t, err)
-		assert.Empty(t, config)
+		assert.NotEmpty(t, config)
+
+		// Verify basic structure
+		assert.Contains(t, config, `module "test_table" {`)
+		assert.Contains(t, config, `source  = "terraform-aws-modules/dynamodb-table/aws"`)
+		assert.Contains(t, config, `version = "~> 4.0"`)
+		assert.Contains(t, config, `name = "test_table"`)
+		assert.Contains(t, config, `billing_mode = "PAY_PER_REQUEST"`)
+		assert.Contains(t, config, `point_in_time_recovery_enabled = true`)
+	})
+
+	t.Run("generates HCL with all options", func(t *testing.T) {
+		module := NewModule("users").
+			WithHashKey("userId", "S").
+			WithRangeKey("timestamp", "N").
+			WithStreams("NEW_AND_OLD_IMAGES").
+			WithTags(map[string]string{
+				"Environment": "production",
+			})
+
+		config, err := module.Configuration()
+
+		require.NoError(t, err)
+		assert.Contains(t, config, `name = "users"`)
+		assert.Contains(t, config, `hash_key = "userId"`)
+		assert.Contains(t, config, `range_key = "timestamp"`)
+		assert.Contains(t, config, `stream_enabled = true`)
+		assert.Contains(t, config, `stream_view_type = "NEW_AND_OLD_IMAGES"`)
+		assert.Contains(t, config, `Environment = "production"`)
 	})
 }
 

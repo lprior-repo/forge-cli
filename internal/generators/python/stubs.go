@@ -8,8 +8,9 @@ import (
 
 // generateTerraformFiles generates Terraform infrastructure using type-safe tfmodules.
 func generateTerraformFiles(projectRoot string, config ProjectConfig) error {
+	const dirPerms = 0o750 // rwxr-x---
 	terraformDir := filepath.Join(projectRoot, "terraform")
-	if err := os.MkdirAll(terraformDir, 0o755); err != nil {
+	if err := os.MkdirAll(terraformDir, dirPerms); err != nil {
 		return fmt.Errorf("failed to create terraform directory: %w", err)
 	}
 
@@ -44,8 +45,9 @@ func generateTerraformFiles(projectRoot string, config ProjectConfig) error {
 	}
 
 	// Write all files
+	const filePerms = 0o600 // rw-------
 	for filePath, content := range files {
-		if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(filePath, []byte(content), filePerms); err != nil {
 			return fmt.Errorf("failed to write %s: %w", filePath, err)
 		}
 	}
@@ -54,7 +56,7 @@ func generateTerraformFiles(projectRoot string, config ProjectConfig) error {
 }
 
 // generateTerraformMain generates the main Terraform configuration.
-func generateTerraformMain(config ProjectConfig) string {
+func generateTerraformMain(_ ProjectConfig) string {
 	return `terraform {
   required_version = ">= 1.0"
 
@@ -245,7 +247,7 @@ tasks:
 
 // Python code generation stubs below
 
-func generateEnvVars(config ProjectConfig) string {
+func generateEnvVars(_ ProjectConfig) string {
 	return `from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
@@ -263,7 +265,7 @@ class HandlerEnvVars(Observability):
 `
 }
 
-func generateInputModel(config ProjectConfig) string {
+func generateInputModel(_ ProjectConfig) string {
 	return `from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator
@@ -283,7 +285,7 @@ class RequestInput(BaseModel):
 `
 }
 
-func generateOutputModel(config ProjectConfig) string {
+func generateOutputModel(_ ProjectConfig) string {
 	return `from typing import Annotated
 
 from pydantic import BaseModel, Field
@@ -321,7 +323,7 @@ app = APIGatewayHttpResolver()
 `
 }
 
-func generateBusinessLogic(config ProjectConfig) string {
+func generateBusinessLogic(_ ProjectConfig) string {
 	return `import uuid
 from typing import Any
 
@@ -354,7 +356,7 @@ def process_request(
 `
 }
 
-func generateDynamoDBHandler(config ProjectConfig) string {
+func generateDynamoDBHandler(_ ProjectConfig) string {
 	return `import boto3
 from typing import Any
 
@@ -381,7 +383,7 @@ def delete_item(table_name: str, key: dict[str, Any]) -> None:
 `
 }
 
-func generateDBModel(config ProjectConfig) string {
+func generateDBModel(_ ProjectConfig) string {
 	return `from typing import Annotated
 
 from pydantic import BaseModel, Field

@@ -1,28 +1,26 @@
-# End-to-End Infrastructure Tests
+# End-to-End (E2E) Tests
 
-This directory contains E2E infrastructure tests for each runtime generator in Forge.
+This directory contains comprehensive end-to-end tests for Forge, testing the complete workflow from project generation to deployment and cleanup.
 
 ## Overview
 
-E2E tests verify that:
-1. Generated project code is valid and builds correctly
-2. Terraform infrastructure deploys successfully to AWS
-3. All AWS resources are configured correctly (Lambda, API Gateway, DynamoDB, etc.)
-4. The deployed API functions as expected
-5. Infrastructure can be torn down cleanly
+The E2E tests verify:
+- ✅ Python Lambda project generation (`forge new lambda`)
+- ✅ Build system (`task build`)
+- ✅ Infrastructure deployment (`task deploy` / Terraform)
+- ✅ API Gateway endpoint functionality with HTTP requests
+- ✅ DynamoDB integration and data persistence
+- ✅ Cleanup (`task destroy`) even on failure/panic
 
 ## Test Organization
 
 ```
 test/e2e/
-├── python/          # Python Lambda E2E tests
-│   ├── lambda_infra_test.go
-│   └── helpers.go
-├── go/              # Go Lambda E2E tests (TODO)
-└── nodejs/          # Node.js Lambda E2E tests (TODO)
+├── python/                        # Python Lambda E2E tests
+│   ├── python_generator_e2e_test.go  # Comprehensive E2E test using Forge commands
+│   └── helpers.go                    # Request/response types
+└── forge_workflow_test.go         # Forge workflow test
 ```
-
-Each runtime has its own package with dedicated infrastructure tests.
 
 ## Running E2E Tests
 
@@ -56,14 +54,14 @@ make test-e2e
 go test -v -tags=e2e -timeout=30m ./test/e2e/...
 ```
 
-### Run Specific Runtime Tests
+### Run Specific Test Suite
 
 ```bash
-# Python Lambda tests only
-go test -v -tags=e2e -timeout=30m ./test/e2e/python/
+# Python generator E2E test
+go test -v -tags=e2e -timeout=30m ./test/e2e/python -run TestPythonGeneratorE2E
 
-# With verbose output
-go test -v -tags=e2e -timeout=30m ./test/e2e/python/ -run TestPythonLambdaInfrastructure
+# Forge workflow E2E test
+go test -v -tags=e2e -timeout=30m ./test/e2e -run TestForgeWorkflowEndToEnd
 ```
 
 ### Keep Infrastructure Running

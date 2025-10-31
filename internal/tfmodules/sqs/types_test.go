@@ -266,14 +266,38 @@ func TestModule_LocalName(t *testing.T) {
 }
 
 func TestModule_Configuration(t *testing.T) {
-	t.Run("returns empty string and nil error as placeholder", func(t *testing.T) {
+	t.Run("generates valid HCL for basic queue", func(t *testing.T) {
 		module := NewModule("test_queue")
 
 		config, err := module.Configuration()
 
-		// Current implementation is a placeholder
 		require.NoError(t, err)
-		assert.Empty(t, config)
+		assert.NotEmpty(t, config)
+
+		// Verify basic structure
+		assert.Contains(t, config, `module "test_queue" {`)
+		assert.Contains(t, config, `source  = "terraform-aws-modules/sqs/aws"`)
+		assert.Contains(t, config, `version = "~> 4.0"`)
+		assert.Contains(t, config, `name = "test_queue"`)
+	})
+
+	t.Run("generates HCL with all options", func(t *testing.T) {
+		module := NewModule("orders_queue").
+			WithFIFO(true).
+			WithEncryption("arn:aws:kms:us-east-1:123456789012:key/12345").
+			WithTags(map[string]string{
+				"Environment": "production",
+			})
+
+		config, err := module.Configuration()
+
+		require.NoError(t, err)
+		assert.Contains(t, config, `name = "orders_queue"`)
+		assert.Contains(t, config, `create_dlq = true`)
+		assert.Contains(t, config, `fifo_queue = true`)
+		assert.Contains(t, config, `content_based_deduplication = true`)
+		assert.Contains(t, config, `kms_master_key_id = "arn:aws:kms:us-east-1:123456789012:key/12345"`)
+		assert.Contains(t, config, `Environment = "production"`)
 	})
 }
 
